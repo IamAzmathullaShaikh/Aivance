@@ -5,7 +5,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class UserPreferences(
     val onboardingCompleted: Boolean = false,
-    val themeConfig: ThemeConfig = ThemeConfig.FOLLOW_SYSTEM
+    val themeConfig: ThemeConfig = ThemeConfig.FOLLOW_SYSTEM,
+    val geminiApiKey: String? = null
 )
 
 enum class ThemeConfig {

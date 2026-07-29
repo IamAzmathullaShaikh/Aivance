@@ -18,12 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.bangersoul.aivance.core.designsystem.theme.AvianceTheme
+import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 
 import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
-fun AvianceError(
+fun AivanceError(
     message: String,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
@@ -31,7 +31,7 @@ fun AvianceError(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(AvianceTheme.spacing.medium),
+            .padding(AivanceTheme.spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -41,20 +41,20 @@ fun AvianceError(
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.error
         )
-        Spacer(modifier = Modifier.height(AvianceTheme.spacing.medium))
+        Spacer(modifier = Modifier.height(AivanceTheme.spacing.medium))
         Text(
             text = "Something went wrong",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(AvianceTheme.spacing.small))
+        Spacer(modifier = Modifier.height(AivanceTheme.spacing.small))
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(AvianceTheme.spacing.large))
+        Spacer(modifier = Modifier.height(AivanceTheme.spacing.large))
         Button(onClick = onRetry) {
             Text(text = "Retry")
         }
@@ -63,9 +63,9 @@ fun AvianceError(
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
-private fun AvianceErrorPreview() {
-    AvianceTheme(darkTheme = true) {
-        AvianceError(
+private fun AivanceErrorPreview() {
+    AivanceTheme(darkTheme = true) {
+        AivanceError(
             message = "Unable to connect to the server. Please check your internet connection.",
             onRetry = {}
         )

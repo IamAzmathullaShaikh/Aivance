@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Immutable
-data class AvianceSpacing(
+data class AivanceSpacing(
     val default: Dp = 0.dp,
     val extraSmall: Dp = 4.dp,
     val small: Dp = 8.dp,
@@ -19,12 +19,12 @@ data class AvianceSpacing(
 )
 
 @Immutable
-data class AvianceShapes(
+data class AivanceShapes(
     val small: RoundedCornerShape = RoundedCornerShape(8.dp),
     val medium: RoundedCornerShape = RoundedCornerShape(12.dp),
     val large: RoundedCornerShape = RoundedCornerShape(16.dp),
     val extraLarge: RoundedCornerShape = RoundedCornerShape(24.dp)
 )
 
-val LocalAvianceSpacing = staticCompositionLocalOf { AvianceSpacing() }
-val LocalAvianceShapes = staticCompositionLocalOf { AvianceShapes() }
+val LocalAivanceSpacing = staticCompositionLocalOf { AivanceSpacing() }
+val LocalAivanceShapes = staticCompositionLocalOf { AivanceShapes() }

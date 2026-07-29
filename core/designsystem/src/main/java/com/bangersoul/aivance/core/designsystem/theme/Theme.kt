@@ -42,7 +42,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun AvianceTheme(
+fun AivanceTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
@@ -58,8 +58,8 @@ fun AvianceTheme(
     }
 
     CompositionLocalProvider(
-        LocalAvianceSpacing provides AvianceSpacing(),
-        LocalAvianceShapes provides AvianceShapes()
+        LocalAivanceSpacing provides AivanceSpacing(),
+        LocalAivanceShapes provides AivanceShapes()
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -69,14 +69,14 @@ fun AvianceTheme(
     }
 }
 
-object AvianceTheme {
-    val spacing: AvianceSpacing
+object AivanceTheme {
+    val spacing: AivanceSpacing
         @Composable
         @ReadOnlyComposable
-        get() = LocalAvianceSpacing.current
+        get() = LocalAivanceSpacing.current
 
-    val shapes: AvianceShapes
+    val shapes: AivanceShapes
         @Composable
         @ReadOnlyComposable
-        get() = LocalAvianceShapes.current
+        get() = LocalAivanceShapes.current
 }

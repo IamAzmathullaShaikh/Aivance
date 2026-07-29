@@ -42,7 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.bangersoul.aivance.core.designsystem.theme.AvianceTheme
+import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 import com.bangersoul.aivance.core.designsystem.theme.DarkAccent
 import com.bangersoul.aivance.core.designsystem.theme.Zinc700
 import com.bangersoul.aivance.core.designsystem.theme.Zinc800
@@ -61,7 +61,7 @@ fun DashboardCard(
         Card(
             onClick = onClick,
             modifier = modifier,
-            shape = AvianceTheme.shapes.large,
+            shape = AivanceTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
@@ -72,7 +72,7 @@ fun DashboardCard(
     } else {
         Card(
             modifier = modifier,
-            shape = AvianceTheme.shapes.large,
+            shape = AivanceTheme.shapes.large,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
@@ -97,8 +97,8 @@ fun StatCard(
 ) {
     DashboardCard(modifier = modifier) {
         Column(
-            modifier = Modifier.padding(AvianceTheme.spacing.medium),
-            verticalArrangement = Arrangement.spacedBy(AvianceTheme.spacing.extraSmall)
+            modifier = Modifier.padding(AivanceTheme.spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(AivanceTheme.spacing.extraSmall)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -173,7 +173,7 @@ fun SectionHeader(
                     style = MaterialTheme.typography.labelLarge,
                     color = DarkAccent
                 )
-                Spacer(Modifier.width(AvianceTheme.spacing.extraSmall))
+                Spacer(Modifier.width(AivanceTheme.spacing.extraSmall))
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
                     contentDescription = null,
@@ -194,16 +194,20 @@ fun ActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    enabled: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary
 ) {
     Button(
         onClick = onClick,
         modifier = modifier.height(48.dp),
-        shape = AvianceTheme.shapes.medium,
+        enabled = enabled,
+        shape = AivanceTheme.shapes.medium,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
-            contentColor = contentColor
+            contentColor = contentColor,
+            disabledContainerColor = containerColor.copy(alpha = 0.5f),
+            disabledContentColor = contentColor.copy(alpha = 0.5f)
         )
     ) {
         icon?.let {
@@ -212,7 +216,7 @@ fun ActionButton(
                 contentDescription = null,
                 modifier = Modifier.size(20.dp)
             )
-            Spacer(Modifier.width(AvianceTheme.spacing.small))
+            Spacer(Modifier.width(AivanceTheme.spacing.small))
         }
         Text(
             text = text,
@@ -296,7 +300,7 @@ fun EmptyStateCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(AvianceTheme.spacing.large),
+                .padding(AivanceTheme.spacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -306,13 +310,13 @@ fun EmptyStateCard(
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.secondary
             )
-            Spacer(Modifier.height(AvianceTheme.spacing.medium))
+            Spacer(Modifier.height(AivanceTheme.spacing.medium))
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(AvianceTheme.spacing.extraSmall))
+            Spacer(Modifier.height(AivanceTheme.spacing.extraSmall))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
@@ -321,7 +325,7 @@ fun EmptyStateCard(
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             if (actionText != null && onActionClick != null) {
-                Spacer(Modifier.height(AvianceTheme.spacing.medium))
+                Spacer(Modifier.height(AivanceTheme.spacing.medium))
                 ActionButton(
                     text = actionText,
                     onClick = onActionClick,
@@ -335,7 +339,7 @@ fun EmptyStateCard(
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun DashboardComponentsPreview() {
-    AvianceTheme(darkTheme = true) {
+    AivanceTheme(darkTheme = true) {
         Column(
             modifier = Modifier
                 .padding(16.dp)

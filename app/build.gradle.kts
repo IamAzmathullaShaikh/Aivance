@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.plugin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -83,6 +84,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.hilt.work)
     implementation(libs.hilt.android)
     implementation(libs.timber)
     implementation(libs.coil.compose)
@@ -100,7 +102,6 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.core)
     implementation(libs.material)
-    implementation(libs.google.generativeai)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
@@ -119,4 +120,5 @@ dependencies {
 
     ksp(libs.androidx.room.compiler)
     ksp(libs.hilt.compiler)
+    ksp(libs.hilt.work.compiler)
 }

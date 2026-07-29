@@ -9,6 +9,25 @@ Aivance leverages modern Android development practices to provide a seamless use
 - **Modularity**: A feature-based multi-module structure for improved build times and code isolation.
 - **Premium Design**: A dark-first, Material 3-compliant design system that is both expressive and adaptive.
 
+## Key Features
+
+- **Resume Optimizer & ATS Matcher**: Analyze and optimize your resume to pass Applicant Tracking Systems (ATS) with ease. Get real-time feedback and keyword optimization suggestions.
+- **AI Career Roadmap**: Generate personalized career paths based on your current skills and target roles.
+- **Dynamic Cover Letter Generator**: Create tailored cover letters for every job application using advanced AI models.
+- **AI Interview Coach**: Practice interviews with a real-time AI coach that provides feedback on your answers and delivery.
+- **Universal Job Tracker**: Manage your entire job search funnel in one place, from discovery to offer.
+
+## Architecture
+
+Aivance is built upon the principles of **Clean Architecture**, ensuring a clear separation of concerns, testability, and maintainability.
+
+Detailed design decisions and architectural evolutions are documented in our [Architecture Decision Records (ADRs)](docs/adr/).
+
+### Core Pillars
+- **Multi-module Architecture**: The project is organized into feature and core modules to promote isolation, reusability, and faster build times.
+- **Dependency Injection (DI)**: Using [Hilt](https://developer.android.com/training/dependency-injection/hilt-android) for robust and scalable dependency management.
+- **Unidirectional Data Flow (UDF)**: UI state management follows UDF principles using [StateFlow](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/-state-flow/) and [Compose](https://developer.android.com/jetpack/compose) to ensure predictable UI updates.
+
 ## Tech Stack
 
 - **Language**: [Kotlin](https://kotlinlang.org/)
@@ -29,7 +48,7 @@ Aivance leverages modern Android development practices to provide a seamless use
 
 The project is divided into several modules to ensure a clean separation of concerns:
 
-- **`:app`**: The entry point of the application (containing `MainActivity` and `AvianceApp`). It handles global dependency injection, application configuration, and orchestrates the navigation.
+- **`:app`**: The entry point of the application (containing `MainActivity` and `AivanceApp`). It handles global dependency injection, application configuration, and orchestrates the navigation.
 - **`:core`**: Shared infrastructure and utility modules.
   - `:core:common`: Shared models, constants, and basic utilities used across modules.
   - `:core:database`: Local data persistence using Room.
@@ -44,9 +63,24 @@ The project is divided into several modules to ensure a clean separation of conc
   - `:feature:interview`: Resources and prep tools for interviews.
   - `:feature:jobs`: Job search and listing functionality.
   - `:feature:profile`: User profile management and settings.
-  - `:feature:resume`: Resume building and management tools.
+  - `:feature:resume`: **Resume Optimizer & ATS Matcher** tools.
   - `:feature:tracker`: Job application tracking and status monitoring.
 - **`:navigation`**: Centralized navigation logic using the Jetpack Navigation 3 Adaptive APIs.
+
+## 🚀 Usage Guide
+
+Maximize your career growth with Aivance by following these five steps:
+
+1.  **Step 1: Define Your North Star (Profile/Roadmap)**
+    Start by completing your profile and generating an AI Career Roadmap. This helps Aivance understand your goals and provide personalized recommendations.
+2.  **Step 2: Optimize Your Assets (Resume & ATS)**
+    Upload your resume to the **Resume Optimizer & ATS Matcher**. Use the AI-driven feedback to ensure your resume is perfectly tailored for modern ATS filters.
+3.  **Step 3: Tailor Your Outreach (Cover Letter)**
+    For every job you're interested in, use the Cover Letter Generator to create a compelling, personalized application that stands out to recruiters.
+4.  **Step 4: Prepare for the Battle (Interview Coach)**
+    Once you land an interview, head over to the **Interview Coach**. Practice common questions and get real-time feedback on your performance and technical accuracy.
+5.  **Step 5: Manage the Funnel (Tracker)**
+    Keep all your applications organized in the **Tracker**. Monitor your progress, set follow-up reminders, and analyze your conversion rates to optimize your job search strategy.
 
 ## Requirements
 
@@ -87,11 +121,29 @@ Use these Gradle commands for common development tasks:
   ./gradlew connectedAndroidTest
   ```
 
-## Environment Variables
+## API Setup (Gemini AI)
 
-Some features (like future AI integration) may require API keys. These should be configured in your `local.properties` file or via environment variables to avoid committing sensitive information.
+Some features (like AI integration) require API keys. These must be configured in your `local.properties` file or through the App Settings menu to avoid committing sensitive information.
 
-- **TODO**: Add instructions for specific API keys (e.g., Gemini API, OpenAI) as they are integrated.
+### Configuration via `local.properties`
+To use the AI features (e.g., in the `:core:network` module), you need a Gemini API key:
+1. Go to the [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Create or copy your API key.
+3. Open your `local.properties` file in the project root.
+4. Add the following line:
+   ```properties
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+### Configuration via App Settings
+Alternatively, you can provide the API key directly within the app:
+1. Open the **Aivance** app on your device.
+2. Navigate to **Profile > Settings**.
+3. Enter your Gemini API key in the designated field.
+4. The key will be securely stored in your local DataStore.
+
+> [!IMPORTANT]
+> Never commit `local.properties` to version control. It is already included in the `.gitignore` by default.
 
 ## License
 

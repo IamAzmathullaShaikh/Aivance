@@ -12,10 +12,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.ui.tooling.preview.Preview
-import com.bangersoul.aivance.core.designsystem.theme.AvianceTheme
+import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 
 @Composable
-fun AvianceLoading(
+fun AivanceLoading(
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -33,8 +33,8 @@ fun AvianceLoading(
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
-private fun AvianceLoadingPreview() {
-    AvianceTheme(darkTheme = true) {
-        AvianceLoading()
+private fun AivanceLoadingPreview() {
+    AivanceTheme(darkTheme = true) {
+        AivanceLoading()
     }
 }

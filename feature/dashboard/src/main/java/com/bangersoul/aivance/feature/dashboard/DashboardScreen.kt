@@ -42,12 +42,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bangersoul.aivance.core.designsystem.components.ActionButton
 import com.bangersoul.aivance.core.designsystem.components.AnimatedProgress
-import com.bangersoul.aivance.core.designsystem.components.AvianceScreen
+import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
 import com.bangersoul.aivance.core.designsystem.components.DashboardCard
 import com.bangersoul.aivance.core.designsystem.components.EmptyStateCard
 import com.bangersoul.aivance.core.designsystem.components.MetricChip
 import com.bangersoul.aivance.core.designsystem.components.SectionHeader
-import com.bangersoul.aivance.core.designsystem.theme.AvianceTheme
+import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 import com.bangersoul.aivance.core.designsystem.theme.DarkAccent
 import com.bangersoul.aivance.core.designsystem.theme.Zinc800
 import com.bangersoul.aivance.core.designsystem.theme.Zinc900
@@ -55,15 +55,60 @@ import com.bangersoul.aivance.feature.dashboard.domain.DashboardData
 import com.bangersoul.aivance.feature.dashboard.domain.ResumeStatus
 import java.time.LocalDate
 
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TopAppBarDefaults
+import java.time.LocalTime
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onNavigateToResume: () -> Unit,
-    onNavigateToTracker: () -> Unit
+    onNavigateToTracker: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToInterview: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    AvianceScreen(
+    AivanceScreen(
+        topBar = {
+            val time = LocalTime.now()
+            val greeting = when (time.hour) {
+                in 0..11 -> "Good Morning,"
+                in 12..16 -> "Good Afternoon,"
+                else -> "Good Evening,"
+            }
+            CenterAlignedTopAppBar(
+                title = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = greeting,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Welcome back.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* Notifications placeholder */ }) {
+                        Icon(Icons.Rounded.Notifications, contentDescription = "Notifications")
+                    }
+                    IconButton(onClick = onNavigateToProfile) {
+                        Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
+        },
         isLoading = uiState is DashboardUiState.Loading,
         error = (uiState as? DashboardUiState.Error)?.message
     ) {
@@ -79,11 +124,12 @@ fun DashboardScreen(
                     DashboardContent(
                         data = state.dashboardData,
                         onNavigateToResume = onNavigateToResume,
-                        onNavigateToTracker = onNavigateToTracker
+                        onNavigateToTracker = onNavigateToTracker,
+                        onNavigateToProfile = onNavigateToProfile,
+                        onNavigateToInterview = onNavigateToInterview
                     )
                 }
                 is DashboardUiState.Error, DashboardUiState.Loading, DashboardUiState.Empty -> {
-                    // Handled by AvianceScreen or can be custom
                     Box(modifier = Modifier.fillMaxSize())
                 }
             }
@@ -92,16 +138,18 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardContent(
+internal fun DashboardContent(
     data: DashboardData,
     onNavigateToResume: () -> Unit,
     onNavigateToTracker: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToInterview: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(AvianceTheme.spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(AvianceTheme.spacing.large)
+        contentPadding = PaddingValues(AivanceTheme.spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(AivanceTheme.spacing.large)
     ) {
         // Profile Completion
         item {
@@ -111,9 +159,9 @@ private fun DashboardContent(
             ) {
                 Column {
                     SectionHeader(title = "Profile Progress")
-                    Spacer(Modifier.height(AvianceTheme.spacing.small))
+                    Spacer(Modifier.height(AivanceTheme.spacing.small))
                     DashboardCard {
-                        Column(modifier = Modifier.padding(AvianceTheme.spacing.medium)) {
+                        Column(modifier = Modifier.padding(AivanceTheme.spacing.medium)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -130,12 +178,12 @@ private fun DashboardContent(
                                     contentColor = DarkAccent
                                 )
                             }
-                            Spacer(Modifier.height(AvianceTheme.spacing.medium))
+                            Spacer(Modifier.height(AivanceTheme.spacing.medium))
                             AnimatedProgress(progress = data.profileCompletion / 100f)
-                            Spacer(Modifier.height(AvianceTheme.spacing.medium))
+                            Spacer(Modifier.height(AivanceTheme.spacing.medium))
                             ActionButton(
                                 text = "Complete Profile",
-                                onClick = { /* TODO */ },
+                                onClick = onNavigateToProfile,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -148,19 +196,19 @@ private fun DashboardContent(
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AvianceTheme.spacing.medium)
+                horizontalArrangement = Arrangement.spacedBy(AivanceTheme.spacing.medium)
             ) {
                 // Resume Card
                 DashboardCard(
                     modifier = Modifier.weight(1f)
                 ) {
-                    Column(modifier = Modifier.padding(AvianceTheme.spacing.medium)) {
+                    Column(modifier = Modifier.padding(AivanceTheme.spacing.medium)) {
                         Icon(
                             imageVector = Icons.Rounded.Description,
                             contentDescription = "Resume Icon",
                             tint = DarkAccent
                         )
-                        Spacer(Modifier.height(AvianceTheme.spacing.small))
+                        Spacer(Modifier.height(AivanceTheme.spacing.small))
                         Text(
                             text = "Resume Uploaded",
                             style = MaterialTheme.typography.labelLarge,
@@ -173,7 +221,7 @@ private fun DashboardContent(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(Modifier.height(AvianceTheme.spacing.medium))
+                        Spacer(Modifier.height(AivanceTheme.spacing.medium))
                         ActionButton(
                             text = "Open",
                             onClick = onNavigateToResume,
@@ -194,7 +242,7 @@ private fun DashboardContent(
                         label = "AtsScoreAnimation"
                     )
                     Column(
-                        modifier = Modifier.padding(AvianceTheme.spacing.medium),
+                        modifier = Modifier.padding(AivanceTheme.spacing.medium),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -212,7 +260,7 @@ private fun DashboardContent(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Spacer(Modifier.height(AvianceTheme.spacing.small))
+                        Spacer(Modifier.height(AivanceTheme.spacing.small))
                         Text(
                             text = "ATS Score",
                             style = MaterialTheme.typography.labelLarge,
@@ -230,12 +278,12 @@ private fun DashboardContent(
                 ctaText = "View All",
                 onCtaClick = onNavigateToTracker
             )
-            Spacer(Modifier.height(AvianceTheme.spacing.small))
+            Spacer(Modifier.height(AivanceTheme.spacing.small))
             DashboardCard {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(AvianceTheme.spacing.medium),
+                        .padding(AivanceTheme.spacing.medium),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -263,12 +311,12 @@ private fun DashboardContent(
         // Interview Prep
         item {
             SectionHeader(title = "Interview Prep")
-            Spacer(Modifier.height(AvianceTheme.spacing.small))
+            Spacer(Modifier.height(AivanceTheme.spacing.small))
             DashboardCard {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(AvianceTheme.spacing.medium),
+                        .padding(AivanceTheme.spacing.medium),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -286,16 +334,17 @@ private fun DashboardContent(
                     }
                     ActionButton(
                         text = "Start Session",
-                        onClick = { /* TODO */ }
+                        onClick = onNavigateToInterview
                     )
                 }
             }
         }
 
+
         // Job Recommendations
         item {
             SectionHeader(title = "Recommendations")
-            Spacer(Modifier.height(AvianceTheme.spacing.small))
+            Spacer(Modifier.height(AivanceTheme.spacing.small))
             if (data.jobRecommendations.isEmpty()) {
                 EmptyStateCard(
                     title = "No recommendations yet",
@@ -308,11 +357,11 @@ private fun DashboardContent(
         // Recent Activity
         item {
             SectionHeader(title = "Recent Activity")
-            Spacer(Modifier.height(AvianceTheme.spacing.small))
+            Spacer(Modifier.height(AivanceTheme.spacing.small))
             if (data.recentActivity.isEmpty()) {
                 EmptyStateCard(
                     title = "No activity yet",
-                    description = "Your actions will appear here once you start using Aviance.",
+                    description = "Your actions will appear here once you start using Aivance.",
                     icon = Icons.Rounded.History
                 )
             }
@@ -323,7 +372,7 @@ private fun DashboardContent(
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun DashboardContentPreview() {
-    AvianceTheme(darkTheme = true) {
+    AivanceTheme(darkTheme = true) {
         DashboardContent(
             data = DashboardData(
                 profileCompletion = 72,
@@ -333,7 +382,9 @@ private fun DashboardContentPreview() {
                 interviewPrepStatus = "Ready to Practice"
             ),
             onNavigateToResume = {},
-            onNavigateToTracker = {}
+            onNavigateToTracker = {},
+            onNavigateToProfile = {},
+            onNavigateToInterview = {}
         )
     }
 }

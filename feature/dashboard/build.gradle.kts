@@ -18,6 +18,7 @@ android {
 
 dependencies {
     implementation(project(":core:common"))
+    implementation(project(":core:database"))
     implementation(project(":core:designsystem"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
@@ -28,4 +29,24 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.truth)
+    testImplementation(libs.turbine)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.android.testing.compiler)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.hilt.android.testing)
+    androidTestImplementation(libs.mockk)
+    kspAndroidTest(libs.hilt.android.testing.compiler)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
