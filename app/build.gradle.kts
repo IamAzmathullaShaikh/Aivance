@@ -25,18 +25,23 @@ android {
     signingConfigs {
         create("release") {
             val keystoreFile = file("../keystore.jks")
-            if (keystoreFile.exists()) {
+            val storePwd = System.getenv("AIVANCE_STORE_PASSWORD")
+            val keyAl = System.getenv("AIVANCE_KEY_ALIAS")
+            val keyPwd = System.getenv("AIVANCE_KEY_PASSWORD")
+            if (keystoreFile.exists() && storePwd != null && keyAl != null && keyPwd != null) {
                 storeFile = keystoreFile
-                storePassword = System.getenv("AIVANCE_STORE_PASSWORD") ?: ""
-                keyAlias = System.getenv("AIVANCE_KEY_ALIAS") ?: ""
-                keyPassword = System.getenv("AIVANCE_KEY_PASSWORD") ?: ""
+                storePassword = storePwd
+                keyAlias = keyAl
+                keyPassword = keyPwd
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.findByName("release")
+            signingConfig = signingConfigs.findByName("release")?.takeIf {
+                it.storeFile?.exists() == true
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
