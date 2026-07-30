@@ -24,13 +24,13 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../keystore.jks")
-            val storePwd: String? = System.getenv("AIVANCE_STORE_PASSWORD")
-            val keyAl: String? = System.getenv("AIVANCE_KEY_ALIAS")
-            val keyPwd: String? = System.getenv("AIVANCE_KEY_PASSWORD")
-            if (storePwd != null) storePassword = storePwd
-            if (keyAl != null) keyAlias = keyAl
-            if (keyPwd != null) keyPassword = keyPwd
+            val keystoreFile = file("../keystore.jks")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("AIVANCE_STORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("AIVANCE_KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("AIVANCE_KEY_PASSWORD") ?: ""
+            }
         }
     }
 

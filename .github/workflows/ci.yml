@@ -52,6 +52,11 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
 
+      - name: Set up Android SDK
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" "build-tools;37.0.0" 2>/dev/null || true
+
       - name: Compile only (fast fail)
         run: |
           ./gradlew :app:compileDebugKotlin \
@@ -95,6 +100,11 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
           restore-keys: |
             gradle-${{ runner.os }}-
+
+      - name: Set up Android SDK
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" 2>/dev/null || true
 
       - name: Create local.properties
         run: |
@@ -166,6 +176,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-home-cache-cleanup: true
+
+      - name: Set up Android SDK
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" 2>/dev/null || true
 
       - name: Cache Gradle dependencies
         uses: actions/cache@v4
@@ -351,6 +366,11 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
           cache-read-only: false
+
+      - name: Set up Android SDK
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" 2>/dev/null || true
 
       - name: Cache Gradle
         uses: actions/cache@v4
