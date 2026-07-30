@@ -9,6 +9,7 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.data.source.JobLocalDataSource
 import com.bangersoul.aivance.core.database.dao.JobDao
 import com.bangersoul.aivance.core.database.model.JobWithDetails
+import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -24,10 +25,12 @@ class JobRepositoryImplTest {
     private lateinit var repository: JobRepositoryImpl
     private val localDataSource: JobLocalDataSource = mockk()
     private val jobDao: JobDao = mockk()
+    private val providerManager: ProviderManager = mockk()
 
     @Before
     fun setUp() {
-        repository = JobRepositoryImpl(localDataSource, jobDao)
+        every { providerManager.getBestProviderFor(any()) } returns null
+        repository = JobRepositoryImpl(localDataSource, jobDao, providerManager)
     }
 
     @Test

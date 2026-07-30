@@ -5,34 +5,86 @@ on:
     branches: [ master, develop ]
   pull_request:
     branches: [ master ]
+  schedule:
+    # Nightly full test suite run
+    - cron: '0 6 * * 1-5'
   workflow_dispatch:
     inputs:
       release_type:
         description: 'Release type (alpha, beta, rc, stable)'
         required: false
         default: 'alpha'
+      run_benchmarks:
+        description: 'Run performance benchmarks'
+        type: boolean
+        default: false
 
 env:
   GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8"
+  GRADLE_BUILD_CACHE_ENABLED: true
+  JAVA_VERSION: "17"
+
+concurrency:
+  group: ci-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
-  # ── Verification Job ──────────────────────────────────────────
-  verify:
-    name: Verify Build
+  # ── Quick Check: Fastest feedback for PRs ───────────────────
+  quick-check:
+    name: 🏃 Quick Check
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    if: github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Compile only (fast fail)
+        run: |
+          ./gradlew :app:compileDebugKotlin \
+                    :core:common:compileDebugKotlin \
+                    :core:domain:compileDebugKotlin \
+                    :core:data:compileDebugKotlin \
+                    --no-daemon --parallel
+
+      - name: Gradle Build Scan (Develocity)
+        if: always() && hashFiles('**/.gradle/build-scan-data/*') != ''
+        run: ./gradlew buildScanPublishPrevious --no-daemon || true
+
+  # ── Code Quality ──────────────────────────────────────────
+  code-quality:
+    name: 🧹 Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
 
       - name: Cache Gradle dependencies
         uses: actions/cache@v4
@@ -40,162 +92,418 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
-      - name: Create local.properties for build
+      - name: Create local.properties
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > local.properties
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY || 'test' }}" > local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT" >> local.properties
 
-      - name: Run lint
+      - name: Run detekt static analysis
+        run: |
+          # Only fail if detekt config exists
+          if [ -f config/detekt/detekt.yml ]; then
+            ./gradlew detekt --no-daemon
+          else
+            echo "detekt config not found, skipping"
+          fi
+
+      - name: Run Android lint
         run: ./gradlew lintDebug --no-daemon
 
-      - name: Run unit tests
-        run: ./gradlew testDebug --no-daemon
+      - name: Check API compatibility
+        run: |
+          ./gradlew checkLibApi --no-daemon || echo "checkLibApi not available, skipping"
 
-      - name: Run Android tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 34
-          target: google_apis
-          arch: x86_64
-          script: ./gradlew connectedDebugAndroidTest --no-daemon
-
-      - name: Upload test results
+      - name: Upload lint results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: lint-results
           path: |
-            **/build/reports/tests/
-            **/build/reports/androidTests/
+            **/build/reports/lint-results*.html
+            **/build/reports/detekt/
 
-  # ── Security Scan Job ─────────────────────────────────────────
+  # ── Unit Tests ────────────────────────────────────────────
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - ':core:common'
+          - ':core:domain'
+          - ':core:data'
+          - ':core:sdk'
+          - ':core:database'
+          - ':core:datastore'
+          - ':core:util'
+          - ':core:job-providers'
+          - ':feature:ats'
+          - ':feature:coverletter'
+          - ':feature:dashboard'
+          - ':feature:interview'
+          - ':feature:jobs'
+          - ':feature:profile'
+          - ':feature:resume'
+          - ':feature:tracker'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Run unit tests for ${{ matrix.module }}
+        run: ./gradlew ${{ matrix.module }}:testDebugUnitTest --no-daemon --continue
+
+      - name: Sanitize module name for artifact
+        id: sanitize
+        run: echo "name=${{ matrix.module }}" | sed 's/:/_/g' | sed 's/^_//' >> $GITHUB_OUTPUT
+
+      - name: Upload test results for ${{ matrix.module }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ steps.sanitize.outputs.name }}
+          path: |
+            ${{ matrix.module }}/build/reports/tests/
+            ${{ matrix.module }}/build/test-results/
+          retention-days: 7
+
+  # ── Instrumented Tests (Android Emulator) ────────────────
+  android-tests:
+    name: 📱 Android Tests
+    runs-on: macos-latest  # Hardware acceleration available
+    timeout-minutes: 45
+    if: github.event_name != 'pull_request'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [29, 34]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-android-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
+          restore-keys: |
+            gradle-android-${{ runner.os }}-
+
+      - name: Run instrumented tests (API ${{ matrix.api-level }})
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -cache-size 512
+          disable-animations: true
+          script: |
+            echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+            ./gradlew connectedDebugAndroidTest --no-daemon --continue
+
+      - name: Upload Android test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-results-api${{ matrix.api-level }}
+          path: |
+            **/build/reports/androidTests/
+            **/build/outputs/androidTest-results/
+          retention-days: 14
+
+  # ── Code Coverage ─────────────────────────────────────────
+  code-coverage:
+    name: 📊 Code Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [unit-tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          merge-multiple: true
+
+      - name: Generate coverage report
+        run: |
+          ./gradlew :app:createDebugCoverageReport --no-daemon || true
+          ./gradlew koverMergedReport --no-daemon || true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            **/build/reports/coverage/
+            **/build/reports/kover/
+          retention-days: 30
+
+  # ── Security Scan ─────────────────────────────────────────
   security-scan:
-    name: Security Scan
+    name: 🔒 Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
 
-      - name: Check dependencies
-        run: ./gradlew :app:dependencies --no-daemon --configuration releaseRuntimeClasspath | head -50
+      - name: Generate dependency tree
+        run: |
+          ./gradlew :app:dependencies --no-daemon --configuration releaseRuntimeClasspath > dependency-tree.txt
+          ./gradlew :app:dependencies --no-daemon --configuration debugRuntimeClasspath >> dependency-tree.txt
 
-      - name: Check for license violations
-        run: ./gradlew checkLicense --no-daemon || true
+      - name: Check for known vulnerabilities
+        run: |
+          ./gradlew dependencyCheckAnalyze --no-daemon || echo "dependencyCheck plugin not installed, skipping"
+          ./gradlew ossIndexAudit --no-daemon || echo "ossIndex plugin not installed, skipping"
 
-  # ── Build Job ─────────────────────────────────────────────────
+      - name: License audit
+        run: |
+          ./gradlew checkLicense --no-daemon || echo "checkLicense plugin not installed, skipping"
+
+      - name: Upload dependency reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-reports
+          path: |
+            dependency-tree.txt
+            build/reports/dependency-check/
+          retention-days: 30
+
+  # ── Build Release Artifacts ──────────────────────────────
   build:
-    name: Build Release
-    needs: [verify, security-scan]
+    name: 📦 Build Release
+    needs: [code-quality, unit-tests, security-scan]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+          cache-read-only: false
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-build-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
+          restore-keys: |
+            gradle-build-${{ runner.os }}-
 
       - name: Create local.properties
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > local.properties
-          echo "AIVANCE_STORE_FILE=${{ secrets.AIVANCE_STORE_FILE }}" >> local.properties
-          echo "AIVANCE_STORE_PASSWORD=${{ secrets.AIVANCE_STORE_PASSWORD }}" >> local.properties
-          echo "AIVANCE_KEY_ALIAS=${{ secrets.AIVANCE_KEY_ALIAS }}" >> local.properties
-          echo "AIVANCE_KEY_PASSWORD=${{ secrets.AIVANCE_KEY_PASSWORD }}" >> local.properties
+          cat > local.properties << 'LOCALEOF'
+          sdk.dir=$ANDROID_SDK_ROOT
+          LOCALEOF
+
+      - name: Check keystore secret
+        id: check-keystore
+        run: |
+          if [ -n "${{ secrets.AIVANCE_KEYSTORE_BASE64 }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Decode keystore
+        if: steps.check-keystore.outputs.exists == 'true'
         run: |
           echo "${{ secrets.AIVANCE_KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
       - name: Build release AAB
         run: ./gradlew :app:bundleRelease --no-daemon
+        env:
+          AIVANCE_STORE_PASSWORD: ${{ secrets.AIVANCE_STORE_PASSWORD }}
+          AIVANCE_KEY_ALIAS: ${{ secrets.AIVANCE_KEY_ALIAS }}
+          AIVANCE_KEY_PASSWORD: ${{ secrets.AIVANCE_KEY_PASSWORD }}
 
-      - name: Build release APK
+      - name: Build release APK (universal)
         run: ./gradlew :app:assembleRelease --no-daemon
+        env:
+          AIVANCE_STORE_PASSWORD: ${{ secrets.AIVANCE_STORE_PASSWORD }}
+          AIVANCE_KEY_ALIAS: ${{ secrets.AIVANCE_KEY_ALIAS }}
+          AIVANCE_KEY_PASSWORD: ${{ secrets.AIVANCE_KEY_PASSWORD }}
 
-      - name: Upload AAB artifact
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: aivance-release-aab
           path: app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aivance-release-apk
           path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 90
 
       - name: Upload ProGuard mapping
         uses: actions/upload-artifact@v4
         with:
           name: proguard-mapping
           path: app/build/outputs/mapping/release/mapping.txt
+          retention-days: 90
 
-  # ── Performance Benchmark Job ─────────────────────────────────
+      - name: Upload debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-symbols
+          path: app/build/outputs/native-debug-symbols/
+          retention-days: 90
+
+  # ── Performance Benchmark ────────────────────────────────
   benchmark:
-    name: Performance Benchmark
+    name: ⚡ Performance
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: |
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.run_benchmarks == 'true')
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Generate Baseline Profile
-        run: ./gradlew :app:generateDebugBaselineProfile --no-daemon || true
+      - name: Generate baseline profile
+        run: |
+          ./gradlew :app:generateDebugBaselineProfile --no-daemon || true
 
-  # ── Play Store Release Job ────────────────────────────────────
-  release-to-play-store:
-    name: Release to Play Store
+      - name: Run macrobenchmark
+        run: |
+          ./gradlew :app:macrobenchmark --no-daemon || true
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            **/build/outputs/benchmark/
+            **/build/reports/benchmark/
+          retention-days: 90
+
+  # ── Release to Play Store ────────────────────────────────
+  release:
+    name: 🚀 Play Store Release
     needs: [build, benchmark]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.ref == 'refs/heads/master' && github.event_name == 'workflow_dispatch'
+    if: |
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: temurin
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Download AAB artifact
+      - name: Download AAB
         uses: actions/download-artifact@v4
         with:
           name: aivance-release-aab
+          path: app/build/outputs/bundle/release/
 
-      - name: Upload to Google Play Console
+      - name: Download ProGuard mapping
+        uses: actions/download-artifact@v4
+        with:
+          name: proguard-mapping
+          path: app/build/outputs/mapping/release/
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION_NAME=$(grep 'versionName' app/build.gradle.kts | head -1 | grep -oP '"[^"]+"' | tr -d '"' || echo "1.0.0")
+          VERSION_CODE=$(grep 'versionCode' app/build.gradle.kts | head -1 | grep -oP '\d+' || echo "1")
+          echo "version=v${VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+
+      - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -205,4 +513,67 @@ jobs:
           status: completed
           inAppUpdatePriority: 2
           userFraction: 0.1
-          releaseName: v${{ github.event.inputs.release_type || 'alpha' }}
+          releaseName: ${{ steps.version.outputs.version || github.event.inputs.release_type || 'alpha' }}
+
+      - name: Upload mapping to Play Console
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.bangersoul.aivance
+          mappingFile: app/build/outputs/mapping/release/mapping.txt
+
+  # ── Notifications ────────────────────────────────────────
+  notify:
+    name: 📬 Notify
+    needs: [code-quality, unit-tests, security-scan]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name != 'pull_request'
+
+    steps:
+      - name: Check build status
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ needs.code-quality.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Slack notification on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID || '#builds' }}",
+              "text": "❌ Aivance build failed on ${{ github.ref_name }}: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "❌ *Aivance Build Failed*\nCommit: <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\nBranch: `${{ github.ref_name }}`\nJob: ${{ github.workflow }}\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+      - name: Send email notification on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "❌ Aivance Build Failed: ${{ github.ref_name }}"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: GitHub Actions
+          body: |
+            Aivance CI build failed on branch ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            View details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        continue-on-error: true

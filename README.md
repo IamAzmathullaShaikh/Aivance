@@ -92,6 +92,13 @@ Maximize your career growth with Aivance by following these five steps:
 
 ## Build Status
 
+[![Aivance CI/CD](https://github.com/IamAzmathullaShaikh/Aivance/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/IamAzmathullaShaikh/Aivance/actions/workflows/ci.yml)
+[![Dependabot](https://img.shields.io/badge/dependabot-active-brightgreen?logo=dependabot)](https://github.com/IamAzmathullaShaikh/Aivance/network/dependencies)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.4.10-purple?logo=kotlin)](https://kotlinlang.org)
+[![AGP](https://img.shields.io/badge/AGP-9.3.1-green?logo=android)](https://developer.android.com/build/releases/gradle-plugin)
+[![API](https://img.shields.io/badge/minSdk-26-green)](https://developer.android.com/studio)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 ✅ **Current build: COMPILATION SUCCESSFUL** — All 16 Gradle modules compile without errors.
 
 ## Getting Started

@@ -1,0 +1,96 @@
+# Aivance Dependabot Configuration
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # ── Gradle Dependencies ─────────────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "gradle"
+    reviewers:
+      - "IamAzmathullaShaikh"
+    assignees:
+      - "IamAzmathullaShaikh"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    # Group patch and minor updates into single PRs
+    groups:
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin:*"
+          - "com.google.devtools.ksp:*"
+        update-types:
+          - "minor"
+          - "patch"
+      androidx-compose:
+        patterns:
+          - "androidx.compose*"
+        update-types:
+          - "minor"
+          - "patch"
+      androidx-lifecycle:
+        patterns:
+          - "androidx.lifecycle*"
+        update-types:
+          - "minor"
+          - "patch"
+      hilt:
+        patterns:
+          - "com.google.dagger*"
+          - "androidx.hilt*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "junit*"
+          - "org.junit*"
+          - "io.mockk*"
+          - "app.cash.turbine*"
+          - "org.robolectric*"
+          - "com.google.truth*"
+        update-types:
+          - "minor"
+          - "patch"
+      okhttp-retrofit:
+        patterns:
+          - "com.squareup.okhttp3*"
+          - "com.squareup.retrofit2*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # AGP updates require coordinated updates across the project
+      - dependency-name: "com.android.tools.build:gradle"
+        update-types: ["version-update:semver-major"]
+      # Kotlin major updates need manual migration
+      - dependency-name: "org.jetbrains.kotlin:*"
+        update-types: ["version-update:semver-major"]
+
+  # ── GitHub Actions ──────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns:
+          - "*"

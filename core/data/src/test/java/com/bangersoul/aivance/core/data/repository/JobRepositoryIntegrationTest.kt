@@ -7,6 +7,12 @@ import com.bangersoul.aivance.core.database.dao.JobDao
 import com.bangersoul.aivance.core.database.dao.SearchDao
 import com.bangersoul.aivance.core.database.dao.TrackerDao
 import com.bangersoul.aivance.core.data.source.JobLocalDataSourceImpl
+import com.bangersoul.aivance.core.database.model.CompanyEntity
+import com.bangersoul.aivance.core.database.model.JobApplicationEntity
+import com.bangersoul.aivance.core.database.model.JobApplicationWithDetails
+import com.bangersoul.aivance.core.database.model.JobEntity
+import com.bangersoul.aivance.core.database.model.JobWithDetails
+import com.bangersoul.aivance.core.database.model.SavedSearchEntity
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -49,14 +55,17 @@ class JobRepositoryIntegrationTest {
 
     @Test
     fun `getJobs maps entities to domain correctly`() = runBlocking {
+        val companyEntity = CompanyEntity(
+            id = 1, name = "Tech Corp", logoUrl = null, website = null, industry = "Technology"
+        )
         val sampleEntities = listOf(
-            com.bangersoul.aivance.core.database.model.JobEntity(
+            JobEntity(
                 id = 1, companyId = 1, title = "Android Engineer",
                 location = "Mountain View", type = "FULL_TIME",
                 salary = "$150k-$200k", description = "Build Android apps",
                 postedDate = System.currentTimeMillis()
             ),
-            com.bangersoul.aivance.core.database.model.JobEntity(
+            JobEntity(
                 id = 2, companyId = 1, title = "iOS Engineer",
                 location = "Cupertino", type = "FULL_TIME",
                 salary = "$160k-$210k", description = "Build iOS apps",
@@ -64,14 +73,11 @@ class JobRepositoryIntegrationTest {
             )
         )
 
-        // Mock JobDao.getJobsWithDetails to return entities with companies
         every { mockJobDao.getJobsWithDetails() } returns flowOf(
             sampleEntities.map { entity ->
-                com.bangersoul.aivance.core.database.model.JobWithCompany(
+                JobWithDetails(
                     job = entity,
-                    company = com.bangersoul.aivance.core.database.model.CompanyEntity(
-                        id = 1, name = "Tech Corp", logoUrl = null, website = null, industry = "Technology"
-                    )
+                    company = companyEntity
                 )
             }
         )
@@ -107,15 +113,30 @@ class JobRepositoryIntegrationTest {
 
     @Test
     fun `getApplications maps tracker entities correctly`() = runBlocking {
-        val sampleEntities = listOf(
-            com.bangersoul.aivance.core.database.model.JobApplicationEntity(
-                id = 1, jobId = 1, status = "INTERVIEWING",
-                dateApplied = System.currentTimeMillis(),
-                lastModified = System.currentTimeMillis()
-            )
+        val companyEntity = CompanyEntity(
+            id = 1, name = "Tech Corp", logoUrl = null, website = null, industry = "Technology"
+        )
+        val jobEntity = JobEntity(
+            id = 1, companyId = 1, title = "Android Engineer",
+            location = "Remote", type = "FULL_TIME",
+            salary = "$150k", description = "Build apps",
+            postedDate = System.currentTimeMillis()
+        )
+        val appEntity = JobApplicationEntity(
+            id = 1, jobId = 1, status = "INTERVIEWING",
+            dateApplied = System.currentTimeMillis(),
+            salaryRange = "$150k-$200k", notes = "Phone screen scheduled",
+            lastModified = System.currentTimeMillis()
         )
 
-        every { mockTrackerDao.getApplications() } returns flowOf(sampleEntities)
+        every { mockTrackerDao.getApplications() } returns flowOf(
+            listOf(
+                JobApplicationWithDetails(
+                    application = appEntity,
+                    job = JobWithDetails(job = jobEntity, company = companyEntity)
+                )
+            )
+        )
 
         val applications = localDataSource.getApplications().first()
 
@@ -126,7 +147,7 @@ class JobRepositoryIntegrationTest {
     @Test
     fun `getSavedSearches maps search entities`() = runBlocking {
         val sampleEntities = listOf(
-            com.bangersoul.aivance.core.database.model.SavedSearchEntity(
+            SavedSearchEntity(
                 query = "Android Developer",
                 filters = mapOf("location" to "Remote", "isRemote" to "true"),
                 dateCreated = java.time.Instant.now()

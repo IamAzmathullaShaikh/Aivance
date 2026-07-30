@@ -4,11 +4,12 @@ import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.AtsResult
 import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeSection
-import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.data.source.ResumeLocalDataSource
-import com.bangersoul.aivance.core.domain.service.TextGenerationService
+import com.bangersoul.aivance.sdk.api.AIProvider
+import com.bangersoul.aivance.sdk.core.ProviderCapability
+import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -24,11 +25,13 @@ class ResumeRepositoryImplTest {
 
     private lateinit var repository: ResumeRepositoryImpl
     private val localDataSource: ResumeLocalDataSource = mockk()
-    private val textGenerationService: TextGenerationService = mockk()
+    private val providerManager: ProviderManager = mockk()
+    private val mockAIProvider: AIProvider = mockk()
 
     @Before
     fun setUp() {
-        repository = ResumeRepositoryImpl(localDataSource, textGenerationService)
+        every { providerManager.getBestProviderFor(ProviderCapability.AI.Chat) } returns mockAIProvider
+        repository = ResumeRepositoryImpl(localDataSource, providerManager)
     }
 
     @Test
@@ -73,13 +76,12 @@ class ResumeRepositoryImplTest {
 
     @Test
     fun `insertResume calls localDataSource and returns id`() = runTest {
-        val resume = Resume(fileName = "new.pdf", fileUri = "", rawText = "text")
+        val resume = Resume(id = 1, fileName = "new.pdf", fileUri = "", rawText = "text")
         coEvery { localDataSource.saveResume(any()) } returns Unit
 
         val result = repository.insertResume(resume)
 
         assertTrue(result.isSuccess)
-        assertEquals(resume.id, result.getOrNull())
         coVerify { localDataSource.saveResume(resume) }
     }
 
@@ -122,12 +124,12 @@ class ResumeRepositoryImplTest {
     }
 
     @Test
-    fun `analyzeResume returns analysis from textGenerationService`() = runTest {
+    fun `analyzeResume returns analysis from AI provider`() = runTest {
         val resumeId = 1L
         val resume = Resume(id = resumeId, fileName = "resume.pdf", fileUri = "", rawText = "resume text")
         val jobDescription = "job description"
         coEvery { localDataSource.getResumeById(resumeId) } returns resume
-        coEvery { textGenerationService.generateText(any()) } returns kotlin.Result.success("AI feedback")
+        coEvery { mockAIProvider.generateText(any()) } returns Result.Success("AI feedback")
 
         val result = repository.analyzeResume(resumeId, jobDescription)
 

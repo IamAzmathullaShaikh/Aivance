@@ -4,7 +4,7 @@ import com.bangersoul.aivance.core.common.dto.ConsentPreferences
 import com.bangersoul.aivance.core.common.dto.PerformanceMetric
 import com.bangersoul.aivance.core.data.telemetry.TelemetryEngineImpl
 import com.bangersoul.aivance.core.database.dao.AiAnalyticsDao
-import com.bangersoul.aivance.core.domain.analytics.AnalyticsEvent
+import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.domain.analytics.FeatureCategory
 import com.bangersoul.aivance.core.domain.telemetry.LogEntry
 import com.bangersoul.aivance.core.domain.telemetry.LogLevel
@@ -104,6 +104,7 @@ class AnalyticsEngineTest {
         analyticsEngine.trackFeatureUsage(FeatureCategory.ATS)
         analyticsEngine.trackFeatureUsage(FeatureCategory.ATS)
         analyticsEngine.trackFeatureUsage(FeatureCategory.INTERVIEW)
+        Unit
     }
 
     // ── Consent Management Tests ────────────────────
@@ -284,5 +285,6 @@ class AnalyticsEngineTest {
         analyticsEngine.flush()
 
         // verify(exactly = 2) { mockDao.insertAnalyticsEvents(any()) }
+        Unit
     }
 }
