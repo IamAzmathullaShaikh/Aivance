@@ -47,7 +47,8 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun JobsScreen(
     viewModel: JobsViewModel,
-    onNavigateToTracker: () -> Unit
+    onNavigateToTracker: () -> Unit,
+    onNavigateToJobDetails: (String) -> Unit = {}
 ) {
     val query by viewModel.query.collectAsState()
     val filters by viewModel.filters.collectAsState()
@@ -136,7 +137,7 @@ fun JobsScreen(
                     items(jobs, key = { it.id }) { job ->
                         JobItem(
                             job = job,
-                            onApplyClick = { /* Placeholder */ },
+                            onApplyClick = { onNavigateToJobDetails(job.id) },
                             onTrackClick = {
                                 viewModel.addJobToTracker(job)
                                 onNavigateToTracker()

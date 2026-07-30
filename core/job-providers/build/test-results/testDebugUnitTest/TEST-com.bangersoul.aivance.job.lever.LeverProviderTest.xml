@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.lever.LeverProviderTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:47.231Z" hostname="BANGERSOUL" time="0.061">
+  <properties/>
+  <testcase name="searchJobs maps and filters Lever postings" classname="com.bangersoul.aivance.job.lever.LeverProviderTest" time="0.024"/>
+  <testcase name="searchJobs falls back to cache on API error" classname="com.bangersoul.aivance.job.lever.LeverProviderTest" time="0.021"/>
+  <testcase name="searchJobs filters by location" classname="com.bangersoul.aivance.job.lever.LeverProviderTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

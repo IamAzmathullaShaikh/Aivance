@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.core.domain.usecase.job.RemoveSavedJobUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.171Z" hostname="BANGERSOUL" time="0.016">
+  <properties/>
+  <testcase name="should fail for invalid ID" classname="com.bangersoul.aivance.core.domain.usecase.job.RemoveSavedJobUseCaseTest" time="0.006"/>
+  <testcase name="should remove saved job successfully" classname="com.bangersoul.aivance.core.domain.usecase.job.RemoveSavedJobUseCaseTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

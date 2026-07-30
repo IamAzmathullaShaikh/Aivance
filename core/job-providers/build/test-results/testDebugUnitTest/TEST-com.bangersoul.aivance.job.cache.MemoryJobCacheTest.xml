@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.cache.MemoryJobCacheTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:46.471Z" hostname="BANGERSOUL" time="0.08">
+  <properties/>
+  <testcase name="getJobs delegates to cacheManager" classname="com.bangersoul.aivance.job.cache.MemoryJobCacheTest" time="0.056"/>
+  <testcase name="saveJobs delegates to cacheManager" classname="com.bangersoul.aivance.job.cache.MemoryJobCacheTest" time="0.009"/>
+  <testcase name="getJobs returns empty list when cache miss" classname="com.bangersoul.aivance.job.cache.MemoryJobCacheTest" time="0.008"/>
+  <testcase name="clear delegates to cacheManager" classname="com.bangersoul.aivance.job.cache.MemoryJobCacheTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

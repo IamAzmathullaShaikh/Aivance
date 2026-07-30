@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.apify.ApifyJobProviderTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:45.551Z" hostname="BANGERSOUL" time="0.36">
+  <properties/>
+  <testcase name="LinkedInProvider has correct metadata" classname="com.bangersoul.aivance.job.apify.ApifyJobProviderTest" time="0.206"/>
+  <testcase name="Apify provider lifecycle transitions correctly" classname="com.bangersoul.aivance.job.apify.ApifyJobProviderTest" time="0.143"/>
+  <testcase name="IndeedProvider has correct metadata" classname="com.bangersoul.aivance.job.apify.ApifyJobProviderTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.sdk.infrastructure.ProviderManagerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:03:07.636Z" hostname="BANGERSOUL" time="0.137">
+  <properties/>
+  <testcase name="initializeAll should move providers to Ready status" classname="com.bangersoul.aivance.sdk.infrastructure.ProviderManagerTest" time="0.126"/>
+  <testcase name="getBestProviderFor should prioritize Active providers" classname="com.bangersoul.aivance.sdk.infrastructure.ProviderManagerTest" time="0.002"/>
+  <testcase name="stopProvider should move provider back to Ready status" classname="com.bangersoul.aivance.sdk.infrastructure.ProviderManagerTest" time="0.006"/>
+  <testcase name="startProvider should move provider to Active status" classname="com.bangersoul.aivance.sdk.infrastructure.ProviderManagerTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

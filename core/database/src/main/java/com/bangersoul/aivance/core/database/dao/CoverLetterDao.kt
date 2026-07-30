@@ -17,7 +17,10 @@ interface CoverLetterDao {
     suspend fun getCoverLetterById(id: Int): CoverLetterEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertCoverLetter(coverLetter: CoverLetterEntity)
+    suspend fun insertCoverLetter(coverLetter: CoverLetterEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCoverLetters(coverLetters: List<CoverLetterEntity>)
 
     @Delete
     suspend fun deleteCoverLetter(coverLetter: CoverLetterEntity)

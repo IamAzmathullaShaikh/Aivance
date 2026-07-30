@@ -23,6 +23,6 @@ data class RoadmapStepEntity(
     val roadmapId: Long,
     val title: String,
     val description: String,
-    val order: Int,
+    val stepOrder: Int,
     val isCompleted: Boolean
 )

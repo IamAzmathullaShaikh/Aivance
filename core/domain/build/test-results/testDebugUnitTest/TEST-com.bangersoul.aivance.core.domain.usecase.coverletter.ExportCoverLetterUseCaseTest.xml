@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.core.domain.usecase.coverletter.ExportCoverLetterUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:15.610Z" hostname="BANGERSOUL" time="0.127">
+  <properties/>
+  <testcase name="should fail for invalid cover letter ID" classname="com.bangersoul.aivance.core.domain.usecase.coverletter.ExportCoverLetterUseCaseTest" time="0.062"/>
+  <testcase name="should export cover letter as markdown" classname="com.bangersoul.aivance.core.domain.usecase.coverletter.ExportCoverLetterUseCaseTest" time="0.057"/>
+  <testcase name="should export cover letter as text" classname="com.bangersoul.aivance.core.domain.usecase.coverletter.ExportCoverLetterUseCaseTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

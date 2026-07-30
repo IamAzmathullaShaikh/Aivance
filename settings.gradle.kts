@@ -27,11 +27,16 @@ include(":app")
 
 // Core modules
 include(":core:common")
+include(":core:domain")
+include(":core:data")
 include(":core:network")
 include(":core:database")
 include(":core:datastore")
 include(":core:util")
 include(":core:designsystem")
+include(":core:sdk")
+include(":core:ai-providers")
+include(":core:job-providers")
 
 // Feature modules
 include(":feature:dashboard")

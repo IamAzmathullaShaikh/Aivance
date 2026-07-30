@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.mapper.JobMapperTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:45.499Z" hostname="BANGERSOUL" time="0.044">
+  <properties/>
+  <testcase name="mapToJobListing from ApifyDatasetItem with all fields" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.028"/>
+  <testcase name="parseDate returns valid timestamp for null or invalid input" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.003"/>
+  <testcase name="parseDate handles multiple formats" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.001"/>
+  <testcase name="mapToJobListing from RemotiveJobDto with all fields" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.003"/>
+  <testcase name="mapToJobListing from RemoteOKJobDto with all fields" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.002"/>
+  <testcase name="mapToJobListing from RemoteOKJobDto with null id generates UUID" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.001"/>
+  <testcase name="parseSalary extracts max correctly" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.0"/>
+  <testcase name="mapToJobListing from ApifyDatasetItem with null fields yields defaults" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.001"/>
+  <testcase name="mapToJobListing from RemotiveJobDto with null fields" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.0"/>
+  <testcase name="parseSalary handles k suffix" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.0"/>
+  <testcase name="parseSalary extracts min correctly" classname="com.bangersoul.aivance.job.mapper.JobMapperTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

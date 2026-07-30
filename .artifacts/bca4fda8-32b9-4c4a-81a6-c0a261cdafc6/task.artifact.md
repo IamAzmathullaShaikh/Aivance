@@ -1,0 +1,7 @@
+- [x] Define `OpenAiApi` and data models in `OpenAiApi.kt`
+- [x] Implement `OpenAiBaseProvider.kt`
+- [x] Implement `OpenAIProvider.kt`
+- [x] Implement `GroqProvider.kt`
+- [x] Implement `OpenRouterProvider.kt`
+- [x] Implement `OllamaProvider.kt`
+- [x] Verify build

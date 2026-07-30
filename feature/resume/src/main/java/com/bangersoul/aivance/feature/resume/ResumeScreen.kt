@@ -120,7 +120,7 @@ fun ResumeScreen(
                     AnalysisResultContent(
                         analysis = state.analysis,
                         onReset = { viewModel.resetState() },
-                        onSave = { viewModel.saveResult("Resume_${System.currentTimeMillis()}.pdf") },
+                        onSave = { viewModel.saveResult(0L) },
                         onTrackClick = {
                             trackCompany = "" // Or try to extract from jobDescription
                             trackRole = ""    // Or try to extract from jobDescription

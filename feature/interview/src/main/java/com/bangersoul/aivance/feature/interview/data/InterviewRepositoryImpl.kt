@@ -1,26 +1,35 @@
 package com.bangersoul.aivance.feature.interview.data
 
-import com.bangersoul.aivance.core.network.AiService
-import com.bangersoul.aivance.core.network.ai.AiMessage
-import com.bangersoul.aivance.core.network.ai.AiRole
 import com.bangersoul.aivance.feature.interview.domain.InterviewFeedback
 import com.bangersoul.aivance.feature.interview.domain.InterviewMessage
 import com.bangersoul.aivance.feature.interview.domain.InterviewRepository
 import com.bangersoul.aivance.feature.interview.domain.MessageRole
+import com.bangersoul.aivance.sdk.api.AIProvider
+import com.bangersoul.aivance.sdk.core.ProviderCapability
+import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
+import com.bangersoul.aivance.sdk.model.AiMessage as SdkAiMessage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.bangersoul.aivance.core.common.enums.MessageRole as CommonMessageRole
+import com.bangersoul.aivance.core.common.result.getOrElse
+import com.bangersoul.aivance.core.common.result.getOrNull
 
 @Singleton
 class InterviewRepositoryImpl @Inject constructor(
-    private val aiService: AiService
+    private val providerManager: ProviderManager
 ) : InterviewRepository {
 
     private val messages = MutableStateFlow<List<InterviewMessage>>(emptyList())
     private var systemPrompt = ""
+
+    private fun getProvider(): AIProvider {
+        return providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+            ?: throw Exception("No AI provider available")
+    }
 
     override fun startSession(role: String, difficulty: String): Flow<InterviewMessage> = flow {
         systemPrompt = """
@@ -58,30 +67,30 @@ class InterviewRepositoryImpl @Inject constructor(
             ${messages.value.joinToString("\n") { "${it.role}: ${it.text}" }}
         """.trimIndent()
 
-        val result = aiService.analyzeText(prompt).getOrNull()
+        val provider = getProvider()
+        val result = provider.generateText(prompt).getOrNull()
         if (result != null) {
             emit(parseFeedback(result))
         }
     }
 
     private suspend fun getAiResponse(): InterviewMessage {
-        val history = mutableListOf(AiMessage(AiRole.System, systemPrompt))
-        history.addAll(messages.value.map { msg ->
-            AiMessage(
-                role = if (msg.role == MessageRole.User) AiRole.User else AiRole.Assistant,
+        val sdkHistory = mutableListOf(SdkAiMessage(CommonMessageRole.SYSTEM, systemPrompt))
+        sdkHistory.addAll(messages.value.map { msg ->
+            SdkAiMessage(
+                role = if (msg.role == MessageRole.User) CommonMessageRole.USER else CommonMessageRole.ASSISTANT,
                 content = msg.text
             )
         })
 
-        val response = aiService.chat(history).getOrDefault("I'm sorry, I couldn't process that.")
+        val provider = getProvider()
+        val response = provider.chat(sdkHistory).getOrElse { "I'm sorry, I couldn't process that." }
         val aiMessage = InterviewMessage(role = MessageRole.AI, text = response)
         messages.update { it + aiMessage }
         return aiMessage
     }
 
     private fun parseFeedback(json: String): InterviewFeedback {
-        // Mock parsing for simplicity in this task as instructed "Basic parsing for now"
-        // In reality, we'd use a library.
         return InterviewFeedback(
             summary = "Good overall performance.",
             strengths = listOf("Clear communication", "Technical knowledge"),

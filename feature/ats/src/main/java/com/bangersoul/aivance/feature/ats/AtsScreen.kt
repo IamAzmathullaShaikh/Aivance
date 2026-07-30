@@ -132,7 +132,7 @@ private fun LatestScoreSection(result: AtsResult) {
                     color = MaterialTheme.colorScheme.secondary
                 )
                 Text(
-                    text = result.resumeName,
+                    text = "Resume Analysis",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -202,7 +202,7 @@ private fun HistoryItem(result: AtsResult) {
             Spacer(modifier = Modifier.width(AivanceTheme.spacing.medium))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = result.resumeName,
+                    text = "Resume Analysis",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -227,24 +227,30 @@ private fun AtsScreenPreview() {
     AivanceTheme(darkTheme = true) {
         AtsContent(
             latestResult = AtsResult(
+                resumeId = 1,
+                jobDescription = "Android Engineer",
                 score = 85,
                 date = Instant.now(),
-                resumeName = "Software_Engineer_Resume.pdf",
-                missingKeywords = listOf("Kotlin", "Coroutines", "Dagger Hilt"),
+                matchedKeywords = listOf("Java", "Kotlin"),
+                missingKeywords = listOf("Coroutines", "Dagger Hilt"),
                 feedback = "Great resume! Consider adding more details about your contributions in the 'Experience' section."
             ),
             history = listOf(
                 AtsResult(
+                    resumeId = 1,
+                    jobDescription = "Android Dev",
                     score = 70,
                     date = Instant.now().minusSeconds(86400 * 2),
-                    resumeName = "Old_Resume_v2.pdf",
+                    matchedKeywords = emptyList(),
                     missingKeywords = listOf("Compose"),
                     feedback = ""
                 ),
                 AtsResult(
+                    resumeId = 1,
+                    jobDescription = "Mobile Dev",
                     score = 65,
                     date = Instant.now().minusSeconds(86400 * 5),
-                    resumeName = "Old_Resume_v1.pdf",
+                    matchedKeywords = emptyList(),
                     missingKeywords = listOf("Compose", "MVI"),
                     feedback = ""
                 )

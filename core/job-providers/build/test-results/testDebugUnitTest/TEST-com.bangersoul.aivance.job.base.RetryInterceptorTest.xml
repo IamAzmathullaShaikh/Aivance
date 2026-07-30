@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.base.RetryInterceptorTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:43.593Z" hostname="BANGERSOUL" time="1.899">
+  <properties/>
+  <testcase name="IO exceptions are retried" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="1.818"/>
+  <testcase name="rate limiting 429 is retried" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="0.018"/>
+  <testcase name="request timeout 408 is retried" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="0.011"/>
+  <testcase name="client error 4xx (except 408 and 429) is not retried" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="0.006"/>
+  <testcase name="server error (500) is retried up to maxRetries" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="0.012"/>
+  <testcase name="successful request returns immediately without retry" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="0.006"/>
+  <testcase name="exception is thrown if all IO retries fail" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="0.01"/>
+  <testcase name="all retries exhausted returns last failure response" classname="com.bangersoul.aivance.job.base.RetryInterceptorTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (C:\Users\iamsh\.gradle\caches\modules-2\files-2.1\net.bytebuddy\byte-buddy-agent\1.18.2\62f38a6faf7f069d661b79a07d566f504b0b20c4\byte-buddy-agent-1.18.2.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

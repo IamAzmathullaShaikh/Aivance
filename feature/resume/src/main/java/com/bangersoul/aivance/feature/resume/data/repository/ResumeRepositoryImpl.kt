@@ -1,7 +1,7 @@
 package com.bangersoul.aivance.feature.resume.data.repository
 
 import com.bangersoul.aivance.core.database.dao.AtsDao
-import com.bangersoul.aivance.core.database.model.AtsResultEntity
+import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
 import com.bangersoul.aivance.core.network.AiService
 import com.bangersoul.aivance.feature.resume.data.model.ResumeAnalysisDto
 import com.bangersoul.aivance.feature.resume.data.model.toDomain
@@ -64,11 +64,13 @@ class ResumeRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun saveAnalysis(analysis: ResumeAnalysis, resumeName: String) {
-        val entity = AtsResultEntity(
+    override suspend fun saveAnalysis(analysis: ResumeAnalysis, resumeId: Long, jobDescription: String) {
+        val entity = ResumeAnalysisEntity(
+            resumeId = resumeId,
+            jobDescription = jobDescription,
             score = analysis.matchScore,
             date = System.currentTimeMillis(),
-            resumeName = resumeName,
+            matchedKeywords = analysis.keywords.filter { it.isMatched }.joinToString(", ") { it.text },
             missingKeywords = analysis.keywords.filter { !it.isMatched }.joinToString(", ") { it.text },
             feedback = analysis.tips.joinToString("\n") { "${it.category}: ${it.description}" }
         )

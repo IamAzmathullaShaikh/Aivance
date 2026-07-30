@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.core.domain.usecase.provider.DisableProviderUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.229Z" hostname="BANGERSOUL" time="0.081">
+  <properties/>
+  <testcase name="should fail for blank provider ID" classname="com.bangersoul.aivance.core.domain.usecase.provider.DisableProviderUseCaseTest" time="0.049"/>
+  <testcase name="should disable provider successfully" classname="com.bangersoul.aivance.core.domain.usecase.provider.DisableProviderUseCaseTest" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

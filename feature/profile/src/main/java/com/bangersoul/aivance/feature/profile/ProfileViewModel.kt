@@ -2,101 +2,172 @@ package com.bangersoul.aivance.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangersoul.aivance.core.common.model.UserProfile
+import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
-import com.bangersoul.aivance.feature.profile.domain.CareerRoadmap
-import com.bangersoul.aivance.feature.profile.domain.RoadmapRepository
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
+import com.bangersoul.aivance.core.domain.usecase.user.CreateProfileRequest
+import com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCase
+import com.bangersoul.aivance.core.domain.usecase.user.DeleteProfileUseCase
+import com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCase
+import com.bangersoul.aivance.core.domain.usecase.user.UpdateProfileRequest
+import com.bangersoul.aivance.core.domain.usecase.user.UpdateProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface RoadmapUiState {
-    data object Idle : RoadmapUiState
-    data object Loading : RoadmapUiState
-    data class Success(val roadmap: CareerRoadmap) : RoadmapUiState
-    data class Error(val message: String) : RoadmapUiState
+sealed interface ProfileUiState {
+    data object Loading : ProfileUiState
+    data class Success(
+        val profile: UserProfile? = null,
+        val fullName: String = "",
+        val email: String = "",
+        val targetRole: String = "",
+        val skills: String = "",
+        val experienceYears: Int = 0,
+        val apiKey: String = "",
+        val isSaving: Boolean = false
+    ) : ProfileUiState
+    data class Error(val message: String) : ProfileUiState
+}
+
+sealed interface ProfileUiEvent {
+    data class UpdateFullName(val name: String) : ProfileUiEvent
+    data class UpdateEmail(val email: String) : ProfileUiEvent
+    data class UpdateTargetRole(val role: String) : ProfileUiEvent
+    data class UpdateSkills(val skills: String) : ProfileUiEvent
+    data class UpdateExperience(val years: Int) : ProfileUiEvent
+    data class UpdateApiKey(val key: String) : ProfileUiEvent
+    data object SaveProfile : ProfileUiEvent
+    data object DeleteProfile : ProfileUiEvent
+    data object LoadProfile : ProfileUiEvent
+}
+
+sealed interface ProfileUiEffect {
+    data class ShowSnackbar(val message: String) : ProfileUiEffect
+    data class ValidationError(val field: String, val message: String) : ProfileUiEffect
 }
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val roadmapRepository: RoadmapRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val loadProfileUseCase: LoadProfileUseCase,
+    private val createProfileUseCase: CreateProfileUseCase,
+    private val updateProfileUseCase: UpdateProfileUseCase,
+    private val deleteProfileUseCase: DeleteProfileUseCase,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<RoadmapUiState>(RoadmapUiState.Idle)
-    val uiState: StateFlow<RoadmapUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(ProfileUiState.Loading)
+    val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    val geminiApiKey: StateFlow<String> = userPreferencesRepository.userPreferences
-        .map { it.geminiApiKey ?: "" }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ""
-        )
+    private val _effects = Channel<ProfileUiEffect>(Channel.BUFFERED)
+    val effects: Flow<ProfileUiEffect> = _effects.receiveAsFlow()
 
-    init {
-        loadCurrentRoadmap()
+    init { loadProfile() }
+
+    fun onEvent(event: ProfileUiEvent) {
+        when (event) {
+            is ProfileUiEvent.UpdateFullName -> updateField { it.copy(fullName = event.name) }
+            is ProfileUiEvent.UpdateEmail -> updateField { it.copy(email = event.email) }
+            is ProfileUiEvent.UpdateTargetRole -> updateField { it.copy(targetRole = event.role) }
+            is ProfileUiEvent.UpdateSkills -> updateField { it.copy(skills = event.skills) }
+            is ProfileUiEvent.UpdateExperience -> updateField { it.copy(experienceYears = event.years) }
+            is ProfileUiEvent.UpdateApiKey -> updateApiKey(event.key)
+            ProfileUiEvent.SaveProfile -> saveProfile()
+            ProfileUiEvent.DeleteProfile -> deleteProfile()
+            ProfileUiEvent.LoadProfile -> loadProfile()
+        }
     }
 
-    private fun loadCurrentRoadmap() {
+    private fun loadProfile() {
         viewModelScope.launch {
-            roadmapRepository.getCurrentRoadmap()
-                .onStart { _uiState.value = RoadmapUiState.Loading }
-                .catch { _uiState.value = RoadmapUiState.Error(it.message ?: "Unknown error") }
-                .collect { roadmap ->
-                    _uiState.value = if (roadmap != null) {
-                        RoadmapUiState.Success(roadmap)
-                    } else {
-                        RoadmapUiState.Idle
+            _uiState.value = ProfileUiState.Loading
+            try {
+                loadProfileUseCase().collect { result ->
+                    when (result) {
+                        is CoreResult.Success -> {
+                            val profile = result.data
+                            _uiState.value = ProfileUiState.Success(
+                                profile = profile,
+                                fullName = profile.fullName,
+                                email = profile.email,
+                                targetRole = profile.targetRole,
+                                skills = profile.skills.joinToString(", "),
+                                experienceYears = profile.experienceYears
+                            )
+                        }
+                        is CoreResult.Failure -> {
+                            _uiState.value = ProfileUiState.Success()
+                        }
                     }
                 }
+            } catch (_: Exception) {
+                _uiState.value = ProfileUiState.Error("Failed to load profile")
+            }
         }
     }
 
-    fun generateRoadmap(role: String, skills: String) {
+    private fun saveProfile() {
+        val currentState = _uiState.value as? ProfileUiState.Success ?: return
+        if (currentState.fullName.isBlank()) {
+            viewModelScope.launch { _effects.send(ProfileUiEffect.ValidationError("name", "Name is required")) }
+            return
+        }
         viewModelScope.launch {
-            roadmapRepository.generateRoadmap(role, skills)
-                .onStart { _uiState.value = RoadmapUiState.Loading }
-                .catch { _uiState.value = RoadmapUiState.Error(it.message ?: "Failed to generate roadmap") }
-                .collect { roadmap ->
-                    _uiState.value = RoadmapUiState.Success(roadmap)
+            trackEventUseCase(TrackEventRequest(eventName = "profile_save"))
+            _uiState.value = currentState.copy(isSaving = true)
+
+            val request = UpdateProfileRequest(
+                fullName = currentState.fullName,
+                email = currentState.email,
+                targetRole = currentState.targetRole,
+                skills = currentState.skills.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                experienceYears = currentState.experienceYears
+            )
+            val result = updateProfileUseCase(request)
+            when (result) {
+                is CoreResult.Success -> {
+                    _uiState.value = currentState.copy(isSaving = false)
+                    sendEffect(ProfileUiEffect.ShowSnackbar("Profile saved"))
                 }
-        }
-    }
-
-    fun toggleStep(roadmapId: Long, stepId: Long, isCompleted: Boolean) {
-        viewModelScope.launch {
-            roadmapRepository.toggleStep(roadmapId, stepId, isCompleted)
-                .catch { /* Handle error silently or show toast */ }
-                .collect {
-                    // The flow from getCurrentRoadmap will automatically update the UI if the repo updates the DB
+                is CoreResult.Failure -> {
+                    _uiState.value = currentState.copy(isSaving = false)
+                    sendEffect(ProfileUiEffect.ShowSnackbar(result.error.message ?: "Failed"))
                 }
+            }
         }
     }
 
-    fun updateGeminiApiKey(apiKey: String) {
+    private fun deleteProfile() {
         viewModelScope.launch {
-            userPreferencesRepository.updateGeminiApiKey(apiKey)
+            trackEventUseCase(TrackEventRequest(eventName = "profile_delete"))
+            deleteProfileUseCase()
+            _uiState.value = ProfileUiState.Success()
+            sendEffect(ProfileUiEffect.ShowSnackbar("Profile deleted"))
         }
     }
 
-    fun resetRoadmap() {
-        // Since getCurrentRoadmap is a flow, we can just set it to Idle locally if we had a way to clear it in repo.
-        // Looking at RoadmapRepository, there's no clearRoadmap, but maybe we can just emit null from it somehow or assume a new one will replace it.
-        // For now, let's just set it to Idle to show the form.
-        _uiState.value = RoadmapUiState.Idle
+    private fun updateApiKey(key: String) {
+        viewModelScope.launch { userPreferencesRepository.updateGeminiApiKey(key) }
+        updateField { it.copy(apiKey = key) }
     }
 
-    fun calculateProgress(roadmap: CareerRoadmap): Float {
-        if (roadmap.steps.isEmpty()) return 0f
-        val completed = roadmap.steps.count { it.isCompleted }
-        return completed.toFloat() / roadmap.steps.size
+    private fun updateField(transform: (ProfileUiState.Success) -> ProfileUiState.Success) {
+        val current = _uiState.value
+        if (current is ProfileUiState.Success) _uiState.value = transform(current)
+    }
+
+    private fun sendEffect(effect: ProfileUiEffect) {
+        viewModelScope.launch { _effects.send(effect) }
     }
 }

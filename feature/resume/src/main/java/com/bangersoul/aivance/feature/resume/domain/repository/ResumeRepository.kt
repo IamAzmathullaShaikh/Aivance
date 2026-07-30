@@ -5,5 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface ResumeRepository {
     fun analyzeResume(resumeText: String, jobDescription: String): Flow<ResumeAnalysis>
-    suspend fun saveAnalysis(analysis: ResumeAnalysis, resumeName: String)
+    suspend fun saveAnalysis(analysis: ResumeAnalysis, resumeId: Long, jobDescription: String)
 }

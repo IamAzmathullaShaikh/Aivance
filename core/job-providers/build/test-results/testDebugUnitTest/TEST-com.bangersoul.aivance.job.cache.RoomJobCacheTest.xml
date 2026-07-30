@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.cache.RoomJobCacheTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:46.556Z" hostname="BANGERSOUL" time="0.267">
+  <properties/>
+  <testcase name="saveJobs inserts company and job for each listing" classname="com.bangersoul.aivance.job.cache.RoomJobCacheTest" time="0.176"/>
+  <testcase name="getJobs maps entities to domain" classname="com.bangersoul.aivance.job.cache.RoomJobCacheTest" time="0.05"/>
+  <testcase name="clear delegates to jobDao" classname="com.bangersoul.aivance.job.cache.RoomJobCacheTest" time="0.008"/>
+  <testcase name="getJobs handles unknown employment type" classname="com.bangersoul.aivance.job.cache.RoomJobCacheTest" time="0.011"/>
+  <testcase name="saveJobs reuses existing company" classname="com.bangersoul.aivance.job.cache.RoomJobCacheTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

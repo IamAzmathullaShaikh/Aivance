@@ -5,23 +5,26 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.bangersoul.aivance.core.database.model.AtsResultEntity
+import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AtsDao {
-    @Query("SELECT * FROM ats_results ORDER BY date DESC")
-    fun getAtsResults(): Flow<List<AtsResultEntity>>
+    @Query("SELECT * FROM resume_analyses ORDER BY date DESC")
+    fun getAtsResults(): Flow<List<ResumeAnalysisEntity>>
 
-    @Query("SELECT * FROM ats_results ORDER BY date DESC LIMIT 1")
-    fun getLatestAtsResult(): Flow<AtsResultEntity?>
+    @Query("SELECT * FROM resume_analyses ORDER BY date DESC LIMIT 1")
+    fun getLatestAtsResult(): Flow<ResumeAnalysisEntity?>
 
-    @Query("SELECT * FROM ats_results WHERE id = :id")
-    suspend fun getAtsResultById(id: Long): AtsResultEntity?
+    @Query("SELECT * FROM resume_analyses WHERE id = :id")
+    suspend fun getAtsResultById(id: Long): ResumeAnalysisEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAtsResult(atsResult: AtsResultEntity)
+    suspend fun insertAtsResult(atsResult: ResumeAnalysisEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAtsResults(results: List<ResumeAnalysisEntity>)
 
     @Delete
-    suspend fun deleteAtsResult(atsResult: AtsResultEntity)
+    suspend fun deleteAtsResult(atsResult: ResumeAnalysisEntity)
 }

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCaseTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.725Z" hostname="BANGERSOUL" time="0.059">
+  <properties/>
+  <testcase name="should fail when file URI is blank" classname="com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCaseTest" time="0.005"/>
+  <testcase name="should fail when file name is blank" classname="com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCaseTest" time="0.005"/>
+  <testcase name="should handle repository failure" classname="com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCaseTest" time="0.017"/>
+  <testcase name="should import valid resume successfully" classname="com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCaseTest" time="0.02"/>
+  <testcase name="should fail when raw text is too short" classname="com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCaseTest" time="0.003"/>
+  <testcase name="should fail when raw text exceeds maximum length" classname="com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCaseTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+com.bangersoul.aivance.core.aiproviders.ai-providers-pngs-0 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\build\generated\res\pngs\debug
+com.bangersoul.aivance.core.aiproviders.ai-providers-updated_navigation_xml-1 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\build\generated\updated_navigation_xml\debug
+com.bangersoul.aivance.core.aiproviders.ai-providers-mergeDebugResources-2 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
+com.bangersoul.aivance.core.aiproviders.ai-providers-mergeDebugResources-3 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
+com.bangersoul.aivance.core.aiproviders.ai-providers-debug-4 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\build\intermediates\merged_res\debug\mergeDebugResources
+com.bangersoul.aivance.core.aiproviders.ai-providers-debug-5 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\build\intermediates\packaged_res\debug\packageDebugResources
+com.bangersoul.aivance.core.aiproviders.ai-providers-debug-6 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\src\debug\res
+com.bangersoul.aivance.core.aiproviders.ai-providers-main-7 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\ai-providers\src\main\res
+gradleHome-0 C:\Users\iamsh\.gradle

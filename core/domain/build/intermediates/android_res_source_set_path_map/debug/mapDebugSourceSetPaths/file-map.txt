@@ -1,0 +1,9 @@
+com.bangersoul.aivance.core.domain-pngs-0 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\build\generated\res\pngs\debug
+com.bangersoul.aivance.core.domain-updated_navigation_xml-1 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\build\generated\updated_navigation_xml\debug
+com.bangersoul.aivance.core.domain-mergeDebugResources-2 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\build\intermediates\incremental\debug\mergeDebugResources\merged.dir
+com.bangersoul.aivance.core.domain-mergeDebugResources-3 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\build\intermediates\incremental\debug\mergeDebugResources\stripped.dir
+com.bangersoul.aivance.core.domain-debug-4 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\build\intermediates\merged_res\debug\mergeDebugResources
+com.bangersoul.aivance.core.domain-debug-5 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\build\intermediates\packaged_res\debug\packageDebugResources
+com.bangersoul.aivance.core.domain-debug-6 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\src\debug\res
+com.bangersoul.aivance.core.domain-main-7 C:\Users\iamsh\AndroidStudioProjects\Aivance\core\domain\src\main\res
+gradleHome-0 C:\Users\iamsh\.gradle

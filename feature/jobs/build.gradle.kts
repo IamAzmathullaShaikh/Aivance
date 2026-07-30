@@ -18,6 +18,7 @@ android {
 
 dependencies {
     implementation(project(":core:common"))
+    implementation(project(":core:domain"))
     implementation(project(":core:designsystem"))
     implementation(project(":feature:tracker"))
     implementation(platform(libs.androidx.compose.bom))

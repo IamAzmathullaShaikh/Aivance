@@ -16,6 +16,13 @@ dependencies {
     implementation(project(":core:common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.timber)
+    implementation(libs.pdfbox.android)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.core)
 }

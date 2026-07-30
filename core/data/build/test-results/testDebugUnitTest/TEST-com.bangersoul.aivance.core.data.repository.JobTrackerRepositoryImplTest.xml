@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.core.data.repository.JobTrackerRepositoryImplTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-29T20:16:42.644Z" hostname="BANGERSOUL" time="0.457">
+  <properties/>
+  <testcase name="insertApplication calls localDataSource" classname="com.bangersoul.aivance.core.data.repository.JobTrackerRepositoryImplTest" time="0.172"/>
+  <testcase name="updateApplication calls trackerDao update" classname="com.bangersoul.aivance.core.data.repository.JobTrackerRepositoryImplTest" time="0.207"/>
+  <testcase name="getApplicationById returns success when application exists" classname="com.bangersoul.aivance.core.data.repository.JobTrackerRepositoryImplTest" time="0.018"/>
+  <testcase name="getApplications returns PagingData flow" classname="com.bangersoul.aivance.core.data.repository.JobTrackerRepositoryImplTest" time="0.035"/>
+  <testcase name="deleteApplication calls trackerDao delete" classname="com.bangersoul.aivance.core.data.repository.JobTrackerRepositoryImplTest" time="0.024"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

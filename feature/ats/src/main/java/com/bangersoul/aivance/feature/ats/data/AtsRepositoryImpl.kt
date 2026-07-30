@@ -1,7 +1,7 @@
 package com.bangersoul.aivance.feature.ats.data
 
 import com.bangersoul.aivance.core.database.dao.AtsDao
-import com.bangersoul.aivance.core.database.model.AtsResultEntity
+import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
 import com.bangersoul.aivance.feature.ats.domain.AtsRepository
 import com.bangersoul.aivance.feature.ats.domain.AtsResult
 import kotlinx.coroutines.flow.Flow
@@ -32,20 +32,24 @@ class AtsRepositoryImpl @Inject constructor(
     }
 }
 
-private fun AtsResultEntity.toDomain() = AtsResult(
+private fun ResumeAnalysisEntity.toDomain() = AtsResult(
     id = id,
+    resumeId = resumeId,
+    jobDescription = jobDescription,
     score = score,
     date = Instant.ofEpochMilli(date),
-    resumeName = resumeName,
-    missingKeywords = if (missingKeywords.isEmpty()) emptyList() else missingKeywords.split(","),
+    matchedKeywords = if (matchedKeywords.isEmpty()) emptyList() else matchedKeywords.split(",").map { it.trim() },
+    missingKeywords = if (missingKeywords.isEmpty()) emptyList() else missingKeywords.split(",").map { it.trim() },
     feedback = feedback
 )
 
-private fun AtsResult.toEntity() = AtsResultEntity(
+private fun AtsResult.toEntity() = ResumeAnalysisEntity(
     id = id,
+    resumeId = resumeId,
+    jobDescription = jobDescription,
     score = score,
     date = date.toEpochMilli(),
-    resumeName = resumeName,
+    matchedKeywords = matchedKeywords.joinToString(","),
     missingKeywords = missingKeywords.joinToString(","),
     feedback = feedback
 )

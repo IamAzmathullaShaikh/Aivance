@@ -1,0 +1,67 @@
+# Aivance Baseline Profile
+# ============================================================
+# This profile is used by the Android Runtime (ART) to
+# pre-compile critical code paths for faster startup.
+#
+# Generate an updated profile using:
+# ./gradlew :app:generateBaselineProfile
+
+# Application Startup
+Lcom/bangersoul/aivance/AivanceApp;->onCreate()V
+Lcom/bangersoul/aivance/MainActivity;->onCreate(Landroid/os/Bundle;)V
+Lcom/bangersoul/aivance/MainActivity;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;
+
+# Hilt Initialization
+Ldagger/hilt/android/internal/managers/ActivityRetainedComponentManager;->get(Landroid/app/Activity;)Ldagger/hilt/android/components/ActivityRetainedComponent;
+
+# Navigation Framework
+Landroidx/navigation/NavHostController;->navigate(I)V
+Landroidx/navigation/NavHostController;->navigate(Landroidx/navigation/NavDeepLinkRequest;)V
+Landroidx/navigation/fragment/NavHostFragment;->onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;
+
+# Compose UI Framework
+Landroidx/compose/ui/platform/ComposeView;->onMeasure(II)V
+Landroidx/compose/ui/platform/AndroidComposeView;->onLayout(ZIIII)V
+Landroidx/compose/runtime/ComposerImpl;->composeContent(Landroidx/compose/runtime/CompositionContext;Lkotlin/jvm/functions/Function2;ILkotlin/jvm/functions/Function2;)V
+
+# Material 3 Components
+Landroidx/compose/material3/ScaffoldKt;->Scaffold(Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/ui/Modifier;Landroidx/compose/material3/TopAppBarState;Lkotlin/jvm/functions/Function3;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/material3/TopAppBarColors;Lkotlin/jvm/functions/Function3;Landroidx/compose/material3/TopAppBarScrollBehavior;Landroidx/compose/ui/graphics/Color;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/foundation/layout/WindowInsets;Landroidx/compose/foundation/layout/PaddingValues;ILandroidx/compose/runtime/Composer;III)V
+Landroidx/compose/material3/TopAppBarKt;->TopAppBar(Ljava/lang/Object;Landroidx/compose/ui/Modifier;Landroidx/compose/material3/TopAppBarState;Landroidx/compose/foundation/layout/PaddingValues;ZLkotlin/jvm/functions/Function2;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/material3/TopAppBarColors;Landroidx/compose/material3/TopAppBarScrollBehavior;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/runtime/Composer;III)V
+
+# Coil Image Loading
+Lcoil/compose/AsyncImageKt;->AsyncImage(Lcoil/request/ImageRequest;Landroidx/compose/ui/Modifier;Lcoil/compose/AsyncImagePainter$State;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+Lcoil/network/RealNetworkFetcher;->fetch(Lcoil/request/ImageRequest;Lcoil/fetch/FetchResult;)Lcoil/fetch/FetchResult;
+
+# Coroutines
+Lkotlinx/coroutines/CoroutineDispatcher;->dispatch(Lkotlin/coroutines/CoroutineContext;Ljava/lang/Runnable;)V
+
+# Room Database
+Landroidx/room/RoomDatabase;->query(Landroidx/sqlite/db/SupportSQLiteQuery;Landroid/os/CancellationSignal;Landroidx/room/RoomDatabase$PreparedQuery;)Landroid/database/Cursor;
+
+# DataStore
+Landroidx/datastore/core/DataStore;->read(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+
+# WorkManager
+Landroidx/work/WorkManager;->enqueueUniquePeriodicWork(Ljava/lang/String;Landroidx/work/ExistingPeriodicWorkPolicy;Landroidx/work/PeriodicWorkRequest;)Landroidx/work/Operation;
+
+# Network
+Lokhttp3/OkHttpClient;->newCall(Lokhttp3/Request;)Lokhttp3/Call;
+Lretrofit2/ServiceMethod;->invoke([Ljava/lang/Object;)Ljava/lang/Object;
+
+# Serialization
+Lkotlinx/serialization/json/Json;->decodeFromString(Lkotlinx/serialization/DeserializationStrategy;Ljava/lang/String;)Ljava/lang/Object;
+Lkotlinx/serialization/json/Json;->encodeToString(Lkotlinx/serialization/SerializationStrategy;Ljava/lang/Object;)Ljava/lang/String;
+
+# Dashboard Screen
+Lcom/bangersoul/aivance/feature/dashboard/DashboardScreenKt;->DashboardScreen(Landroidx/compose/runtime/Composer;I)V
+
+# Home Screen
+Lcom/bangersoul/aivance/feature/dashboard/HomeScreenKt;->HomeScreen(Landroidx/compose/runtime/Composer;I)V
+
+# Core Common
+Lcom/bangersoul/aivance/core/common/result/Result$Success;->getData()Ljava/lang/Object;
+Lcom/bangersoul/aivance/core/common/result/Result$Failure;->getError()Lcom/bangersoul/aivance/core/common/result/DomainError;
+
+# SDK
+Lcom/bangersoul/aivance/sdk/core/ProviderManager;->getProvider(Ljava/lang/String;)Lcom/bangersoul/aivance/sdk/api/AIProvider;
+Lcom/bangersoul/aivance/sdk/core/ProviderRegistry;->getAll()Ljava/util/Map;

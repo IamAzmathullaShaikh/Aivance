@@ -58,7 +58,16 @@ import com.bangersoul.aivance.feature.profile.domain.RoadmapStep
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
-    onNavigateToInterview: () -> Unit
+    onNavigateToInterview: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToAiSettings: () -> Unit = {},
+    onNavigateToProviders: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToAnalytics: () -> Unit = {},
+    onNavigateToRoadmap: () -> Unit = {},
+    onNavigateToLearning: () -> Unit = {},
+    onNavigateToSavedJobs: () -> Unit = {},
+    onNavigateToAiChat: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val geminiApiKey by viewModel.geminiApiKey.collectAsState()

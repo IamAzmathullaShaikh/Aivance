@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.core.domain.usecase.coverletter.ImproveCoverLetterUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:15.769Z" hostname="BANGERSOUL" time="0.022">
+  <properties/>
+  <testcase name="should improve cover letter with feedback" classname="com.bangersoul.aivance.core.domain.usecase.coverletter.ImproveCoverLetterUseCaseTest" time="0.015"/>
+  <testcase name="should fail for invalid cover letter ID" classname="com.bangersoul.aivance.core.domain.usecase.coverletter.ImproveCoverLetterUseCaseTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -17,18 +17,46 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
-        release {
-            optimization {
-                enable = false
-            }
+    signingConfigs {
+        create("release") {
+            storeFile = file("../keystore.jks")
+            val storePwd: String? = System.getenv("AIVANCE_STORE_PASSWORD")
+            val keyAl: String? = System.getenv("AIVANCE_KEY_ALIAS")
+            val keyPwd: String? = System.getenv("AIVANCE_KEY_PASSWORD")
+            if (storePwd != null) storePassword = storePwd
+            if (keyAl != null) keyAlias = keyAl
+            if (keyPwd != null) keyPassword = keyPwd
         }
     }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.findByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            optimization {
+                enable = true
+            }
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
+        }
+        debug {
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -50,6 +78,7 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(project(":core:util"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:ai-providers"))
 
     implementation(project(":feature:dashboard"))
     implementation(project(":feature:resume"))

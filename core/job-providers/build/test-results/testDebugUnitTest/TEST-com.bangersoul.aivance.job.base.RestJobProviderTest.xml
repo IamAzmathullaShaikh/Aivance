@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.base.RestJobProviderTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:45.916Z" hostname="BANGERSOUL" time="0.536">
+  <properties/>
+  <testcase name="onInitialize transitions to Ready" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.013"/>
+  <testcase name="searchJobs returns error immediately if status is Error" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.02"/>
+  <testcase name="initial status is Uninitialized" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.009"/>
+  <testcase name="searchJobs fails if no cache available and network fails" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.337"/>
+  <testcase name="searchJobs falls back to cache on failure" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.03"/>
+  <testcase name="circuit breaker degrades provider after error threshold" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.014"/>
+  <testcase name="successful search resets error counter and restores Active" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.04"/>
+  <testcase name="onStop transitions to Ready" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.012"/>
+  <testcase name="onDispose transitions to Disposed" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.009"/>
+  <testcase name="onStart transitions to Active" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.008"/>
+  <testcase name="searchJobs caches results on success" classname="com.bangersoul.aivance.job.base.RestJobProviderTest" time="0.043"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

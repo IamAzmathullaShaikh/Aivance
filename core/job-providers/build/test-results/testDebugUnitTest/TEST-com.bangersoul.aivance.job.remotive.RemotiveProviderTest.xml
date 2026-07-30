@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.job.remotive.RemotiveProviderTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:47.362Z" hostname="BANGERSOUL" time="0.036">
+  <properties/>
+  <testcase name="searchJobs successfully maps API response" classname="com.bangersoul.aivance.job.remotive.RemotiveProviderTest" time="0.023"/>
+  <testcase name="searchJobs returns failure on API error" classname="com.bangersoul.aivance.job.remotive.RemotiveProviderTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

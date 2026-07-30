@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCaseTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.914Z" hostname="BANGERSOUL" time="0.07">
+  <properties/>
+  <testcase name="should fail for blank name" classname="com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCaseTest" time="0.043"/>
+  <testcase name="should fail for blank email" classname="com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCaseTest" time="0.003"/>
+  <testcase name="should fail for invalid email" classname="com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCaseTest" time="0.004"/>
+  <testcase name="should create profile successfully" classname="com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCaseTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
