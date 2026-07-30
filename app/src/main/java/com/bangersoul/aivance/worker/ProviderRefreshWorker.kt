@@ -7,6 +7,7 @@ import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseCase
+import com.bangersoul.aivance.core.domain.usecase.provider.ProviderHealth
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import timber.log.Timber

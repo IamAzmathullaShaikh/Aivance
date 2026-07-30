@@ -36,7 +36,7 @@ class FollowUpWorker @AssistedInject constructor(
                 notificationHelper.showFollowUpNotification(
                     id = app.application.id.toInt(),
                     title = "Follow-up Reminder",
-                    message = "It's been 3 days since you applied to ${app.application.company}. Consider following up!"
+                    message = "It's been 3 days since you applied to ${app.job.company.name}. Consider following up!"
                 )
             }
         }
