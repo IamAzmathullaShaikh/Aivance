@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import java.io.InputStream
 import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -159,12 +160,12 @@ class UploadManager @Inject constructor(
                 val errorNotif = NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.stat_notify_error)
                     .setContentTitle("Upload Failed")
-                    .setContentText("Server error: ${response.code()}")
+                    .setContentText("Server error: ${response.code}")
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .build()
                 notificationManager.notify(notifId, errorNotif)
-                UploadResult.Failure("HTTP ${response.code()}: ${response.message()}")
+                UploadResult.Failure("HTTP ${response.code}: ${response.message}")
             }
 
         } catch (e: Exception) {

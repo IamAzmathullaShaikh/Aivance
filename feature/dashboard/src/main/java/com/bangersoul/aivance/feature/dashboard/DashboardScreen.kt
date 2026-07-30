@@ -122,7 +122,7 @@ fun DashboardScreen(
             when (state) {
                 is DashboardUiState.Success -> {
                     DashboardContent(
-                        data = state.dashboardData,
+                        data = state.dashboardData ?: DashboardData(profileCompletion = 0, resumeStatus = ResumeStatus("", java.time.LocalDate.now()), atsScore = 0, activeApplications = 0, interviewPrepStatus = ""),
                         onNavigateToResume = onNavigateToResume,
                         onNavigateToTracker = onNavigateToTracker,
                         onNavigateToProfile = onNavigateToProfile,

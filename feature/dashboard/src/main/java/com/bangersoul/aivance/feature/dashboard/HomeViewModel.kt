@@ -31,12 +31,16 @@ enum class QuickAction {
 
 fun getGreeting(): String {
     val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-    return when (hour) { in 0..11 -> "Good morning" in 12..16 -> "Good afternoon" else -> "Good evening" }
+    return when (hour) {
+        in 0..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        else -> "Good evening"
+    }
 }
 
 sealed interface HomeUiEvent {
     data object NavigateToDashboard : HomeUiEvent
-    data class QuickAction(val action: QuickAction) : HomeUiEvent
+    data class PerformQuickAction(val action: QuickAction) : HomeUiEvent
     data object ShowNotifications : HomeUiEvent
 }
 
@@ -61,7 +65,7 @@ class HomeViewModel @Inject constructor(
     fun onEvent(event: HomeUiEvent) {
         when (event) {
             HomeUiEvent.NavigateToDashboard -> sendEffect(HomeUiEffect.Navigate("dashboard"))
-            is HomeUiEvent.QuickAction -> handleQuickAction(event.action)
+            is HomeUiEvent.PerformQuickAction -> handleQuickAction(event.action)
             HomeUiEvent.ShowNotifications -> sendEffect(HomeUiEffect.Navigate("notifications"))
         }
     }

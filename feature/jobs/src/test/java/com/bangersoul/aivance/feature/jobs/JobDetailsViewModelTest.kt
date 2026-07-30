@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
@@ -47,9 +48,9 @@ class JobDetailsViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns CoreResult.Success(Unit)
-        coEvery { mockGetJobDetails("job_1") } returns flowOf(CoreResult.Success(sampleJob))
-        coEvery { mockGetJobDetails("") } returns flowOf(CoreResult.Failure(DomainError("Job ID not provided")))
+        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns Result.Success(Unit)
+        coEvery { mockGetJobDetails("job_1") } returns flowOf(Result.Success(sampleJob))
+        coEvery { mockGetJobDetails("") } returns flowOf(Result.Failure(DomainError("Job ID not provided")))
     }
 
     @After
@@ -60,7 +61,7 @@ class JobDetailsViewModelTest {
     @Test
     fun `loading state on init with valid jobId`() {
         val savedStateHandle = SavedStateHandle(mapOf("jobId" to "job_1"))
-        coEvery { mockBookmarkJob(any()) } returns flowOf(CoreResult.Success(false))
+        coEvery { mockBookmarkJob(any()) } returns flowOf(Result.Success(false))
 
         val viewModel = JobDetailsViewModel(
             savedStateHandle = savedStateHandle,
@@ -76,7 +77,7 @@ class JobDetailsViewModelTest {
     @Test
     fun `error state when jobId is empty`() {
         val savedStateHandle = SavedStateHandle(mapOf("jobId" to ""))
-        coEvery { mockBookmarkJob(any()) } returns flowOf(CoreResult.Success(false))
+        coEvery { mockBookmarkJob(any()) } returns flowOf(Result.Success(false))
 
         val viewModel = JobDetailsViewModel(
             savedStateHandle = savedStateHandle,
@@ -93,7 +94,7 @@ class JobDetailsViewModelTest {
 
     @Test
     fun `success state loads job details`() = runTest {
-        coEvery { mockBookmarkJob(any()) } returns flowOf(CoreResult.Success(false))
+        coEvery { mockBookmarkJob(any()) } returns flowOf(Result.Success(false))
         val savedStateHandle = SavedStateHandle(mapOf("jobId" to "job_1"))
 
         val viewModel = JobDetailsViewModel(
@@ -113,7 +114,7 @@ class JobDetailsViewModelTest {
 
     @Test
     fun `toggleBookmark calls bookmark use case`() = runTest {
-        coEvery { mockBookmarkJob("job_1") } returns flowOf(CoreResult.Success(true))
+        coEvery { mockBookmarkJob("job_1") } returns flowOf(Result.Success(true))
         val savedStateHandle = SavedStateHandle(mapOf("jobId" to "job_1"))
 
         val viewModel = JobDetailsViewModel(
@@ -133,8 +134,8 @@ class JobDetailsViewModelTest {
 
     @Test
     fun `apply calls apply use case`() = runTest {
-        coEvery { mockBookmarkJob("job_1") } returns flowOf(CoreResult.Success(false))
-        coEvery { mockApplyToJob("job_1") } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockBookmarkJob("job_1") } returns flowOf(Result.Success(false))
+        coEvery { mockApplyToJob("job_1") } returns flowOf(Result.Success(Unit))
         val savedStateHandle = SavedStateHandle(mapOf("jobId" to "job_1"))
 
         val viewModel = JobDetailsViewModel(
@@ -154,7 +155,7 @@ class JobDetailsViewModelTest {
 
     @Test
     fun `openUrl sends effect`() = runTest {
-        coEvery { mockBookmarkJob("job_1") } returns flowOf(CoreResult.Success(false))
+        coEvery { mockBookmarkJob("job_1") } returns flowOf(Result.Success(false))
         val savedStateHandle = SavedStateHandle(mapOf("jobId" to "job_1"))
 
         val viewModel = JobDetailsViewModel(

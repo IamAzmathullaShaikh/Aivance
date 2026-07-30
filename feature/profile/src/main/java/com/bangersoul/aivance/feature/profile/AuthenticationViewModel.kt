@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel

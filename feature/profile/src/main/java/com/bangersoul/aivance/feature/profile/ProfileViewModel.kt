@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.UserProfile
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
@@ -67,7 +68,7 @@ class ProfileViewModel @Inject constructor(
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ProfileUiState.Loading)
+    private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     private val _effects = Channel<ProfileUiEffect>(Channel.BUFFERED)
@@ -93,9 +94,9 @@ class ProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = ProfileUiState.Loading
             try {
-                loadProfileUseCase().collect { result ->
+                loadProfileUseCase.invoke().collect { result ->
                     when (result) {
-                        is CoreResult.Success -> {
+                        is Result.Success -> {
                             val profile = result.data
                             _uiState.value = ProfileUiState.Success(
                                 profile = profile,
@@ -106,7 +107,7 @@ class ProfileViewModel @Inject constructor(
                                 experienceYears = profile.experienceYears
                             )
                         }
-                        is CoreResult.Failure -> {
+                        is Result.Failure -> {
                             _uiState.value = ProfileUiState.Success()
                         }
                     }
@@ -136,11 +137,11 @@ class ProfileViewModel @Inject constructor(
             )
             val result = updateProfileUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     _uiState.value = currentState.copy(isSaving = false)
                     sendEffect(ProfileUiEffect.ShowSnackbar("Profile saved"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = currentState.copy(isSaving = false)
                     sendEffect(ProfileUiEffect.ShowSnackbar(result.error.message ?: "Failed"))
                 }

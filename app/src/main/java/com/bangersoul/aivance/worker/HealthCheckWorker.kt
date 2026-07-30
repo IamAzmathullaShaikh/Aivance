@@ -2,8 +2,8 @@ package com.bangersoul.aivance.worker
 
 import android.content.Context
 import androidx.hilt.work.HiltWorker
-import androidx.room.Room
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import com.bangersoul.aivance.core.database.AivanceDatabase
 import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
@@ -43,7 +43,7 @@ class HealthCheckWorker @AssistedInject constructor(
 
     private val appContext: Context = context
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         Timber.d("HealthCheckWorker started")
         val results = mutableListOf<HealthCheckResult>()
         var allHealthy = true
@@ -52,8 +52,7 @@ class HealthCheckWorker @AssistedInject constructor(
         try {
             val start = System.currentTimeMillis()
             val db = database.openHelper.writableDatabase
-            val cursor = db.rawQuery("SELECT 1", null)
-            cursor.use { it.moveToFirst() }
+            val cursor = db.query("SELECT 1")
             val latency = System.currentTimeMillis() - start
             results.add(HealthCheckResult("Database", true, "Query OK", latency))
             Timber.d("Database health check: OK (%dms)", latency)
@@ -107,6 +106,6 @@ class HealthCheckWorker @AssistedInject constructor(
                 result.latencyMs)
         }
 
-        return if (allHealthy) Result.success() else Result.success() // Don't retry; just report
+        return if (allHealthy) ListenableWorker.Result.success() else ListenableWorker.Result.success()
     }
 }

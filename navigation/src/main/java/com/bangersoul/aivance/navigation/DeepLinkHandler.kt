@@ -2,7 +2,7 @@ package com.bangersoul.aivance.navigation
 
 import android.content.Intent
 import android.net.Uri
-import timber.log.Timber
+import android.util.Log
 
 /**
  * Handles incoming deep link intents and converts them into
@@ -17,6 +17,8 @@ import timber.log.Timber
  *   aivance://app (generic app open)
  */
 object DeepLinkHandler {
+
+    private const val TAG = "DeepLinkHandler"
 
     /** The most recently parsed deep link destination, if any. */
     @Volatile
@@ -39,9 +41,9 @@ object DeepLinkHandler {
         if (destination != null) {
             pendingDestination = destination
             lastDeepLinkDestination = destination
-            Timber.d("Deep link resolved: %s → %s", uri, destination)
+            Log.d(TAG, "Deep link resolved: $uri → $destination")
         } else {
-            Timber.w("Deep link URI not recognised: %s", uri)
+            Log.w(TAG, "Deep link URI not recognised: $uri")
         }
 
         return destination

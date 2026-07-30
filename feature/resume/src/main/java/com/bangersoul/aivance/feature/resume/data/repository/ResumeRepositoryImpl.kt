@@ -2,7 +2,8 @@ package com.bangersoul.aivance.feature.resume.data.repository
 
 import com.bangersoul.aivance.core.database.dao.AtsDao
 import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
-import com.bangersoul.aivance.core.network.AiService
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.service.TextGenerationService
 import com.bangersoul.aivance.feature.resume.data.model.ResumeAnalysisDto
 import com.bangersoul.aivance.feature.resume.data.model.toDomain
 import com.bangersoul.aivance.feature.resume.domain.model.ResumeAnalysis
@@ -13,7 +14,7 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 class ResumeRepositoryImpl @Inject constructor(
-    private val aiService: AiService,
+    private val textGenerationService: TextGenerationService,
     private val atsDao: AtsDao
 ) : ResumeRepository {
 
@@ -44,23 +45,23 @@ class ResumeRepositoryImpl @Inject constructor(
             }
         """.trimIndent()
 
-        val result = aiService.analyzeText(prompt)
-        
-        result.onSuccess { response ->
-            try {
-                // Remove potential markdown formatting if the AI includes it
-                val cleanJson = response.trim()
-                    .removePrefix("```json")
-                    .removeSuffix("```")
-                    .trim()
-                
-                val dto = json.decodeFromString<ResumeAnalysisDto>(cleanJson)
-                emit(dto.toDomain())
-            } catch (e: Exception) {
-                throw Exception("Failed to parse AI response: ${e.message}")
-            }
-        }.onFailure {
-            throw it
+        val result = textGenerationService.generateText(prompt)
+        val response = when (result) {
+            is Result.Success -> result.data
+            is Result.Failure -> throw Exception(result.error.message)
+        }
+
+        try {
+            // Remove potential markdown formatting if the AI includes it
+            val cleanJson = response.trim()
+                .removePrefix("```json")
+                .removeSuffix("```")
+                .trim()
+
+            val dto = json.decodeFromString<ResumeAnalysisDto>(cleanJson)
+            emit(dto.toDomain())
+        } catch (e: Exception) {
+            throw Exception("Failed to parse AI response: ${e.message}")
         }
     }
 

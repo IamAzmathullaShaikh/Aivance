@@ -5,8 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
+import com.bangersoul.aivance.core.domain.usecase.job.ApplyToJobRequest
 import com.bangersoul.aivance.core.domain.usecase.job.ApplyToJobUseCase
+import com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobRequest
 import com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -81,19 +85,18 @@ class JobDetailsViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            getJobDetailsUseCase(jobId)
-                .onStart { _uiState.value = JobDetailsUiState.Loading }
-                .catch { e -> _uiState.value = JobDetailsUiState.Error(e.message ?: "Failed to load") }
-                .collect { result ->
-                    when (result) {
-                        is CoreResult.Success -> {
-                            _uiState.value = JobDetailsUiState.Success(job = result.data)
-                        }
-                        is CoreResult.Failure -> {
-                            _uiState.value = JobDetailsUiState.Error(result.error.message ?: "Failed to load")
-                        }
-                    }
+            _uiState.value = JobDetailsUiState.Loading
+            val result = getJobDetailsUseCase(jobId)
+            when (result) {
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val job = (result as Result.Success<JobListing>).data
+                    _uiState.value = JobDetailsUiState.Success(job = job)
                 }
+                is Result.Failure -> {
+                    _uiState.value = JobDetailsUiState.Error(result.error.message ?: "Failed to load")
+                }
+            }
         }
     }
 
@@ -102,20 +105,23 @@ class JobDetailsViewModel @Inject constructor(
             val state = _uiState.value
             if (state is JobDetailsUiState.Success) {
                 trackEventUseCase(TrackEventRequest(eventName = "job_details_toggle_bookmark"))
-                val result = bookmarkJobUseCase(state.job.id).firstOrNull()
-                when (result) {
-                    is CoreResult.Success -> {
-                        _uiState.value = state.copy(isBookmarked = result.data)
+                val request = BookmarkJobRequest(
+                    company = state.job.company,
+                    role = state.job.title
+                )
+                val bookmarkResult = bookmarkJobUseCase(request)
+                when (bookmarkResult) {
+                    is Result.Success<*> -> {
+                        _uiState.value = state.copy(isBookmarked = !state.isBookmarked)
                         _effects.send(JobDetailsUiEffect.ShowSnackbar(
-                            if (result.data) "Job saved" else "Bookmark removed"
+                            if (!state.isBookmarked) "Job saved" else "Bookmark removed"
                         ))
                     }
-                    is CoreResult.Failure -> {
+                    is Result.Failure -> {
                         _effects.send(JobDetailsUiEffect.ShowSnackbar(
-                            result.error.message ?: "Failed to update bookmark"
+                            bookmarkResult.error.message ?: "Failed to update bookmark"
                         ))
                     }
-                    null -> { /* noop */ }
                 }
             }
         }
@@ -127,20 +133,21 @@ class JobDetailsViewModel @Inject constructor(
             if (state is JobDetailsUiState.Success) {
                 trackEventUseCase(TrackEventRequest(eventName = "job_details_apply"))
                 _uiState.value = state.copy(isApplying = true)
-                val result = applyToJobUseCase(state.job.id).firstOrNull()
-                when (result) {
-                    is CoreResult.Success -> {
+                val request = ApplyToJobRequest(
+                    company = state.job.company,
+                    role = state.job.title
+                )
+                val applyResult = applyToJobUseCase(request)
+                when (applyResult) {
+                    is Result.Success<*> -> {
                         _uiState.value = state.copy(isApplying = false)
                         _effects.send(JobDetailsUiEffect.ShowSnackbar("Application recorded"))
                     }
-                    is CoreResult.Failure -> {
+                    is Result.Failure -> {
                         _uiState.value = state.copy(isApplying = false)
                         _effects.send(JobDetailsUiEffect.ShowSnackbar(
-                            result.error.message ?: "Failed to apply"
+                            applyResult.error.message ?: "Failed to apply"
                         ))
-                    }
-                    null -> {
-                        _uiState.value = state.copy(isApplying = false)
                     }
                 }
             }

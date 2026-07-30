@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.job.SaveJobUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.190Z" hostname="BANGERSOUL" time="0.019">
-  <properties/>
-  <testcase name="should fail for blank company" classname="com.bangersoul.aivance.core.domain.usecase.job.SaveJobUseCaseTest" time="0.005"/>
-  <testcase name="should fail for blank title" classname="com.bangersoul.aivance.core.domain.usecase.job.SaveJobUseCaseTest" time="0.004"/>
-  <testcase name="should save job successfully" classname="com.bangersoul.aivance.core.domain.usecase.job.SaveJobUseCaseTest" time="0.01"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

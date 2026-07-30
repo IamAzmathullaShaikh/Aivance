@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.data.repository.UserRepositoryImplTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-29T20:16:43.911Z" hostname="BANGERSOUL" time="0.232">
-  <properties/>
-  <testcase name="updateProfile saves to localDataSource and cache" classname="com.bangersoul.aivance.core.data.repository.UserRepositoryImplTest" time="0.196"/>
-  <testcase name="getProfile returns failure when profile is null" classname="com.bangersoul.aivance.core.data.repository.UserRepositoryImplTest" time="0.019"/>
-  <testcase name="getProfile returns profile and updates cache" classname="com.bangersoul.aivance.core.data.repository.UserRepositoryImplTest" time="0.017"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

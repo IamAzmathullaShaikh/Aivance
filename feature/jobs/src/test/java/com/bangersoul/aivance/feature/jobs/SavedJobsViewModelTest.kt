@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.jobs
 
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.RemoveSavedJobUseCase
@@ -39,9 +40,9 @@ class SavedJobsViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns CoreResult.Success(Unit)
-        coEvery { mockSearchSavedJobs(any()) } returns flowOf(CoreResult.Success(sampleJobs))
-        coEvery { mockRemoveSavedJob(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns Result.Success(Unit)
+        coEvery { mockSearchSavedJobs(any()) } returns flowOf(Result.Success(sampleJobs))
+        coEvery { mockRemoveSavedJob(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After
@@ -68,7 +69,7 @@ class SavedJobsViewModelTest {
 
     @Test
     fun `empty state when no jobs`() = runTest {
-        coEvery { mockSearchSavedJobs(any()) } returns flowOf(CoreResult.Success(emptyList()))
+        coEvery { mockSearchSavedJobs(any()) } returns flowOf(Result.Success(emptyList()))
         val vm = SavedJobsViewModel(mockSearchSavedJobs, mockRemoveSavedJob, mockTrackEvent)
         advanceUntilIdle()
         assertTrue(vm.uiState.value is SavedJobsUiState.Empty)

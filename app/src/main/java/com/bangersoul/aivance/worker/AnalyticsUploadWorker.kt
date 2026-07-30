@@ -3,9 +3,10 @@ package com.bangersoul.aivance.worker
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.bangersoul.aivance.core.common.result.Result
-import com.bangersoul.aivance.core.database.dao.AnalyticsDao
+import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.database.dao.AiAnalyticsDao
 import com.bangersoul.aivance.core.domain.usecase.analytics.GenerateUsageReportUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -21,48 +22,49 @@ import timber.log.Timber
 class AnalyticsUploadWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val analyticsDao: AnalyticsDao,
+    private val analyticsDao: AiAnalyticsDao,
     private val generateUsageReportUseCase: GenerateUsageReportUseCase,
     private val connectivityMonitor: ConnectivityMonitor
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         Timber.d("AnalyticsUploadWorker started")
 
         if (!connectivityMonitor.isUnmetered) {
             Timber.d("AnalyticsUploadWorker — not on unmetered, deferring")
-            return Result.retry()
+            return ListenableWorker.Result.retry()
         }
 
         return try {
-            // Collect pending events from the local analytics DAO
-            val pendingCount = analyticsDao.getPendingEventCount()
+            // Count pending analytics events
+            val pendingCount = analyticsDao.getEventCount()
             Timber.d("Pending analytics events: %d", pendingCount)
 
-            if (pendingCount == 0L) {
-                return Result.success()
+            if (pendingCount == 0) {
+                return ListenableWorker.Result.success()
             }
 
             // Generate and upload usage report
             val reportResult = generateUsageReportUseCase()
+            @Suppress("UNCHECKED_CAST")
             when (reportResult) {
-                is Result.Success -> {
-                    Timber.d("Usage report generated: %s", reportResult.data)
+                is com.bangersoul.aivance.core.common.result.Result.Success<*> -> {
+                    Timber.d("Usage report generated")
                 }
-                is Result.Failure -> {
-                    Timber.w("Usage report generation failed: %s", reportResult.error.message)
+                is com.bangersoul.aivance.core.common.result.Result.Failure -> {
+                    Timber.w("Usage report generation failed: %s", (reportResult as com.bangersoul.aivance.core.common.result.Result.Failure).error.message)
                 }
             }
 
-            // Mark events as synced
-            analyticsDao.markEventsAsSynced()
+            // Clear uploaded events
+            analyticsDao.deleteAllEvents()
             Timber.d("AnalyticsUploadWorker completed — %d events uploaded", pendingCount)
 
-            Result.success()
+            ListenableWorker.Result.success()
 
         } catch (e: Exception) {
             Timber.e(e, "AnalyticsUploadWorker failed")
-            if (runAttemptCount < 3) Result.retry() else Result.failure()
+            if (runAttemptCount < 3) ListenableWorker.Result.retry() else ListenableWorker.Result.failure()
         }
     }
 }

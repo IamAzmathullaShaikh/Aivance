@@ -201,7 +201,7 @@ class AivanceApp : Application(), Configuration.Provider {
 
 // ── Extension: TimeUnit → PeriodicWorkRequest ───────
 
-private fun <T : androidx.work.CoroutineWorker> java.util.concurrent.TimeUnit.toPeriodicWorkRequest(
+private inline fun <reified T : androidx.work.CoroutineWorker> java.util.concurrent.TimeUnit.toPeriodicWorkRequest(
     duration: Long,
     builder: androidx.work.PeriodicWorkRequest.Builder.() -> Unit
 ): androidx.work.PeriodicWorkRequest {

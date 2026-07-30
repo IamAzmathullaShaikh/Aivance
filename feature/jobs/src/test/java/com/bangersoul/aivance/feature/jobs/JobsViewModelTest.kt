@@ -3,6 +3,7 @@ package com.bangersoul.aivance.feature.jobs
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.ApplyToJobUseCase
@@ -44,7 +45,7 @@ class JobsViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After
@@ -58,7 +59,7 @@ class JobsViewModelTest {
             JobListing(id = "1", title = "Android Dev", company = "Google", url = "https://careers.google.com", sourceProvider = "REMOTE_OK"),
             JobListing(id = "2", title = "iOS Dev", company = "Apple", url = "https://apple.com", sourceProvider = "REMOTE_OK")
         )
-        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(CoreResult.Success(jobs))
+        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(Result.Success(jobs))
 
         viewModel = JobsViewModel(
             mockSearchJobs, mockSearchRemote, mockGetDetails, mockSaveJob,
@@ -76,7 +77,7 @@ class JobsViewModelTest {
 
     @Test
     fun `empty search results show Empty state`() = runTest {
-        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(CoreResult.Success(emptyList()))
+        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(Result.Success(emptyList()))
 
         viewModel = JobsViewModel(
             mockSearchJobs, mockSearchRemote, mockGetDetails, mockSaveJob,
@@ -94,7 +95,7 @@ class JobsViewModelTest {
     @Test
     fun `search failure shows error state`() = runTest {
         coEvery { mockSearchJobs.invoke(any()) } returns flowOf(
-            CoreResult.Failure(ProviderError("test", message = "Search failed"))
+            Result.Failure(ProviderError("test", message = "Search failed"))
         )
 
         viewModel = JobsViewModel(
@@ -112,7 +113,7 @@ class JobsViewModelTest {
 
     @Test
     fun `view details triggers navigation effect`() = runTest {
-        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(CoreResult.Success(emptyList()))
+        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(Result.Success(emptyList()))
 
         viewModel = JobsViewModel(
             mockSearchJobs, mockSearchRemote, mockGetDetails, mockSaveJob,
@@ -132,7 +133,7 @@ class JobsViewModelTest {
 
     @Test
     fun `open application triggers external url effect`() = runTest {
-        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(CoreResult.Success(emptyList()))
+        coEvery { mockSearchJobs.invoke(any()) } returns flowOf(Result.Success(emptyList()))
 
         viewModel = JobsViewModel(
             mockSearchJobs, mockSearchRemote, mockGetDetails, mockSaveJob,

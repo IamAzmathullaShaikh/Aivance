@@ -3,9 +3,9 @@ package com.bangersoul.aivance.worker
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.bangersoul.aivance.core.database.dao.AnalyticsDao
-import com.bangersoul.aivance.core.database.dao.AiDao
+import com.bangersoul.aivance.core.database.dao.AiAnalyticsDao
 import com.bangersoul.aivance.core.database.dao.JobDao
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -27,11 +27,10 @@ class CacheCleanupWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val jobDao: JobDao,
-    private val analyticsDao: AnalyticsDao,
-    private val aiDao: AiDao
+    private val analyticsDao: AiAnalyticsDao,
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         Timber.d("CacheCleanupWorker started")
 
         return try {
@@ -44,20 +43,20 @@ class CacheCleanupWorker @AssistedInject constructor(
 
             // 2. Delete old analytics events (> 90 days old)
             val ninetyDaysAgo = now.minus(90, ChronoUnit.DAYS).toEpochMilli()
-            val deletedEvents = analyticsDao.deleteOldEvents(ninetyDaysAgo)
+            val deletedEvents = analyticsDao.deleteEventsBefore(ninetyDaysAgo)
             Timber.d("Deleted %d old analytics events", deletedEvents)
 
             // 3. Clean up old AI conversations (> 60 days old)
             val sixtyDaysAgo = now.minus(60, ChronoUnit.DAYS).toEpochMilli()
-            val deletedConversations = aiDao.deleteOldConversations(sixtyDaysAgo)
+            val deletedConversations = analyticsDao.deleteOldConversations(sixtyDaysAgo)
             Timber.d("Deleted %d old AI conversations", deletedConversations)
 
             Timber.d("CacheCleanupWorker completed")
-            Result.success()
+            ListenableWorker.Result.success()
 
         } catch (e: Exception) {
             Timber.e(e, "CacheCleanupWorker failed")
-            if (runAttemptCount < 3) Result.retry() else Result.failure()
+            if (runAttemptCount < 3) ListenableWorker.Result.retry() else ListenableWorker.Result.failure()
         }
     }
 }

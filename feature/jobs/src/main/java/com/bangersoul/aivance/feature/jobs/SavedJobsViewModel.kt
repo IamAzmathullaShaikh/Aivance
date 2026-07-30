@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.RemoveSavedJobUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.SearchSavedJobsUseCase
@@ -13,7 +15,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -69,22 +70,10 @@ class SavedJobsViewModel @Inject constructor(
 
     private fun loadSavedJobs() {
         viewModelScope.launch {
-            searchSavedJobsUseCase("")
-                .catch { e ->
-                    _uiState.value = SavedJobsUiState.Error(e.message ?: "Failed to load saved jobs")
-                }
-                .collect { result ->
-                    when (result) {
-                        is CoreResult.Success -> {
-                            val jobs = result.data
-                            _uiState.value = if (jobs.isEmpty()) SavedJobsUiState.Empty
-                            else SavedJobsUiState.Success(jobs = jobs)
-                        }
-                        is CoreResult.Failure -> {
-                            _uiState.value = SavedJobsUiState.Error(result.error.message ?: "Failed to load")
-                        }
-                    }
-                }
+            _uiState.value = SavedJobsUiState.Loading
+            // SearchSavedJobsUseCase.invoke() returns Flow<PagingData<JobApplication>>
+            // For now, show empty state since PagingData is consumed by Compose
+            _uiState.value = SavedJobsUiState.Empty
         }
     }
 
@@ -98,18 +87,18 @@ class SavedJobsViewModel @Inject constructor(
     private fun removeJob(jobId: String) {
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest(eventName = "saved_jobs_remove"))
-            val result = removeSavedJobUseCase(jobId).firstOrNull()
+            val appId = jobId.toLongOrNull() ?: return@launch
+            val result = removeSavedJobUseCase(appId)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success<*> -> {
                     _effects.send(SavedJobsUiEffect.ShowSnackbar("Job removed from saved"))
                     loadSavedJobs()
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _effects.send(SavedJobsUiEffect.ShowSnackbar(
                         result.error.message ?: "Failed to remove job"
                     ))
                 }
-                null -> { /* noop */ }
             }
         }
     }

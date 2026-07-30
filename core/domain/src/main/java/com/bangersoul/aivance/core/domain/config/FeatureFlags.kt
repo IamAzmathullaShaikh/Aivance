@@ -149,6 +149,12 @@ enum class FeatureFlag(
 
     /**
      * Resolve whether this flag is enabled.
+     *
+     * Priority order (highest first):
+     * 1. Local override (developer menu / test overrides)
+     * 2. Remote config (Firebase Remote Config)
+     * 3. Default value (from this file)
+     *
      * Override with [withOverride] for testing.
      */
     fun isEnabled(

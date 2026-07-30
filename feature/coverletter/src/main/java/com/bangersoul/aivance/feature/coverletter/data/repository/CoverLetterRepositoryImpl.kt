@@ -2,7 +2,8 @@ package com.bangersoul.aivance.feature.coverletter.data.repository
 
 import com.bangersoul.aivance.core.database.dao.CoverLetterDao
 import com.bangersoul.aivance.core.database.model.CoverLetterEntity
-import com.bangersoul.aivance.core.network.AiService
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.service.TextGenerationService
 import com.bangersoul.aivance.feature.coverletter.domain.model.CoverLetter
 import com.bangersoul.aivance.feature.coverletter.domain.model.LetterTone
 import com.bangersoul.aivance.feature.coverletter.domain.repository.CoverLetterRepository
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class CoverLetterRepositoryImpl @Inject constructor(
-    private val aiService: AiService,
+    private val textGenerationService: TextGenerationService,
     private val coverLetterDao: CoverLetterDao
 ) : CoverLetterRepository {
 
@@ -43,8 +44,12 @@ class CoverLetterRepositoryImpl @Inject constructor(
             Please provide only the content of the cover letter.
         """.trimIndent()
 
-        val result = aiService.analyzeText(prompt)
-        emit(result.getOrThrow())
+        val result = textGenerationService.generateText(prompt)
+        val text = when (result) {
+            is Result.Success -> result.data
+            is Result.Failure -> throw Exception(result.error.message)
+        }
+        emit(text)
     }
 
     override fun saveCoverLetter(coverLetter: CoverLetter): Flow<Unit> = flow {

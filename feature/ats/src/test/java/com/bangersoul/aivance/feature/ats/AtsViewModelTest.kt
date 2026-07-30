@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.ats
 
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.feature.ats.domain.AtsRepository
 import com.bangersoul.aivance.feature.ats.domain.AtsResult
@@ -32,7 +33,7 @@ class AtsViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After

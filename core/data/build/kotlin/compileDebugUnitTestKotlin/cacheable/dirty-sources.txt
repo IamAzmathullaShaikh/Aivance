@@ -1,5 +1,0 @@
-C:\Users\iamsh\AndroidStudioProjects\Aivance\core\data\src\test\java\com\bangersoul\aivance\core\data\repository\ResumeRepositoryImplTest.kt
-C:\Users\iamsh\AndroidStudioProjects\Aivance\core\data\src\test\java\com\bangersoul\aivance\core\data\cache\MemoryCacheTest.kt
-C:\Users\iamsh\AndroidStudioProjects\Aivance\core\data\src\test\java\com\bangersoul\aivance\core\data\repository\JobRepositoryImplTest.kt
-C:\Users\iamsh\AndroidStudioProjects\Aivance\core\data\src\test\java\com\bangersoul\aivance\core\data\repository\JobTrackerRepositoryImplTest.kt
-C:\Users\iamsh\AndroidStudioProjects\Aivance\core\data\src\test\java\com\bangersoul\aivance\core\data\repository\UserRepositoryImplTest.kt

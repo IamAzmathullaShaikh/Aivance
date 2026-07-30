@@ -80,12 +80,24 @@ enum class ReleaseType(val description: String) {
 
 /**
  * Pre-defined version constants used throughout the app.
+ *
+ * NOTE: These values should match the versionCode and versionName
+ * defined in app/build.gradle.kts. Update both files together
+ * when incrementing the version for a release.
+ *
+ * Consider reading from PackageManager at runtime to eliminate drift:
+ *   context.packageManager.getPackageInfo(context.packageName, 0)
  */
 object AppVersions {
     const val MIN_SUPPORTED_VERSION_CODE = 1
-    const val CURRENT_VERSION_CODE = 1
-    const val CURRENT_VERSION_NAME = "1.0.0"
-    val RELEASE_TYPE = ReleaseType.STABLE
     const val MIN_ANDROID_SDK = 26
     const val TARGET_ANDROID_SDK = 37
+
+    /** Current version — keep in sync with app/build.gradle.kts */
+    val CURRENT = Version(
+        major = 1,
+        minor = 0,
+        patch = 0,
+        build = 1
+    )
 }

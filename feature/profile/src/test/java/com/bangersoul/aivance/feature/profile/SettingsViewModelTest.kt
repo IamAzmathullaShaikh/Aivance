@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.profile
 
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.ExportSettingsUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.LoadSettingsUseCase
@@ -36,7 +37,7 @@ class SettingsViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After
@@ -46,7 +47,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `initial state loads settings`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(CoreResult.Success(AppSettings()))
+        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
 
         viewModel = SettingsViewModel(
             mockLoadSettings, mockSaveSettings, mockExportSettings,
@@ -59,8 +60,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `save settings triggers use case and shows snackbar`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(CoreResult.Success(AppSettings()))
-        coEvery { mockSaveSettings.invoke(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
+        coEvery { mockSaveSettings.invoke(any()) } returns flowOf(Result.Success(Unit))
 
         viewModel = SettingsViewModel(
             mockLoadSettings, mockSaveSettings, mockExportSettings,
@@ -78,8 +79,8 @@ class SettingsViewModelTest {
 
     @Test
     fun `reset settings triggers use case`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(CoreResult.Success(AppSettings()))
-        coEvery { mockResetSettings.invoke() } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
+        coEvery { mockResetSettings.invoke() } returns flowOf(Result.Success(Unit))
 
         viewModel = SettingsViewModel(
             mockLoadSettings, mockSaveSettings, mockExportSettings,
@@ -95,7 +96,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `theme change updates pending settings`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(CoreResult.Success(AppSettings()))
+        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
 
         viewModel = SettingsViewModel(
             mockLoadSettings, mockSaveSettings, mockExportSettings,
@@ -109,7 +110,7 @@ class SettingsViewModelTest {
     @Test
     fun `settings error shows error state`() = runTest {
         coEvery { mockLoadSettings.invoke() } returns flowOf(
-            CoreResult.Failure(com.bangersoul.aivance.core.common.result.ProviderError("test", message = "Load failed"))
+            Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError("test", message = "Load failed"))
         )
 
         viewModel = SettingsViewModel(

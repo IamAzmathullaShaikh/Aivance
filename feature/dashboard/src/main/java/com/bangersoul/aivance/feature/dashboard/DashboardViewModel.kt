@@ -18,22 +18,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface DashboardUiState {
-    data object Loading : DashboardUiState
-    data class Success(
-        val profileCompletion: Int = 0,
-        val atsScore: Int = 0,
-        val activeApplications: Int = 0,
-        val interviewPrepStatus: String = "",
-        val isRefreshing: Boolean = false
-    ) : DashboardUiState
-    data object Empty : DashboardUiState
-    data class Error(
-        val message: String? = null,
-        val isOffline: Boolean = false
-    ) : DashboardUiState
-}
-
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
@@ -44,14 +28,15 @@ class DashboardViewModel @Inject constructor(
     val effects: Flow<DashboardUiEffect> = _effects.receiveAsFlow()
 
     val uiState: StateFlow<DashboardUiState> = dashboardRepository.getDashboardData()
-        .map { data ->
+        .map { data: com.bangersoul.aivance.feature.dashboard.domain.DashboardData ->
             DashboardUiState.Success(
-                profileCompletion = data.profileCompletion,
-                atsScore = data.atsScore,
-                activeApplications = data.activeApplications,
-                interviewPrepStatus = data.interviewPrepStatus,
+                dashboardData = data,
+                recentAtsScore = data.atsScore,
+                activeApplicationCount = data.activeApplications,
+                upcomingInterviews = 0,
+                profileCompletionPercent = data.profileCompletion / 100f,
                 isRefreshing = false
-            )
+            ) as DashboardUiState
         }
         .onStart { emit(DashboardUiState.Loading) }
         .catch { e ->

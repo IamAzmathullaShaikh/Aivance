@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:17.005Z" hostname="BANGERSOUL" time="0.015">
-  <properties/>
-  <testcase name="should return default profile on error" classname="com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCaseTest" time="0.009"/>
-  <testcase name="should load existing profile" classname="com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCaseTest" time="0.006"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

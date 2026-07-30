@@ -3,11 +3,14 @@ package com.bangersoul.aivance.feature.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.DisableProviderUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.EnableProviderUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseCase
+import com.bangersoul.aivance.core.domain.usecase.provider.SelectProviderRequest
 import com.bangersoul.aivance.core.domain.usecase.provider.SelectProviderUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -15,8 +18,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -108,10 +109,10 @@ class ProviderManagementViewModel @Inject constructor(
             _uiState.value = ProviderManagementUiState.Loading
             trackEventUseCase(TrackEventRequest(eventName = "provider_mgmt_load"))
 
-            // Load available models
-            val modelsResult = getAvailableModelsUseCase().firstOrNull()
+            val modelsResult = getAvailableModelsUseCase("gemini")
+            @Suppress("UNCHECKED_CAST")
             val models = when (modelsResult) {
-                is CoreResult.Success -> modelsResult.data
+                is Result.Success<*> -> (modelsResult as Result.Success<List<String>>).data
                 else -> emptyList()
             }
 
@@ -131,9 +132,10 @@ class ProviderManagementViewModel @Inject constructor(
     private fun selectProvider(providerId: String) {
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest(eventName = "provider_select_$providerId"))
-            val result = selectProviderUseCase(providerId).firstOrNull()
+            val request = SelectProviderRequest(providerId = providerId)
+            val result = selectProviderUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success<*> -> {
                     val currentState = _uiState.value
                     if (currentState is ProviderManagementUiState.Success) {
                         _uiState.value = currentState.copy(selectedProviderId = providerId)
@@ -141,12 +143,11 @@ class ProviderManagementViewModel @Inject constructor(
                     _effects.send(ProviderManagementUiEffect.ProviderChanged)
                     _effects.send(ProviderManagementUiEffect.ShowSnackbar("Provider changed to $providerId"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _effects.send(ProviderManagementUiEffect.ShowSnackbar(
                         result.error.message ?: "Failed to select provider"
                     ))
                 }
-                null -> { /* noop */ }
             }
         }
     }
@@ -155,12 +156,12 @@ class ProviderManagementViewModel @Inject constructor(
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest(eventName = "provider_toggle_${providerId}_$enabled"))
             val result = if (enabled) {
-                enableProviderUseCase(providerId).firstOrNull()
+                enableProviderUseCase(com.bangersoul.aivance.core.common.model.AiProviderConfig(providerId = providerId, apiKey = "", selectedModel = "gemini-2.0-flash", isEnabled = true))
             } else {
-                disableProviderUseCase(providerId).firstOrNull()
+                disableProviderUseCase(providerId)
             }
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success<*> -> {
                     val currentState = _uiState.value
                     if (currentState is ProviderManagementUiState.Success) {
                         val updatedProviders = currentState.providers.map {
@@ -172,12 +173,11 @@ class ProviderManagementViewModel @Inject constructor(
                         if (enabled) "Provider enabled" else "Provider disabled"
                     ))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _effects.send(ProviderManagementUiEffect.ShowSnackbar(
                         result.error.message ?: "Failed to toggle provider"
                     ))
                 }
-                null -> { /* noop */ }
             }
         }
     }
@@ -189,10 +189,12 @@ class ProviderManagementViewModel @Inject constructor(
             if (currentState is ProviderManagementUiState.Success) {
                 _uiState.value = currentState.copy(isTestingConnection = true)
 
-                val result = getProviderHealthUseCase(providerId).firstOrNull()
+                val result = getProviderHealthUseCase(providerId)
+                @Suppress("UNCHECKED_CAST")
                 when (result) {
-                    is CoreResult.Success -> {
-                        val isHealthy = result.data
+                    is Result.Success<*> -> {
+                        val health = (result as Result.Success<com.bangersoul.aivance.core.domain.usecase.provider.ProviderHealth>).data
+                        val isHealthy = health.isOperational
                         val updatedProviders = currentState.providers.map {
                             if (it.id == providerId) it.copy(
                                 isConnected = isHealthy,
@@ -207,16 +209,13 @@ class ProviderManagementViewModel @Inject constructor(
                             message = if (isHealthy) "Connected successfully" else "Connection failed"
                         ))
                     }
-                    is CoreResult.Failure -> {
+                    is Result.Failure -> {
                         _uiState.value = currentState.copy(isTestingConnection = false)
                         _effects.send(ProviderManagementUiEffect.ConnectionTestResult(
                             providerId = providerId,
                             success = false,
                             message = result.error.message ?: "Connection failed"
                         ))
-                    }
-                    null -> {
-                        _uiState.value = currentState.copy(isTestingConnection = false)
                     }
                 }
             }
@@ -245,15 +244,17 @@ class ProviderManagementViewModel @Inject constructor(
 
     private fun loadModels() {
         viewModelScope.launch {
-            val result = getAvailableModelsUseCase().firstOrNull()
+            val result = getAvailableModelsUseCase("gemini")
+            @Suppress("UNCHECKED_CAST")
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success<*> -> {
+                    val data = (result as Result.Success<List<String>>).data
                     val currentState = _uiState.value
                     if (currentState is ProviderManagementUiState.Success) {
                         val updatedProviders = currentState.providers.map {
                             if (it.selectedModel.isBlank()) it.copy(
-                                availableModels = result.data,
-                                selectedModel = result.data.firstOrNull() ?: ""
+                                availableModels = data,
+                                selectedModel = data.firstOrNull() ?: ""
                             ) else it
                         }
                         _uiState.value = currentState.copy(providers = updatedProviders)

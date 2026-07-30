@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Network Security Configuration for Aivance.
+
     Restricts cleartext traffic in production and applies
     certificate pinning to critical API endpoints.
+
+    IMPORTANT: Before production deployment, enable certificate pinning
+    by uncommenting the <pin-set> blocks below with real SHA-256 hashes.
+    Generate them with:
+      openssl s_client -connect HOST:443 -servername HOST </dev/null 2>/dev/null \
+        | openssl x509 -pubkey -noout \
+        | openssl pkey -pubin -outform der \
+        | openssl dgst -sha256 -binary \
+        | openssl base64
 -->
 <network-security-config>
     <!-- Default: HTTPS only, system trust anchors -->
@@ -19,39 +29,19 @@
         <domain includeSubdomains="false">127.0.0.1</domain>
     </domain-config>
 
-    <!-- OpenAI API with certificate pinning -->
-    <domain-config>
-        <domain includeSubdomains="true">api.openai.com</domain>
-        <pin-set expiration="2029-12-31">
-            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
-            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
-        </pin-set>
-    </domain-config>
+    <!--
+        Certificate Pinning — DISABLED until real pins are configured.
+        Uncomment and replace each pin digest with the actual base64-encoded
+        SHA-256 hash of the server's SubjectPublicKeyInfo.
+        Each domain should have at least 2 pins (primary + backup).
 
-    <!-- Groq API -->
-    <domain-config>
-        <domain includeSubdomains="true">api.groq.com</domain>
-        <pin-set expiration="2029-12-31">
-            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
-            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
-        </pin-set>
-    </domain-config>
-
-    <!-- OpenRouter -->
-    <domain-config>
-        <domain includeSubdomains="true">openrouter.ai</domain>
-        <pin-set expiration="2029-12-31">
-            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
-            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
-        </pin-set>
-    </domain-config>
-
-    <!-- Apify -->
-    <domain-config>
-        <domain includeSubdomains="true">api.apify.com</domain>
-        <pin-set expiration="2029-12-31">
-            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
-            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
-        </pin-set>
-    </domain-config>
+        Example:
+        <domain-config>
+            <domain includeSubdomains="true">api.openai.com</domain>
+            <pin-set expiration="2029-12-31">
+                <pin digest="SHA-256">BASE64_ENCODED_PIN_HERE</pin>
+                <pin digest="SHA-256">BACKUP_PIN_HERE</pin>
+            </pin-set>
+        </domain-config>
+    -->
 </network-security-config>

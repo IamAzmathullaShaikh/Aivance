@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.099Z" hostname="BANGERSOUL" time="0.068">
-  <properties/>
-  <testcase name="should fail for blank job ID" classname="com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCaseTest" time="0.044"/>
-  <testcase name="should get job details successfully" classname="com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCaseTest" time="0.024"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

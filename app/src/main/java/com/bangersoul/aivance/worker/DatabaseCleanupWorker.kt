@@ -2,8 +2,8 @@ package com.bangersoul.aivance.worker
 
 import android.content.Context
 import androidx.hilt.work.HiltWorker
-import androidx.room.Room
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import com.bangersoul.aivance.core.database.AivanceDatabase
 import dagger.assisted.Assisted
@@ -25,46 +25,44 @@ class DatabaseCleanupWorker @AssistedInject constructor(
     private val database: AivanceDatabase
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         Timber.d("DatabaseCleanupWorker started")
 
         return try {
             val db = database.openHelper.writableDatabase
-            val supportDb = database.getOpenHelper().writableDatabase
 
             // 1. WAL checkpoint
-            supportDb.execSQL("PRAGMA wal_checkpoint(FULL)")
+            db.execSQL("PRAGMA wal_checkpoint(FULL)")
             Timber.d("WAL checkpoint completed")
 
             // 2. Integrity check
-            val cursor = supportDb.query("PRAGMA integrity_check(1)")
+            val cursor = db.query("PRAGMA integrity_check(1)")
             var integrityOk = true
-            cursor?.use {
-                while (it.moveToNext()) {
-                    val result = it.getString(0)
-                    if (result != "ok") {
-                        Timber.w("Database integrity issue: %s", result)
-                        integrityOk = false
-                    }
+            while (cursor.moveToNext()) {
+                val result = cursor.getString(0)
+                if (result != "ok") {
+                    Timber.w("Database integrity issue: $result")
+                    integrityOk = false
                 }
             }
+            cursor.close()
             if (integrityOk) {
                 Timber.d("Database integrity check passed")
             }
 
             // 3. VACUUM (reclaim space)
-            supportDb.execSQL("VACUUM")
+            db.execSQL("VACUUM")
             Timber.d("Database VACUUM completed")
 
             // 4. Update database statistics for query planner
-            supportDb.execSQL("ANALYZE")
+            db.execSQL("ANALYZE")
             Timber.d("Database statistics updated")
 
-            Result.success()
+            ListenableWorker.Result.success()
 
         } catch (e: Exception) {
             Timber.e(e, "DatabaseCleanupWorker failed")
-            if (runAttemptCount < 3) Result.retry() else Result.failure()
+            if (runAttemptCount < 3) ListenableWorker.Result.retry() else ListenableWorker.Result.failure()
         }
     }
 }

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.332Z" hostname="BANGERSOUL" time="0.148">
-  <properties/>
-  <testcase name="should fail for blank provider ID" classname="com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCaseTest" time="0.061"/>
-  <testcase name="should return models for Gemini" classname="com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCaseTest" time="0.083"/>
-  <testcase name="should return models for OpenAI" classname="com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCaseTest" time="0.004"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

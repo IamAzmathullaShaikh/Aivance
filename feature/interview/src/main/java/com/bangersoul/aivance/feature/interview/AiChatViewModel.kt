@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.enums.MessageRole
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.ai.ClearConversationUseCase
 import com.bangersoul.aivance.core.domain.usecase.ai.RegenerateResponseRequest
 import com.bangersoul.aivance.core.domain.usecase.ai.RegenerateResponseUseCase
@@ -99,11 +100,11 @@ class AiChatViewModel @Inject constructor(
             )
             val result = startConversationUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     conversationId = result.data.id
                     _uiState.value = AiChatUiState.Chatting(conversationId = conversationId)
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = AiChatUiState.Error(result.error.message ?: "Failed to start conversation")
                 }
             }
@@ -137,7 +138,7 @@ class AiChatViewModel @Inject constructor(
             )
             val result = sendMessageUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     val aiMessage = ChatMessage(
                         role = MessageRole.ASSISTANT,
                         content = result.data.content
@@ -149,7 +150,7 @@ class AiChatViewModel @Inject constructor(
                     )
                     sendEffect(AiChatUiEffect.ScrollToBottom)
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = AiChatUiState.Chatting(
                         messages = currentMessages,
                         isTyping = false,
@@ -176,7 +177,7 @@ class AiChatViewModel @Inject constructor(
             val request = RegenerateResponseRequest(conversationId = conversationId)
             val result = regenerateResponseUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     val aiMessage = ChatMessage(role = MessageRole.ASSISTANT, content = result.data.content)
                     _uiState.value = AiChatUiState.Chatting(
                         messages = messagesWithoutLastAi + aiMessage,
@@ -184,7 +185,7 @@ class AiChatViewModel @Inject constructor(
                         conversationId = conversationId
                     )
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = currentState.copy(messages = messagesWithoutLastAi, isTyping = false)
                 }
             }
@@ -196,10 +197,10 @@ class AiChatViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest(eventName = "ai_chat_summarise"))
             val result = summariseConversationUseCase(conversationId = conversationId)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     sendEffect(AiChatUiEffect.ShareConversation(result.data))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     sendEffect(AiChatUiEffect.ShowSnackbar(result.error.message ?: "Failed"))
                 }
             }

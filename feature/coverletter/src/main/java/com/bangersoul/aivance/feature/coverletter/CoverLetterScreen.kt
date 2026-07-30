@@ -38,6 +38,8 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,7 +64,10 @@ fun CoverLetterScreen(
     viewModel: CoverLetterViewModel,
     onBack: () -> Unit
 ) {
-    val uiState = viewModel.uiState
+    val uiState by viewModel.uiState.collectAsState()
+    val resumeText by viewModel.resumeText.collectAsState()
+    val jobDescription by viewModel.jobDescription.collectAsState()
+    val selectedTone by viewModel.selectedTone.collectAsState()
     val scrollState = rememberScrollState()
 
     AivanceScreen(
@@ -85,7 +90,7 @@ fun CoverLetterScreen(
                 },
                 actions = {
                     if (uiState is CoverLetterUiState.Success) {
-                        IconButton(onClick = { viewModel.reset() }) {
+                        IconButton(onClick = { viewModel.onEvent(CoverLetterUiEvent.Reset) }) {
                             Icon(Icons.Rounded.Refresh, contentDescription = "Reset")
                         }
                     }
@@ -108,13 +113,13 @@ fun CoverLetterScreen(
             when (state) {
                 is CoverLetterUiState.Idle -> {
                     CoverLetterInputForm(
-                        resumeText = viewModel.resumeText,
-                        onUpdateResume = viewModel::onResumeChange,
-                        jobDescription = viewModel.jobDescription,
-                        onUpdateJobDescription = viewModel::onJobDescriptionChange,
-                        selectedTone = viewModel.selectedTone,
-                        onUpdateTone = viewModel::onToneChange,
-                        onGenerate = viewModel::generate,
+                        resumeText = resumeText,
+                        onUpdateResume = viewModel::updateResumeText,
+                        jobDescription = jobDescription,
+                        onUpdateJobDescription = viewModel::updateJobDescription,
+                        selectedTone = selectedTone,
+                        onUpdateTone = viewModel::updateTone,
+                        onGenerate = { viewModel.onEvent(CoverLetterUiEvent.Generate("", "", "", selectedTone)) },
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
@@ -141,8 +146,8 @@ fun CoverLetterScreen(
                 is CoverLetterUiState.Success -> {
                     CoverLetterResult(
                         content = state.content,
-                        onCopy = { viewModel.copyToClipboard(state.content) },
-                        onSave = { viewModel.save("Unknown Company", "Unknown Role") },
+                        onCopy = { viewModel.onEvent(CoverLetterUiEvent.CopyToClipboard) },
+                        onSave = { viewModel.onEvent(CoverLetterUiEvent.CopyToClipboard) },
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
@@ -153,7 +158,7 @@ fun CoverLetterScreen(
                 is CoverLetterUiState.Error -> {
                     AivanceError(
                         message = state.message,
-                        onRetry = viewModel::generate,
+                        onRetry = { viewModel.onEvent(CoverLetterUiEvent.Generate("", "", "", selectedTone)) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

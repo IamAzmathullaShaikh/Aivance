@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.feature.interview
 
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.ai.ClearConversationUseCase
 import com.bangersoul.aivance.core.domain.usecase.ai.SendMessageUseCase
 import com.bangersoul.aivance.core.domain.usecase.ai.StartConversationUseCase
@@ -39,10 +40,10 @@ class AiChatViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns CoreResult.Success(Unit)
-        coEvery { mockStartConversation(any()) } returns flowOf(CoreResult.Success("conv_1"))
-        coEvery { mockSendMessage(any()) } returns flowOf(CoreResult.Success("AI response"))
-        coEvery { mockClearConversation() } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns Result.Success(Unit)
+        coEvery { mockStartConversation(any()) } returns flowOf(Result.Success("conv_1"))
+        coEvery { mockSendMessage(any()) } returns flowOf(Result.Success("AI response"))
+        coEvery { mockClearConversation() } returns flowOf(Result.Success(Unit))
     }
 
     @After
@@ -113,7 +114,7 @@ class AiChatViewModelTest {
     @Test
     fun `sendMessage when failing shows error state`() = runTest {
         coEvery { mockSendMessage(any()) } returns flowOf(
-            CoreResult.Failure(com.bangersoul.aivance.core.common.result.DomainError("API Error"))
+            Result.Failure(com.bangersoul.aivance.core.common.result.DomainError("API Error"))
         )
         val viewModel = AiChatViewModel(
             startConversationUseCase = mockStartConversation,

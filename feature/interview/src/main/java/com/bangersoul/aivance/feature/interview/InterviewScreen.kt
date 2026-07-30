@@ -75,7 +75,8 @@ fun InterviewScreen(
                 },
                 actions = {
                     if (uiState is InterviewUiState.Chatting) {
-                        TextButton(onClick = { viewModel.finishInterview() }) {
+                        val sid = (uiState as InterviewUiState.Chatting).sessionId
+                        TextButton(onClick = { viewModel.onEvent(InterviewUiEvent.EndSession(sid)) }) {
                             Text(text = "End Session", color = MaterialTheme.colorScheme.error)
                         }
                     }
@@ -92,10 +93,19 @@ fun InterviewScreen(
         ) { state ->
             when (state) {
                 is InterviewUiState.Idle -> {
-                    SetupView(onStart = viewModel::startInterview)
+                    SetupView(
+                        onStart = { role, difficulty ->
+                            val diff = when (difficulty) {
+                                "Senior" -> com.bangersoul.aivance.core.common.enums.InterviewDifficulty.HARD
+                                "Junior" -> com.bangersoul.aivance.core.common.enums.InterviewDifficulty.EASY
+                                else -> com.bangersoul.aivance.core.common.enums.InterviewDifficulty.MEDIUM
+                            }
+                            viewModel.onEvent(InterviewUiEvent.StartSession(role, diff))
+                        }
+                    )
                 }
 
-                is InterviewUiState.Loading -> {
+                is InterviewUiState.Preparing -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -105,11 +115,28 @@ fun InterviewScreen(
                     }
                 }
 
+                is InterviewUiState.Ready -> {
+                    // Auto-transition — call onEvent to start chatting
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        viewModel.onEvent(InterviewUiEvent.GenerateQuestions)
+                    }
+                }
+
+                is InterviewUiState.Loading -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = "Loading...")
+                    }
+                }
+
                 is InterviewUiState.Chatting -> {
                     ChatView(
                         messages = state.messages,
                         isTyping = state.isTyping,
-                        onSendMessage = viewModel::sendMessage
+                        onSendMessage = { text -> viewModel.onEvent(InterviewUiEvent.SendMessage(text)) }
                     )
                 }
 
@@ -126,8 +153,18 @@ fun InterviewScreen(
                 is InterviewUiState.Feedback -> {
                     FeedbackView(
                         feedback = state.feedback,
-                        onRestart = { viewModel.reset() }
+                        onRestart = { viewModel.onEvent(InterviewUiEvent.Reset) }
                     )
+                }
+
+                is InterviewUiState.Error -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }

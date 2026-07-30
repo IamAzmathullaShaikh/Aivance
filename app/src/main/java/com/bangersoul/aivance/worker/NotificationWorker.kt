@@ -7,9 +7,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import com.bangersoul.aivance.MainActivity
-import com.bangersoul.aivance.R
 import com.bangersoul.aivance.core.util.NotificationHelper
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -30,9 +30,6 @@ enum class NotificationType {
 
 /**
  * Worker that sends push notifications to the user with deep-link actions.
- *
- * All notifications include a [PendingIntent] that opens the relevant
- * screen in the app via the aivance:// deep link scheme.
  */
 @HiltWorker
 class NotificationWorker @AssistedInject constructor(
@@ -43,14 +40,15 @@ class NotificationWorker @AssistedInject constructor(
 
     private val appContext: Context = context
 
-    override suspend fun doWork(): Result {
-        val notificationType = params.inputData.getString(EXTRA_NOTIFICATION_TYPE)
+    override suspend fun doWork(): ListenableWorker.Result {
+        val inputData = this.inputData
+        val notificationType = inputData.getString(EXTRA_NOTIFICATION_TYPE)
             ?.let { try { NotificationType.valueOf(it) } catch (_: Exception) { null } }
-            ?: return Result.failure()
+            ?: return ListenableWorker.Result.failure()
 
-        val title = params.inputData.getString(EXTRA_TITLE) ?: "Aivance"
-        val message = params.inputData.getString(EXTRA_MESSAGE) ?: ""
-        val deepLinkUri = params.inputData.getString(EXTRA_DEEP_LINK)
+        val title = inputData.getString(EXTRA_TITLE) ?: "Aivance"
+        val message = inputData.getString(EXTRA_MESSAGE) ?: ""
+        val deepLinkUri = inputData.getString(EXTRA_DEEP_LINK)
 
         Timber.d("NotificationWorker — sending %s: %s", notificationType, title)
 
@@ -77,7 +75,7 @@ class NotificationWorker @AssistedInject constructor(
 
             val pendingIntent = PendingIntent.getActivity(
                 appContext,
-                System.currentTimeMillis().toInt(),
+                (System.currentTimeMillis() % Int.MAX_VALUE).toInt(),
                 deepLinkIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -90,7 +88,6 @@ class NotificationWorker @AssistedInject constructor(
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
 
-            // Add action-specific deep-link buttons
             when (notificationType) {
                 NotificationType.INTERVIEW_REMINDER -> {
                     val interviewIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -125,12 +122,12 @@ class NotificationWorker @AssistedInject constructor(
                     )
                     builder.addAction(android.R.drawable.ic_menu_manage, "Settings", settingsPI)
                 }
-                else -> { /* no extra actions */ }
+                else -> { }
             }
 
             try {
                 NotificationManagerCompat.from(appContext).notify(
-                    System.currentTimeMillis().toInt(),
+                    (System.currentTimeMillis() % Int.MAX_VALUE).toInt(),
                     builder.build()
                 )
                 Timber.d("Notification sent: %s", notificationType)
@@ -138,11 +135,11 @@ class NotificationWorker @AssistedInject constructor(
                 Timber.w("Notification permission not granted for %s", notificationType)
             }
 
-            return Result.success()
+            return ListenableWorker.Result.success()
 
         } catch (e: Exception) {
             Timber.e(e, "NotificationWorker failed")
-            return if (runAttemptCount < 3) Result.retry() else Result.failure()
+            return if (runAttemptCount < 3) ListenableWorker.Result.retry() else ListenableWorker.Result.failure()
         }
     }
 

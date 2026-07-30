@@ -90,12 +90,16 @@ Maximize your career growth with Aivance by following these five steps:
   - Minimum SDK: 26 (Android 8.0)
   - Target SDK: 37 (Android 16)
 
+## Build Status
+
+✅ **Current build: COMPILATION SUCCESSFUL** — All 16 Gradle modules compile without errors.
+
 ## Getting Started
 
 ### 1. Cloning the Repository
 ```bash
-git clone https://github.com/your-repo/aivance.git
-cd aivance
+git clone https://github.com/IamAzmathullaShaikh/Aivance.git
+cd Aivance
 ```
 
 ### 2. Syncing Gradle

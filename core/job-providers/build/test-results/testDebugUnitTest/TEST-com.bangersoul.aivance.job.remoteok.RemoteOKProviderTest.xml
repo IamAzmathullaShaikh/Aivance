@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.job.remoteok.RemoteOKProviderTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:00:47.294Z" hostname="BANGERSOUL" time="0.066">
-  <properties/>
-  <testcase name="searchJobs returns failure on server error" classname="com.bangersoul.aivance.job.remoteok.RemoteOKProviderTest" time="0.024"/>
-  <testcase name="searchJobs uses cached results when API fails" classname="com.bangersoul.aivance.job.remoteok.RemoteOKProviderTest" time="0.02"/>
-  <testcase name="searchJobs successfully maps API response" classname="com.bangersoul.aivance.job.remoteok.RemoteOKProviderTest" time="0.022"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

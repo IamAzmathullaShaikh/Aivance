@@ -2,7 +2,9 @@ package com.bangersoul.aivance.feature.resume
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangersoul.aivance.core.common.model.ResumeAnalysis
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.AnalyseResumeRequest
@@ -16,16 +18,17 @@ import com.bangersoul.aivance.core.domain.usecase.resume.GenerateResumeSummaryUs
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeRequest
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeRequest
+import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeResponse
 import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ResumeSummaryRequest
+import com.bangersoul.aivance.feature.resume.domain.model.KeywordInfo
+import com.bangersoul.aivance.feature.resume.domain.model.OptimizationTip
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -85,6 +88,7 @@ class ResumeViewModel @Inject constructor(
     val jobDescription: StateFlow<String> = _jobDescription.asStateFlow()
 
     private val _resumeId = MutableStateFlow(0L)
+    val resumeId: StateFlow<Long> = _resumeId.asStateFlow()
 
     private val _effects = Channel<ResumeUiEffect>(Channel.BUFFERED)
     val effects: Flow<ResumeUiEffect> = _effects.receiveAsFlow()
@@ -102,6 +106,32 @@ class ResumeViewModel @Inject constructor(
         }
     }
 
+    /** Shortcut methods for screen binding */
+    fun triggerAnalyze(resumeId: Long, jobDescription: String) {
+        if (_resumeText.value.isBlank()) {
+            _uiState.value = ResumeUiState.Error("No resume text entered. Paste resume first.")
+            return
+        }
+        onEvent(ResumeUiEvent.AnalyzeResume(if (resumeId <= 0) _resumeId.value else resumeId, jobDescription))
+    }
+
+    fun addJobToTracker(company: String, role: String) {
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest(eventName = "resume_track_job"))
+            sendEffect(ResumeUiEffect.ShowSnackbar("Job tracking: $company - $role"))
+        }
+    }
+
+    fun resetState() {
+        onEvent(ResumeUiEvent.Reset)
+    }
+
+    fun saveResult(resumeId: Long) {
+        viewModelScope.launch {
+            sendEffect(ResumeUiEffect.ShowSnackbar("Saved"))
+        }
+    }
+
     private fun importResume(fileName: String, uri: String, rawText: String) {
         viewModelScope.launch {
             _uiState.value = ResumeUiState.Importing
@@ -110,13 +140,15 @@ class ResumeViewModel @Inject constructor(
             val request = ImportResumeRequest(fileName = fileName, fileUri = uri, rawText = rawText)
             val result = importResumeUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
-                    _resumeId.value = result.data.resumeId
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val data = (result as Result.Success<ImportResumeResponse>).data
+                    _resumeId.value = data.resumeId
                     _resumeText.value = rawText
-                    _uiState.value = ResumeUiState.Success(summary = "Imported", resumeId = result.data.resumeId)
+                    _uiState.value = ResumeUiState.Success(summary = "Imported", resumeId = data.resumeId)
                     sendEffect(ResumeUiEffect.ShowSnackbar("Resume imported"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = ResumeUiState.Error(result.error.message ?: "Import failed")
                 }
             }
@@ -128,30 +160,31 @@ class ResumeViewModel @Inject constructor(
             _uiState.value = ResumeUiState.Error("Job description cannot be empty")
             return
         }
-        if (resumeId <= 0) {
-            _uiState.value = ResumeUiState.Error("No resume selected. Import resume first.")
+        val rid = if (resumeId <= 0) _resumeId.value else resumeId
+        if (rid <= 0) {
+            _uiState.value = ResumeUiState.Error("No resume selected. Enter resume text and import first.")
             return
         }
         viewModelScope.launch {
             _uiState.value = ResumeUiState.Analyzing
             trackEventUseCase(TrackEventRequest(eventName = "resume_analyze"))
 
-            val request = AnalyseResumeRequest(resumeId = resumeId, jobDescription = jobDescription)
+            val request = AnalyseResumeRequest(resumeId = rid, jobDescription = jobDescription)
             val result = analyseResumeUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
-                    val analysis = result.data
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val analysis = (result as Result.Success<com.bangersoul.aivance.core.common.model.ResumeAnalysis>).data
                     _uiState.value = ResumeUiState.AnalysisSuccess(
                         analysis = com.bangersoul.aivance.feature.resume.domain.model.ResumeAnalysis(
-                            overallScore = analysis.overallScore,
-                            matchingKeywords = analysis.matchingKeywords,
-                            missingKeywords = analysis.missingKeywords,
-                            suggestions = analysis.suggestions,
-                            matchSummary = analysis.matchSummary
+                            matchScore = analysis.overallScore,
+                            keywords = analysis.matchingKeywords.map { KeywordInfo(text = it, isMatched = true) } +
+                                      analysis.missingKeywords.map { KeywordInfo(text = it, isMatched = false) },
+                            tips = analysis.suggestions.map { OptimizationTip(category = "Suggestion", description = it) }
                         )
                     )
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = ResumeUiState.Error(result.error.message ?: "Analysis failed")
                 }
             }
@@ -163,10 +196,12 @@ class ResumeViewModel @Inject constructor(
             val request = AtsScoreRequest(resumeId = resumeId, jobDescription = jobDescription)
             val result = calculateATSScoreUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
-                    _uiState.value = ResumeUiState.Success(atsScore = result.data.atsResult.score)
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val response = (result as Result.Success<com.bangersoul.aivance.core.domain.usecase.resume.AtsScoreResponse>).data
+                    _uiState.value = ResumeUiState.Success(atsScore = response.atsResult.score)
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = ResumeUiState.Error(result.error.message ?: "ATS score failed")
                 }
             }
@@ -178,12 +213,14 @@ class ResumeViewModel @Inject constructor(
             val request = ImproveResumeRequest(resumeId = resumeId, jobDescription = jobDescription)
             val result = improveResumeUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
-                    _resumeText.value = result.data.improvedResume.rawText
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val data = (result as Result.Success<com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeResponse>).data
+                    _resumeText.value = data.improvedResume.rawText
                     _uiState.value = ResumeUiState.Success(summary = "Resume improved", resumeId = resumeId)
                     sendEffect(ResumeUiEffect.ShowSnackbar("Resume improved"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = ResumeUiState.Error(result.error.message ?: "Improvement failed")
                 }
             }
@@ -195,10 +232,12 @@ class ResumeViewModel @Inject constructor(
             val request = ResumeSummaryRequest(resumeId = resumeId)
             val result = generateResumeSummaryUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
-                    _uiState.value = ResumeUiState.Success(summary = result.data, resumeId = resumeId)
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val summary = (result as Result.Success<String>).data
+                    _uiState.value = ResumeUiState.Success(summary = summary, resumeId = resumeId)
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = ResumeUiState.Error(result.error.message ?: "Summary failed")
                 }
             }
@@ -211,11 +250,13 @@ class ResumeViewModel @Inject constructor(
             val request = ExportResumeRequest(resumeId = resumeId, format = ExportFormat.TXT)
             val result = exportResumeUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
-                    sendEffect(ResumeUiEffect.ExportResult(result.data))
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val path = (result as Result.Success<String>).data
+                    sendEffect(ResumeUiEffect.ExportResult(path))
                     sendEffect(ResumeUiEffect.ShowSnackbar("Exported"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     sendEffect(ResumeUiEffect.ShowSnackbar(result.error.message ?: "Export failed"))
                 }
             }

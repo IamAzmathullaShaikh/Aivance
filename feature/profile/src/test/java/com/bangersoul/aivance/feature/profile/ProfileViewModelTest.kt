@@ -3,6 +3,7 @@ package com.bangersoul.aivance.feature.profile
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.UserProfile
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCase
@@ -40,8 +41,8 @@ class ProfileViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
-        coEvery { mockLoadProfile.invoke() } returns flowOf(CoreResult.Success(null))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockLoadProfile.invoke() } returns flowOf(Result.Success(null))
         coEvery { mockUserPrefs.userPreferences } returns MutableStateFlow(
             com.bangersoul.aivance.core.datastore.UserPreferences(
                 geminiApiKey = "test-key"
@@ -99,8 +100,8 @@ class ProfileViewModelTest {
 
     @Test
     fun `save profile triggers use case`() = runTest {
-        coEvery { mockUpdateProfile.invoke(any()) } returns flowOf(CoreResult.Success(Unit))
-        coEvery { mockCreateProfile.invoke(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockUpdateProfile.invoke(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockCreateProfile.invoke(any()) } returns flowOf(Result.Success(Unit))
 
         viewModel = ProfileViewModel(
             mockLoadProfile, mockCreateProfile, mockUpdateProfile,
@@ -119,7 +120,7 @@ class ProfileViewModelTest {
 
     @Test
     fun `delete profile triggers use case`() = runTest {
-        coEvery { mockDeleteProfile.invoke() } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockDeleteProfile.invoke() } returns flowOf(Result.Success(Unit))
 
         viewModel = ProfileViewModel(
             mockLoadProfile, mockCreateProfile, mockUpdateProfile,

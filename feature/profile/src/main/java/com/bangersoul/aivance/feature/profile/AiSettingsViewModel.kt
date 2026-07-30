@@ -3,11 +3,14 @@ package com.bangersoul.aivance.feature.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.DisableProviderUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.EnableProviderUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseCase
+import com.bangersoul.aivance.core.domain.usecase.provider.SelectProviderRequest
 import com.bangersoul.aivance.core.domain.usecase.provider.SelectProviderUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -15,8 +18,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -106,9 +107,12 @@ class AiSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = AiSettingsUiState.Loading
 
-            val modelsResult = getAvailableModelsUseCase().firstOrNull()
+            val modelsResult = getAvailableModelsUseCase("gemini")
             val models = when (modelsResult) {
-                is CoreResult.Success -> modelsResult.data
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    (modelsResult as Result.Success<List<String>>).data
+                }
                 else -> emptyList()
             }
 
@@ -156,10 +160,12 @@ class AiSettingsViewModel @Inject constructor(
             val state = _uiState.value as? AiSettingsUiState.Success ?: return@launch
             _uiState.value = state.copy(connectionStatus = ConnectionStatus.TESTING)
 
-            val result = getProviderHealthUseCase(state.config.providerId).firstOrNull()
+            val result = getProviderHealthUseCase(state.config.providerId)
             when (result) {
-                is CoreResult.Success -> {
-                    val isHealthy = result.data
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val health = (result as Result.Success<com.bangersoul.aivance.core.domain.usecase.provider.ProviderHealth>).data
+                    val isHealthy = health.isOperational
                     _uiState.value = state.copy(
                         config = state.config.copy(isConnected = isHealthy),
                         connectionStatus = if (isHealthy) ConnectionStatus.CONNECTED else ConnectionStatus.FAILED
@@ -169,14 +175,13 @@ class AiSettingsViewModel @Inject constructor(
                         message = if (isHealthy) "Connected successfully" else "Connection failed"
                     ))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = state.copy(connectionStatus = ConnectionStatus.FAILED)
                     _effects.send(AiSettingsUiEffect.ConnectionResult(
                         success = false,
                         message = result.error.message ?: "Connection failed"
                     ))
                 }
-                null -> { /* noop */ }
             }
         }
     }
@@ -186,17 +191,22 @@ class AiSettingsViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest(eventName = "ai_settings_save"))
             val state = _uiState.value as? AiSettingsUiState.Success ?: return@launch
 
-            val result = selectProviderUseCase(state.config.providerId).firstOrNull()
+            val request = SelectProviderRequest(
+                providerId = state.config.providerId,
+                apiKey = state.config.apiKey,
+                selectedModel = state.config.selectedModel,
+                temperature = state.config.temperature
+            )
+            val result = selectProviderUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success<*> -> {
                     _effects.send(AiSettingsUiEffect.ShowSnackbar("Configuration saved"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _effects.send(AiSettingsUiEffect.ShowSnackbar(
                         result.error.message ?: "Failed to save configuration"
                     ))
                 }
-                null -> { /* noop */ }
             }
         }
     }

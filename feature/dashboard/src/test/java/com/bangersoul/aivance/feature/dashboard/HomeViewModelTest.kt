@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.dashboard
 
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,7 +29,7 @@ class HomeViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After

@@ -3,6 +3,7 @@ package com.bangersoul.aivance.feature.coverletter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.ExportCoverLetterRequest
@@ -108,12 +109,12 @@ class CoverLetterViewModel @Inject constructor(
             )
             val result = generateCoverLetterUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     currentCoverLetterId = result.data.id
                     currentContent = result.data.content
                     _uiState.value = CoverLetterUiState.Success(result.data.content)
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = CoverLetterUiState.Error(result.error.message ?: "Generation failed")
                 }
             }
@@ -126,11 +127,11 @@ class CoverLetterViewModel @Inject constructor(
             val request = ImproveCoverLetterRequest(coverLetterId = coverLetterId, feedback = feedback)
             val result = improveCoverLetterUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     currentContent = result.data.content
                     _uiState.value = CoverLetterUiState.Success(result.data.content)
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = CoverLetterUiState.Error(result.error.message ?: "Improvement failed")
                 }
             }
@@ -143,11 +144,11 @@ class CoverLetterViewModel @Inject constructor(
             val request = ExportCoverLetterRequest(coverLetterId = coverLetterId, format = format)
             val result = exportCoverLetterUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     sendEffect(CoverLetterUiEffect.ExportResult(result.data))
                     sendEffect(CoverLetterUiEffect.ShowSnackbar("Exported"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     sendEffect(CoverLetterUiEffect.ShowSnackbar(result.error.message ?: "Export failed"))
                 }
             }

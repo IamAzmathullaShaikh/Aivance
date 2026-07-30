@@ -38,7 +38,13 @@ interface JobDao {
     suspend fun insertJobs(jobs: List<JobEntity>)
 
     @Query("DELETE FROM jobs")
-    suspend fun deleteAllJobs()
+    suspend fun deleteAllJobs(): Int
+
+    @Query("DELETE FROM jobs WHERE postedDate < :beforeTimestamp")
+    suspend fun deleteJobsOlderThan(beforeTimestamp: Long): Int
+
+    @Query("SELECT COUNT(*) FROM jobs")
+    suspend fun getJobCount(): Int
 
     @Delete
     suspend fun deleteJob(job: JobEntity)

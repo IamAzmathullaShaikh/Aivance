@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.enums.InterviewDifficulty
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.interview.EndInterviewUseCase
@@ -107,7 +108,7 @@ class InterviewViewModel @Inject constructor(
             )
             val result = startInterviewSessionUseCase(request)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     val session = result.data
                     _uiState.value = InterviewUiState.Ready(
                         sessionId = session.id,
@@ -116,7 +117,7 @@ class InterviewViewModel @Inject constructor(
                     )
                     sendEffect(InterviewUiEffect.ScrollToBottom)
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = InterviewUiState.Error(result.error.message ?: "Failed to start")
                 }
             }
@@ -151,7 +152,7 @@ class InterviewViewModel @Inject constructor(
                 )
                 val result = evaluateAnswersUseCase(request)
                 when (result) {
-                    is CoreResult.Success -> {
+                    is Result.Success -> {
                         val aiMessage = InterviewMessage(role = MessageRole.AI, text = result.data.feedback)
                         currentQuestion = result.data.feedback.take(100)
                         _uiState.update { state ->
@@ -161,7 +162,7 @@ class InterviewViewModel @Inject constructor(
                         }
                         sendEffect(InterviewUiEffect.ScrollToBottom)
                     }
-                    is CoreResult.Failure -> {
+                    is Result.Failure -> {
                         _uiState.update { state ->
                             if (state is InterviewUiState.Chatting) state.copy(isTyping = false) else state
                         }
@@ -175,23 +176,29 @@ class InterviewViewModel @Inject constructor(
     private fun generateQuestions() {
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest(eventName = "interview_generate_questions"))
-            generateInterviewQuestionsUseCase("", "")
-                .catch { e -> sendEffect(InterviewUiEffect.ShowSnackbar(e.message ?: "Failed")) }
-                .collect { result ->
-                    when (result) {
-                        is CoreResult.Success -> {
-                            val msg = InterviewMessage(role = MessageRole.AI, text = result.data)
-                            _uiState.update { state ->
-                                if (state is InterviewUiState.Chatting) {
-                                    state.copy(messages = state.messages + msg)
-                                } else state
-                            }
-                        }
-                        is CoreResult.Failure -> {
-                            sendEffect(InterviewUiEffect.ShowSnackbar(result.error.message ?: "Failed"))
-                        }
+            val request = com.bangersoul.aivance.core.domain.usecase.interview.GenerateInterviewQuestionsRequest(
+                targetRole = "General",
+                companyName = "",
+                difficulty = com.bangersoul.aivance.core.common.enums.InterviewDifficulty.MEDIUM,
+                count = 5
+            )
+            val result = generateInterviewQuestionsUseCase(request)
+            when (result) {
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val questions = (result as Result.Success<List<String>>).data
+                    val text = questions.joinToString("\n") { "• $it" }
+                    val msg = InterviewMessage(role = MessageRole.AI, text = text)
+                    _uiState.update { state ->
+                        if (state is InterviewUiState.Chatting) {
+                            state.copy(messages = state.messages + msg)
+                        } else state
                     }
                 }
+                is Result.Failure -> {
+                    sendEffect(InterviewUiEffect.ShowSnackbar(result.error.message ?: "Failed"))
+                }
+            }
         }
     }
 
@@ -202,7 +209,7 @@ class InterviewViewModel @Inject constructor(
 
             val result = endInterviewUseCase(sessionId = sessionId)
             when (result) {
-                is CoreResult.Success -> {
+                is Result.Success -> {
                     _uiState.value = InterviewUiState.Feedback(
                         feedback = InterviewFeedback(
                             summary = "Interview completed successfully",
@@ -213,7 +220,7 @@ class InterviewViewModel @Inject constructor(
                         sessionId = sessionId
                     )
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = InterviewUiState.Error(result.error.message ?: "Failed")
                 }
             }

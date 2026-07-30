@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.settings.LoadSettingsUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.896Z" hostname="BANGERSOUL" time="0.013">
-  <properties/>
-  <testcase name="should load settings successfully" classname="com.bangersoul.aivance.core.domain.usecase.settings.LoadSettingsUseCaseTest" time="0.009"/>
-  <testcase name="should return default settings on error" classname="com.bangersoul.aivance.core.domain.usecase.settings.LoadSettingsUseCaseTest" time="0.004"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

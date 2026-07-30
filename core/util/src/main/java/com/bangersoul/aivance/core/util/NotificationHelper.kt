@@ -8,7 +8,6 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.bangersoul.aivance.MainActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,6 +15,10 @@ import javax.inject.Singleton
 /**
  * Enhanced notification helper that manages multiple notification channels
  * with deep-link support and category-specific methods.
+ *
+ * Note: Uses the package manager to resolve the launch intent rather than
+ * referencing a specific Activity class, avoiding circular dependencies
+ * between core modules and the app module.
  */
 @Singleton
 class NotificationHelper @Inject constructor(
@@ -88,7 +91,7 @@ class NotificationHelper @Inject constructor(
     }
 
     fun showJobAlert(id: Int, title: String, message: String) {
-        showNotification(id, CHANNEL_APPLICATIONS, title, message, deepLinkUri = "aivance://jobs", autoCancel = true)
+        showNotification(id, CHANNEL_APPLICATIONS, title, message, deepLinkUri = "aivance://jobs")
     }
 
     private fun showNotification(
@@ -102,12 +105,19 @@ class NotificationHelper @Inject constructor(
         val deepLinkIntent = if (deepLinkUri != null) {
             Intent(Intent.ACTION_VIEW).apply {
                 data = android.net.Uri.parse(deepLinkUri)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
         } else {
-            Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            // Use the launcher intent instead of referencing a specific Activity class
+            // to avoid circular module dependencies
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(
+                context.packageName
+            )?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            } ?: Intent().apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+            launchIntent
         }
 
         val pendingIntent = PendingIntent.getActivity(

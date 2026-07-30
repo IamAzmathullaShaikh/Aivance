@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.tracker
 
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.feature.tracker.domain.ApplicationStatus
 import com.bangersoul.aivance.feature.tracker.domain.JobApplication
@@ -43,7 +44,7 @@ class TrackerViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After

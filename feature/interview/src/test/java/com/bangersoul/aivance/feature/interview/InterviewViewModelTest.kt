@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.InterviewSession as DomainInterviewSession
 import com.bangersoul.aivance.core.common.model.InterviewFeedback as DomainInterviewFeedback
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.interview.EndInterviewUseCase
 import com.bangersoul.aivance.core.domain.usecase.interview.EvaluateAnswersUseCase
@@ -40,7 +41,7 @@ class InterviewViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After
@@ -70,7 +71,7 @@ class InterviewViewModelTest {
     @Test
     fun `start session transitions through states correctly`() = runTest {
         val session = DomainInterviewSession(id = "session_1", role = "Android Dev", difficulty = "MEDIUM")
-        coEvery { mockStartSession.invoke(any(), any()) } returns flowOf(CoreResult.Success(session))
+        coEvery { mockStartSession.invoke(any(), any()) } returns flowOf(Result.Success(session))
 
         viewModel = InterviewViewModel(
             mockStartSession, mockGenerateQuestions, mockEvaluateAnswers,
@@ -94,8 +95,8 @@ class InterviewViewModelTest {
     fun `end session transitions to feedback state`() = runTest {
         val session = DomainInterviewSession(id = "session_1", role = "Test", difficulty = "EASY")
         val feedback = DomainInterviewFeedback(overallScore = 85, strengths = listOf("Communication"), improvements = listOf("Technical depth"))
-        coEvery { mockStartSession.invoke(any(), any()) } returns flowOf(CoreResult.Success(session))
-        coEvery { mockEndInterview.invoke(any()) } returns flowOf(CoreResult.Success(feedback))
+        coEvery { mockStartSession.invoke(any(), any()) } returns flowOf(Result.Success(session))
+        coEvery { mockEndInterview.invoke(any()) } returns flowOf(Result.Success(feedback))
 
         viewModel = InterviewViewModel(
             mockStartSession, mockGenerateQuestions, mockEvaluateAnswers,

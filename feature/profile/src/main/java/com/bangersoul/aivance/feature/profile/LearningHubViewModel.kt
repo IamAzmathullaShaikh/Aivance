@@ -3,8 +3,12 @@ package com.bangersoul.aivance.feature.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
+import com.bangersoul.aivance.core.domain.usecase.career.RecommendSkillsRequest
 import com.bangersoul.aivance.core.domain.usecase.career.RecommendSkillsUseCase
+import com.bangersoul.aivance.core.domain.usecase.career.SuggestLearningPathRequest
 import com.bangersoul.aivance.core.domain.usecase.career.SuggestLearningPathUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -12,7 +16,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -83,28 +86,31 @@ class LearningHubViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest(eventName = "learning_get_recommendations"))
             _uiState.value = LearningHubUiState.Loading
 
-            recommendSkillsUseCase(currentSkills, targetRole)
-                .catch { e -> _uiState.value = LearningHubUiState.Error(e.message ?: "Failed to get recommendations") }
-                .collect { result ->
-                    when (result) {
-                        is CoreResult.Success -> {
-                            val skills = result.data.split(",").map { it.trim() }
-                            _uiState.value = LearningHubUiState.Success(
-                                recommendedSkills = skills,
-                                suggestedResources = listOf(
-                                    LearningResource(
-                                        title = "Learn ${skills.firstOrNull() ?: "New Skills"}",
-                                        description = "Online courses and tutorials",
-                                        type = ResourceType.COURSE
-                                    )
-                                )
+            val skills = if (currentSkills.isBlank()) emptyList() else currentSkills.split(",").map { it.trim() }
+            val request = RecommendSkillsRequest(
+                targetRole = targetRole,
+                currentSkills = skills
+            )
+            val result = recommendSkillsUseCase(request)
+            @Suppress("UNCHECKED_CAST")
+            when (result) {
+                is Result.Success<*> -> {
+                    val recommendations = (result as Result.Success<List<com.bangersoul.aivance.core.domain.usecase.career.SkillRecommendation>>).data
+                    _uiState.value = LearningHubUiState.Success(
+                        recommendedSkills = recommendations.map { it.name },
+                        suggestedResources = recommendations.take(3).map { rec ->
+                            LearningResource(
+                                title = "Learn ${rec.name}",
+                                description = rec.reason.ifBlank { "Recommended ${rec.category} skill" },
+                                type = ResourceType.COURSE
                             )
                         }
-                        is CoreResult.Failure -> {
-                            _uiState.value = LearningHubUiState.Error(result.error.message ?: "Failed")
-                        }
-                    }
+                    )
                 }
+                is Result.Failure -> {
+                    _uiState.value = LearningHubUiState.Error(result.error.message ?: "Failed")
+                }
+            }
         }
     }
 
@@ -114,26 +120,26 @@ class LearningHubViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest(eventName = "learning_get_path"))
             _uiState.value = LearningHubUiState.Loading
 
-            suggestLearningPathUseCase(targetRole)
-                .catch { e -> _uiState.value = LearningHubUiState.Error(e.message ?: "Failed") }
-                .collect { result ->
-                    when (result) {
-                        is CoreResult.Success -> {
-                            _uiState.value = LearningHubUiState.Success(
-                                suggestedResources = listOf(
-                                    LearningResource(
-                                        title = result.data,
-                                        description = "Suggested learning path",
-                                        type = ResourceType.TUTORIAL
-                                    )
-                                )
+            val request = SuggestLearningPathRequest(skillToLearn = targetRole)
+            val result = suggestLearningPathUseCase(request)
+            @Suppress("UNCHECKED_CAST")
+            when (result) {
+                is Result.Success<*> -> {
+                    val path = (result as Result.Success<com.bangersoul.aivance.core.domain.usecase.career.LearningPath>).data
+                    _uiState.value = LearningHubUiState.Success(
+                        suggestedResources = path.resources.map { res ->
+                            LearningResource(
+                                title = res.name,
+                                description = res.description.ifBlank { "Estimated: ${res.estimatedDuration}" },
+                                type = ResourceType.COURSE
                             )
                         }
-                        is CoreResult.Failure -> {
-                            _uiState.value = LearningHubUiState.Error(result.error.message ?: "Failed")
-                        }
-                    }
+                    )
                 }
+                is Result.Failure -> {
+                    _uiState.value = LearningHubUiState.Error(result.error.message ?: "Failed")
+                }
+            }
         }
     }
 

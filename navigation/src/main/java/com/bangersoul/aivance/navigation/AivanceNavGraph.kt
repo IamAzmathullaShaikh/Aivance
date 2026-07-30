@@ -22,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -92,9 +93,10 @@ private fun AivanceMainNavGraph(
     initialDestination: Destination,
     authViewModel: AuthenticationViewModel
 ) {
-    val backStack = rememberNavBackStack(initialDestination)
+    @Suppress("UNCHECKED_CAST")
+    val backStack = rememberNavBackStack(initialDestination) as NavBackStack<Destination>
     val currentDestination = if (backStack.isNotEmpty()) {
-        backStack.last() as Destination
+        backStack.last()
     } else initialDestination
 
     val onNavigate: (Destination) -> Unit = remember(backStack) {
@@ -165,7 +167,7 @@ private fun AivanceMainNavGraph(
  */
 @Composable
 private fun NavHostContent(
-    backStack: androidx.navigation3.runtime.NavBackStack<Destination>,
+    backStack: NavBackStack<Destination>,
     onNavigate: (Destination) -> Unit,
     authViewModel: AuthenticationViewModel
 ) {

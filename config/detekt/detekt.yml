@@ -1,0 +1,120 @@
+# Detekt Configuration for Aivance
+# https://detekt.dev/docs/gettingstarted/config
+
+build:
+  maxIssues: 50
+  excludeCorrectable: true
+
+processors:
+  active: true
+  exclude:
+    - 'FunctionCountProcessor'
+    - 'PropertyCountProcessor'
+    - 'ClassCountProcessor'
+    - 'PackageCountProcessor'
+
+console-reports:
+  active: true
+  exclude:
+    - 'ProjectStatisticsReport'
+    - 'ComplexityReport'
+    - 'NotificationReport'
+    - 'FindingsReport'
+    - 'FileBasedInfoReport'
+
+output-reports:
+  active: true
+  exclude:
+    - 'HtmlOutputReport'
+    - 'XmlOutputReport'
+    - 'TxtOutputReport'
+
+comments:
+  active: true
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+  CommentOverPrivateFunction:
+    active: false
+  CommentOverPrivateProperty:
+    active: false
+  OutdatedDocumentation:
+    active: false
+
+complexity:
+  active: true
+  ComplexCondition:
+    threshold: 4
+  CyclomaticComplexMethod:
+    threshold: 15
+  LongMethod:
+    threshold: 60
+  LongParameterList:
+    threshold: 6
+  LargeClass:
+    threshold: 600
+  NestedBlockDepth:
+    threshold: 4
+  TooManyFunctions:
+    threshold: 15
+
+exceptions:
+  active: true
+  ThrowingExceptionsWithoutMessageOrCause:
+    active: false
+  ThrowingExceptionInMain:
+    active: false
+  TooGenericExceptionCaught:
+    active: false
+
+naming:
+  active: true
+  InvalidPackageDeclaration:
+    active: false
+  FunctionNaming:
+    active: false
+  TopLevelPropertyNaming:
+    active: false
+  VariableNaming:
+    variablePattern: '(_)?[a-z][a-zA-Z0-9]*'
+  FunctionParameterNaming:
+    parameterPattern: '[a-z][a-zA-Z0-9]*'
+  ClassNaming:
+    classPattern: '[A-Z][a-zA-Z0-9]*'
+
+performance:
+  active: true
+  SpreadOperator:
+    active: false
+  CouldBeSequence:
+    threshold: 5
+
+potential-bugs:
+  active: true
+  DuplicateCaseInWhenExpression:
+    active: true
+  LateinitUsage:
+    active: false
+  UnreachableCode:
+    active: true
+  UnusedUnaryOperator:
+    active: true
+  UnsafeCast:
+    active: true
+
+style:
+  active: true
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+  UnusedImports:
+    active: true
+  WildcardImport:
+    active: false
+  MagicNumber:
+    active: false
+  ReturnCount:
+    active: false
+  NewLineAtEndOfFile:
+    active: false

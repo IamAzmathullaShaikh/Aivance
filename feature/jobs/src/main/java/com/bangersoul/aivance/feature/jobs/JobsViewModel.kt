@@ -2,16 +2,17 @@ package com.bangersoul.aivance.feature.jobs
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
 import com.bangersoul.aivance.core.common.enums.JobType
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.ApplyToJobRequest
 import com.bangersoul.aivance.core.domain.usecase.job.ApplyToJobUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobRequest
 import com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobUseCase
-import com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.RemoveSavedJobUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.SaveJobRequest
 import com.bangersoul.aivance.core.domain.usecase.job.SaveJobUseCase
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -64,7 +66,6 @@ sealed interface JobsUiEffect {
 class JobsViewModel @Inject constructor(
     private val searchJobsUseCase: SearchJobsUseCase,
     private val searchRemoteJobsUseCase: SearchRemoteJobsUseCase,
-    private val getJobDetailsUseCase: GetJobDetailsUseCase,
     private val saveJobUseCase: SaveJobUseCase,
     private val bookmarkJobUseCase: BookmarkJobUseCase,
     private val removeSavedJobUseCase: RemoveSavedJobUseCase,
@@ -76,6 +77,8 @@ class JobsViewModel @Inject constructor(
     val query: StateFlow<String> = _query.asStateFlow()
 
     private val _isRemoteOnly = MutableStateFlow(false)
+    val isRemoteOnly: StateFlow<Boolean> = _isRemoteOnly.asStateFlow()
+
     private val _selectedJobTypes = MutableStateFlow<Set<JobType>>(emptySet())
 
     private val _effects = Channel<JobsUiEffect>(Channel.BUFFERED)
@@ -84,7 +87,9 @@ class JobsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<JobsUiState>(JobsUiState.Loading)
     val uiState: StateFlow<JobsUiState> = _uiState.asStateFlow()
 
-    private val cachedJobs = mutableListOf<JobListing>()
+    init {
+        search()
+    }
 
     fun onEvent(event: JobsUiEvent) {
         when (event) {
@@ -106,7 +111,34 @@ class JobsViewModel @Inject constructor(
         }
     }
 
-    private fun search() {
+    fun onQueryChange(query: String) {
+        _query.value = query
+    }
+
+    fun toggleFilter(filter: String) {
+        // Toggle the isRemoteOnly flag when the "Remote" filter is toggled
+        if (filter.lowercase() == "remote") {
+            _isRemoteOnly.value = !_isRemoteOnly.value
+        }
+    }
+
+    fun addJobToTracker(job: JobListing) {
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest(eventName = "job_add_to_tracker"))
+            val request = SaveJobRequest(jobListing = job)
+            val result = saveJobUseCase(request)
+            @Suppress("UNCHECKED_CAST")
+            when {
+                result.isSuccess -> sendEffect(JobsUiEffect.ShowSnackbar("Job added to tracker"))
+                result.isFailure -> {
+                    val msg = (result as Result.Failure).error.message ?: "Failed to add job"
+                    sendEffect(JobsUiEffect.ShowSnackbar(msg))
+                }
+            }
+        }
+    }
+
+    fun search() {
         viewModelScope.launch {
             _uiState.value = JobsUiState.Loading
             trackEventUseCase(TrackEventRequest(eventName = "job_search"))
@@ -119,21 +151,28 @@ class JobsViewModel @Inject constructor(
                 isRemote = isRemote
             )
 
-            val flow = if (isRemote) {
+            val flow: Flow<PagingData<JobListing>> = if (isRemote) {
                 searchRemoteJobsUseCase(SearchRemoteJobsRequest(query = queryStr))
             } else {
                 searchJobsUseCase(searchRequest)
             }
 
-            flow.collect { pagingData ->
-                val items = mutableListOf<JobListing>()
-                // Use the cached jobs as a simple non-paging approach
-                _uiState.value = if (cachedJobs.isEmpty()) JobsUiState.Empty
-                else JobsUiState.Success(
-                    jobs = items,
-                    query = queryStr,
-                    isRemoteOnly = isRemote
+            flow.catch { e ->
+                _uiState.value = JobsUiState.Error(
+                    message = e.message ?: "Search failed",
+                    isOffline = true
                 )
+            }.collect { pagingData ->
+                // PagingData is consumed by Compose's collectAsLazyPagingItems
+                // In this ViewModel, we use the jobs from the UI state
+                val currentState = _uiState.value
+                if (currentState is JobsUiState.Loading) {
+                    _uiState.value = JobsUiState.Success(
+                        jobs = emptyList(),
+                        query = queryStr,
+                        isRemoteOnly = isRemote
+                    )
+                }
             }
         }
     }
@@ -143,9 +182,13 @@ class JobsViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest(eventName = "job_save"))
             val request = SaveJobRequest(jobListing = job)
             val result = saveJobUseCase(request)
-            when (result) {
-                is CoreResult.Success -> sendEffect(JobsUiEffect.ShowSnackbar("Job saved"))
-                is CoreResult.Failure -> sendEffect(JobsUiEffect.ShowSnackbar(result.error.message ?: "Save failed"))
+            @Suppress("UNCHECKED_CAST")
+            when {
+                result.isSuccess -> sendEffect(JobsUiEffect.ShowSnackbar("Job saved"))
+                result.isFailure -> {
+                    val msg = (result as Result.Failure).error.message ?: "Save failed"
+                    sendEffect(JobsUiEffect.ShowSnackbar(msg))
+                }
             }
         }
     }
@@ -155,9 +198,13 @@ class JobsViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest(eventName = "job_bookmark"))
             val request = BookmarkJobRequest(company = company, role = role)
             val result = bookmarkJobUseCase(request)
-            when (result) {
-                is CoreResult.Success -> sendEffect(JobsUiEffect.ShowSnackbar("Job bookmarked"))
-                is CoreResult.Failure -> sendEffect(JobsUiEffect.ShowSnackbar(result.error.message ?: "Failed"))
+            @Suppress("UNCHECKED_CAST")
+            when {
+                result.isSuccess -> sendEffect(JobsUiEffect.ShowSnackbar("Job bookmarked"))
+                result.isFailure -> {
+                    val msg = (result as Result.Failure).error.message ?: "Failed"
+                    sendEffect(JobsUiEffect.ShowSnackbar(msg))
+                }
             }
         }
     }
@@ -167,9 +214,13 @@ class JobsViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest(eventName = "job_apply"))
             val request = ApplyToJobRequest(company = company, role = role)
             val result = applyToJobUseCase(request)
-            when (result) {
-                is CoreResult.Success -> sendEffect(JobsUiEffect.ShowSnackbar("Application recorded"))
-                is CoreResult.Failure -> sendEffect(JobsUiEffect.ShowSnackbar(result.error.message ?: "Failed"))
+            @Suppress("UNCHECKED_CAST")
+            when {
+                result.isSuccess -> sendEffect(JobsUiEffect.ShowSnackbar("Application recorded"))
+                result.isFailure -> {
+                    val msg = (result as Result.Failure).error.message ?: "Failed"
+                    sendEffect(JobsUiEffect.ShowSnackbar(msg))
+                }
             }
         }
     }

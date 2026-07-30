@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.LoadSettingsUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.SaveSettingsUseCase
@@ -94,8 +95,8 @@ class NotificationsViewModel @Inject constructor(
             _uiState.value = NotificationsUiState.Loading
             trackEventUseCase(TrackEventRequest(eventName = "notifications_load"))
 
-            val settings = loadSettingsUseCase().firstOrNull()
-            val jobAlerts = settings is com.bangersoul.aivance.core.common.result.CoreResult.Success
+            val settings = loadSettingsUseCase.invoke().firstOrNull()
+            val jobAlerts = settings is com.bangersoul.aivance.core.common.result.Result.Success<*>
 
             _uiState.value = NotificationsUiState.Success(
                 notifications = emptyList(), // Would be loaded from repo

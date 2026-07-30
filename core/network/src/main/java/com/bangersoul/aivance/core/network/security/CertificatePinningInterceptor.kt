@@ -14,6 +14,19 @@ import javax.net.ssl.SSLPeerUnverifiedException
  *
  * Pins are SHA-256 hashes of the SubjectPublicKeyInfo.
  * Update these when certificates are rotated.
+ *
+ * **IMPORTANT**: The default pins are placeholders. Before deploying to
+ * production, replace each "REPLACE_WITH_REAL_PIN" with the actual
+ * SHA-256 hash of the server's SubjectPublicKeyInfo. Until then,
+ * pinning is automatically disabled for hosts with placeholder pins.
+ *
+ * To generate a real pin:
+ * ```
+ * openssl s_client -connect hostname:443 -servername hostname </dev/null 2>/dev/null \
+ *   | openssl x509 -pubkey -noout \
+ *   | openssl pkey -pubin -outform der \
+ *   | openssl dgst -sha256 -hex
+ * ```
  */
 class CertificatePinningInterceptor(
     private val pins: List<PinEntry> = DEFAULT_PINS
@@ -22,7 +35,14 @@ class CertificatePinningInterceptor(
     data class PinEntry(
         val hostname: String,
         val sha256Hash: String
-    )
+    ) {
+        /** Returns true if this pin is a placeholder and should be skipped. */
+        val isPlaceholder: Boolean get() =
+            sha256Hash.isBlank() ||
+            sha256Hash.startsWith("ADD_YOUR_") ||
+            sha256Hash.startsWith("REPLACE_WITH_") ||
+            sha256Hash == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    }
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
@@ -30,7 +50,11 @@ class CertificatePinningInterceptor(
 
         val matchingPins = pins.filter { it.hostname == host }
         if (matchingPins.isEmpty()) {
-            // Host not pinned; allow connection
+            return chain.proceed(request)
+        }
+
+        // Skip pinning if ALL pins for this host are placeholders
+        if (matchingPins.all { it.isPlaceholder }) {
             return chain.proceed(request)
         }
 
@@ -44,24 +68,22 @@ class CertificatePinningInterceptor(
             throw SSLPeerUnverifiedException("No certificates presented for $host")
         }
 
-        // Check each certificate's SPKI fingerprint against known pins
+        val activePins = matchingPins.filter { !it.isPlaceholder }
+
         val certPins = certs.map { cert ->
             val der = cert.publicKey.encoded
             val digest = MessageDigest.getInstance("SHA-256").digest(der)
-            val pin = digest.joinToString("") { "%02x".format(it) }
-            pin
+            digest.joinToString("") { "%02x".format(it) }
         }
 
         val pinFound = certPins.any { certPin ->
-            matchingPins.any { entry ->
-                entry.sha256Hash.equals(certPin, ignoreCase = true)
-            }
+            activePins.any { it.sha256Hash.equals(certPin, ignoreCase = true) }
         }
 
         if (!pinFound) {
             throw CertificateException(
                 "Certificate pinning failure for $host. " +
-                    "Expected pins: ${matchingPins.map { it.sha256Hash.take(16) + "..." }}"
+                    "Expected pins: ${activePins.map { it.sha256Hash.take(16) + "..." }}"
             )
         }
 
@@ -69,19 +91,19 @@ class CertificatePinningInterceptor(
     }
 
     companion object {
+        /**
+         * Default pins — all placeholders.
+         *
+         * **BEFORE PRODUCTION RELEASE**, replace each placeholder with a real pin.
+         * See class KDoc for instructions on generating pins.
+         */
         val DEFAULT_PINS = listOf(
-            // OpenAI API
-            PinEntry("api.openai.com", "ADD_YOUR_PIN_HERE"),
-            // Groq API
-            PinEntry("api.groq.com", "ADD_YOUR_PIN_HERE"),
-            // OpenRouter
-            PinEntry("openrouter.ai", "ADD_YOUR_PIN_HERE"),
-            // RemoteOK
-            PinEntry("remoteok.com", "ADD_YOUR_PIN_HERE"),
-            // Remotive
-            PinEntry("remotive.com", "ADD_YOUR_PIN_HERE"),
-            // Apify
-            PinEntry("api.apify.com", "ADD_YOUR_PIN_HERE")
+            PinEntry("api.openai.com", "REPLACE_WITH_REAL_PIN"),
+            PinEntry("api.groq.com", "REPLACE_WITH_REAL_PIN"),
+            PinEntry("openrouter.ai", "REPLACE_WITH_REAL_PIN"),
+            PinEntry("remoteok.com", "REPLACE_WITH_REAL_PIN"),
+            PinEntry("remotive.com", "REPLACE_WITH_REAL_PIN"),
+            PinEntry("api.apify.com", "REPLACE_WITH_REAL_PIN")
         )
     }
 }

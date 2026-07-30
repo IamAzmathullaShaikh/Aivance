@@ -3,13 +3,14 @@ package com.bangersoul.aivance.worker
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.bangersoul.aivance.core.common.result.Result
-import com.bangersoul.aivance.core.database.dao.CompanyDao
 import com.bangersoul.aivance.core.database.dao.JobDao
+import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsRequest
 import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.firstOrNull
 import timber.log.Timber
 
 /**
@@ -24,55 +25,40 @@ class JobSyncWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val searchJobsUseCase: SearchJobsUseCase,
     private val jobDao: JobDao,
-    private val companyDao: CompanyDao,
     private val connectivityMonitor: ConnectivityMonitor
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         Timber.d("JobSyncWorker started")
 
         if (!connectivityMonitor.isUnmetered && runAttemptCount == 0) {
             Timber.d("JobSyncWorker — not on unmetered, deferring")
-            return Result.retry()
+            return ListenableWorker.Result.retry()
         }
 
         return try {
-            // Search for jobs across multiple categories
             val queries = listOf(
                 "android developer", "kotlin developer", "mobile engineer",
                 "software engineer", "data scientist"
             )
 
-            var totalJobs = 0
+            var succeeded = 0
 
             for (query in queries) {
-                val result = searchJobsUseCase(
-                    SearchJobsUseCase.SearchJobsRequest(
-                        query = query,
-                        remoteOnly = false,
-                        maxResults = 20
+                val flow = searchJobsUseCase(
+                    SearchJobsRequest(
+                        query = query
                     )
                 )
-
-                when (result) {
-                    is Result.Success -> {
-                        // PagingData cannot be directly iterated, but the use case
-                        // internally caches results. We just trigger the search.
-                        totalJobs++
-                        Timber.d("JobSyncWorker — triggered search for '%s'", query)
-                    }
-                    is Result.Failure -> {
-                        Timber.w("JobSyncWorker — search for '%s' failed: %s",
-                            query, result.error.message)
-                    }
-                }
+                succeeded++
+                Timber.d("JobSyncWorker — search for '%s' triggered", query)
             }
 
-            Timber.d("JobSyncWorker completed — %d searches triggered", totalJobs)
-            Result.success()
+            Timber.d("JobSyncWorker completed — %d searches triggered", succeeded)
+            ListenableWorker.Result.success()
         } catch (e: Exception) {
             Timber.e(e, "JobSyncWorker failed")
-            if (runAttemptCount < 3) Result.retry() else Result.failure()
+            if (runAttemptCount < 3) ListenableWorker.Result.retry() else ListenableWorker.Result.failure()
         }
     }
 }

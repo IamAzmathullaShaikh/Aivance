@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.coverletter
 
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.ExportCoverLetterUseCase
@@ -36,7 +37,7 @@ class CoverLetterViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(CoreResult.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
     }
 
     @After
@@ -60,7 +61,7 @@ class CoverLetterViewModelTest {
     @Test
     fun `successful generation results in Success state`() = runTest {
         val content = "Dear Hiring Manager..."
-        coEvery { mockGenerateUseCase.invoke(any(), any(), any()) } returns flowOf(CoreResult.Success(content))
+        coEvery { mockGenerateUseCase.invoke(any(), any(), any()) } returns flowOf(Result.Success(content))
 
         viewModel = CoverLetterViewModel(mockGenerateUseCase, mockImproveUseCase, mockExportUseCase, mockTrackEvent)
 
@@ -80,7 +81,7 @@ class CoverLetterViewModelTest {
     @Test
     fun `generation failure shows error`() = runTest {
         coEvery { mockGenerateUseCase.invoke(any(), any(), any()) } returns flowOf(
-            CoreResult.Failure(ProviderError("test", message = "API Error"))
+            Result.Failure(ProviderError("test", message = "API Error"))
         )
 
         viewModel = CoverLetterViewModel(mockGenerateUseCase, mockImproveUseCase, mockExportUseCase, mockTrackEvent)
@@ -99,7 +100,7 @@ class CoverLetterViewModelTest {
 
     @Test
     fun `copy to clipboard triggers effect with correct content`() = runTest {
-        coEvery { mockGenerateUseCase.invoke(any(), any(), any()) } returns flowOf(CoreResult.Success("Content to copy"))
+        coEvery { mockGenerateUseCase.invoke(any(), any(), any()) } returns flowOf(Result.Success("Content to copy"))
 
         viewModel = CoverLetterViewModel(mockGenerateUseCase, mockImproveUseCase, mockExportUseCase, mockTrackEvent)
 

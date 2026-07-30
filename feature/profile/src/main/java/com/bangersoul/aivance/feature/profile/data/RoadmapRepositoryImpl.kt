@@ -4,7 +4,8 @@ import com.bangersoul.aivance.core.database.dao.RoadmapDao
 import com.bangersoul.aivance.core.database.model.RoadmapEntity
 import com.bangersoul.aivance.core.database.model.RoadmapStepEntity
 import com.bangersoul.aivance.core.database.model.RoadmapWithSteps
-import com.bangersoul.aivance.core.network.AiService
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.service.TextGenerationService
 import com.bangersoul.aivance.feature.profile.domain.CareerRoadmap
 import com.bangersoul.aivance.feature.profile.domain.RoadmapRepository
 import com.bangersoul.aivance.feature.profile.domain.RoadmapStep
@@ -20,7 +21,7 @@ import javax.inject.Inject
 
 class RoadmapRepositoryImpl @Inject constructor(
     private val roadmapDao: RoadmapDao,
-    private val aiService: AiService
+    private val textGenerationService: TextGenerationService
 ) : RoadmapRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -40,17 +41,18 @@ class RoadmapRepositoryImpl @Inject constructor(
             }
         """.trimIndent()
 
-        val result = aiService.analyzeText(prompt).getOrThrow()
-        // Clean up the response in case the AI wraps it in markdown code blocks
-        val cleanResult = result.removeSurrounding("```json", "```").trim()
+        val result = textGenerationService.generateText(prompt)
+        val text = when (result) {
+            is Result.Success -> result.data
+            is Result.Failure -> throw Exception(result.error.message)
+        }
+        val cleanResult = text.removeSurrounding("```json", "```").trim()
         val roadmapDto = json.decodeFromString<RoadmapDto>(cleanResult)
 
         val roadmapEntity = RoadmapEntity(
             targetRole = targetRole,
-            currentSkills = currentSkills,
-            dateCreated = System.currentTimeMillis(),
-            totalSteps = roadmapDto.steps.size,
-            completedSteps = 0
+            currentLevel = "",
+            description = "Career roadmap for $targetRole"
         )
 
         val stepEntities = roadmapDto.steps.mapIndexed { index, step ->
@@ -58,13 +60,13 @@ class RoadmapRepositoryImpl @Inject constructor(
                 roadmapId = 0, // Set by DAO transaction
                 title = step.title,
                 description = step.description,
-                order = index,
+                stepOrder = index,
                 isCompleted = false
             )
         }
 
         roadmapDao.insertRoadmapWithSteps(roadmapEntity, stepEntities)
-        
+
         emitAll(getCurrentRoadmap().filterNotNull())
     }
 
@@ -75,11 +77,7 @@ class RoadmapRepositoryImpl @Inject constructor(
     override fun toggleStep(roadmapId: Long, stepId: Long, isCompleted: Boolean): Flow<Unit> = flow {
         val currentRoadmap = roadmapDao.getCurrentRoadmapWithSteps().first()
         if (currentRoadmap != null && currentRoadmap.roadmap.id == roadmapId) {
-            val steps = currentRoadmap.steps
-            val completedStepsCount = steps.count { 
-                if (it.id == stepId) isCompleted else it.isCompleted 
-            }
-            roadmapDao.updateStepAndProgress(roadmapId, stepId, isCompleted, completedStepsCount)
+            roadmapDao.updateStepCompletion(stepId, isCompleted)
         }
         emit(Unit)
     }
@@ -88,8 +86,8 @@ class RoadmapRepositoryImpl @Inject constructor(
         return CareerRoadmap(
             id = roadmap.id,
             targetRole = roadmap.targetRole,
-            currentSkills = roadmap.currentSkills,
-            steps = steps.sortedBy { it.order }.map { it.asDomainModel() }
+            currentSkills = "",
+            steps = steps.sortedBy { it.stepOrder }.map { it.asDomainModel() }
         )
     }
 
@@ -98,7 +96,7 @@ class RoadmapRepositoryImpl @Inject constructor(
             id = id,
             title = title,
             description = description,
-            order = order,
+            order = stepOrder,
             isCompleted = isCompleted
         )
     }

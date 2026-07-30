@@ -9,6 +9,7 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+**/build/
 /captures
 .externalNativeBuild
 .cxx
@@ -17,6 +18,10 @@ local.properties
 .freebuff/
 build_errors.txt
 build_full_output.txt
+keystore.jks
+*.dex
+*.apk
+*.aab
 
 # Project exclude paths
 /core/common/build/

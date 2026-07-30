@@ -3,8 +3,8 @@ package com.bangersoul.aivance.worker
 import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseCase
 import dagger.assisted.Assisted
@@ -31,12 +31,12 @@ class ProviderRefreshWorker @AssistedInject constructor(
         val knownProviders = listOf("gemini", "openai", "groq", "openrouter", "ollama")
     }
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         Timber.d("ProviderRefreshWorker started")
 
         if (!connectivityMonitor.isOnline) {
             Timber.d("ProviderRefreshWorker — offline, deferring")
-            return Result.retry()
+            return ListenableWorker.Result.retry()
         }
 
         var healthyCount = 0
@@ -46,38 +46,42 @@ class ProviderRefreshWorker @AssistedInject constructor(
             for (providerId in knownProviders) {
                 // Check health
                 val healthResult = getProviderHealthUseCase(providerId)
+                @Suppress("UNCHECKED_CAST")
                 when (healthResult) {
-                    is Result.Success -> {
-                        if (healthResult.data) {
+                    is com.bangersoul.aivance.core.common.result.Result.Success<*> -> {
+                        val health = (healthResult as com.bangersoul.aivance.core.common.result.Result.Success<ProviderHealth>).data
+                        if (health.isOperational) {
                             healthyCount++
                         }
                     }
-                    is Result.Failure -> {
+                    is com.bangersoul.aivance.core.common.result.Result.Failure -> {
                         Timber.w("ProviderRefreshWorker — %s health check failed: %s",
-                            providerId, healthResult.error.message)
+                            providerId, (healthResult as com.bangersoul.aivance.core.common.result.Result.Failure).error.message)
                     }
                 }
 
                 // Refresh models
                 val modelsResult = getAvailableModelsUseCase(providerId)
+                @Suppress("UNCHECKED_CAST")
                 when (modelsResult) {
-                    is Result.Success -> {
-                        modelCount += modelsResult.data.size
+                    is com.bangersoul.aivance.core.common.result.Result.Success<*> -> {
+                        val models = (modelsResult as com.bangersoul.aivance.core.common.result.Result.Success<List<String>>).data
+                        modelCount += models.size
                     }
-                    is Result.Failure -> {
+                    is com.bangersoul.aivance.core.common.result.Result.Failure -> {
                         Timber.w("ProviderRefreshWorker — %s model refresh failed: %s",
-                            providerId, modelsResult.error.message)
+                            providerId, (modelsResult as com.bangersoul.aivance.core.common.result.Result.Failure).error.message)
                     }
                 }
             }
 
             Timber.d("ProviderRefreshWorker completed — %d healthy providers, %d models",
                 healthyCount, modelCount)
-            Result.success()
+            return ListenableWorker.Result.success()
 
         } catch (e: Exception) {
             Timber.e(e, "ProviderRefreshWorker failed")
-            if (runAttemptCount < 3) Result.retry() else Result.failure()
+            return if (runAttemptCount < 3) ListenableWorker.Result.retry() else ListenableWorker.Result.failure()
         }
     }
 }

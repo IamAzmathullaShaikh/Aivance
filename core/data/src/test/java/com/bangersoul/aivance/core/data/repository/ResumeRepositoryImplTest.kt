@@ -8,7 +8,7 @@ import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.data.source.ResumeLocalDataSource
-import com.bangersoul.aivance.core.network.AiService
+import com.bangersoul.aivance.core.domain.service.TextGenerationService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -24,11 +24,11 @@ class ResumeRepositoryImplTest {
 
     private lateinit var repository: ResumeRepositoryImpl
     private val localDataSource: ResumeLocalDataSource = mockk()
-    private val aiService: AiService = mockk()
+    private val textGenerationService: TextGenerationService = mockk()
 
     @Before
     fun setUp() {
-        repository = ResumeRepositoryImpl(localDataSource, aiService)
+        repository = ResumeRepositoryImpl(localDataSource, textGenerationService)
     }
 
     @Test
@@ -122,12 +122,12 @@ class ResumeRepositoryImplTest {
     }
 
     @Test
-    fun `analyzeResume returns analysis from aiService`() = runTest {
+    fun `analyzeResume returns analysis from textGenerationService`() = runTest {
         val resumeId = 1L
         val resume = Resume(id = resumeId, fileName = "resume.pdf", fileUri = "", rawText = "resume text")
         val jobDescription = "job description"
         coEvery { localDataSource.getResumeById(resumeId) } returns resume
-        coEvery { aiService.analyzeText(any()) } returns kotlin.Result.success("AI feedback")
+        coEvery { textGenerationService.generateText(any()) } returns kotlin.Result.success("AI feedback")
 
         val result = repository.analyzeResume(resumeId, jobDescription)
 

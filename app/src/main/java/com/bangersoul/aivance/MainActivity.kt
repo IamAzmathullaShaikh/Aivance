@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         }
 
         // Record startup timing after first frame is rendered
-        contentView.postOnAnimation {
+        window.decorView.postOnAnimation {
             performanceCollector.recordStartupComplete()
         }
 

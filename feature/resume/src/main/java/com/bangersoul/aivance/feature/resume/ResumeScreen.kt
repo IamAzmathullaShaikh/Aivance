@@ -24,11 +24,13 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.HistoryEdu
 import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -82,16 +84,41 @@ fun ResumeScreen(
     var trackRole by rememberSaveable { mutableStateOf("") }
 
     if (showTrackDialog) {
-        TrackJobDialog(
-            company = trackCompany,
-            onCompanyChange = { trackCompany = it },
-            role = trackRole,
-            onRoleChange = { trackRole = it },
-            onConfirm = {
-                viewModel.addJobToTracker(trackCompany, trackRole)
-                showTrackDialog = false
+        AlertDialog(
+            onDismissRequest = { showTrackDialog = false },
+            title = { Text("Track this Job") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Confirm details to add to your Job Tracker.")
+                    OutlinedTextField(
+                        value = trackCompany,
+                        onValueChange = { trackCompany = it },
+                        label = { Text("Company") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = trackRole,
+                        onValueChange = { trackRole = it },
+                        label = { Text("Role") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
-            onDismiss = { showTrackDialog = false }
+            confirmButton = {
+                ActionButton(
+                    text = "Add to Tracker",
+                    onClick = {
+                        viewModel.addJobToTracker(trackCompany, trackRole)
+                        showTrackDialog = false
+                    },
+                    enabled = trackCompany.isNotBlank() && trackRole.isNotBlank()
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { showTrackDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 
@@ -106,7 +133,7 @@ fun ResumeScreen(
         },
         isLoading = uiState is ResumeUiState.Analyzing,
         error = (uiState as? ResumeUiState.Error)?.message,
-        onRetry = { viewModel.analyzeResume(resumeText, jobDescription) }
+        onRetry = { viewModel.triggerAnalyze(viewModel.resumeId.value, jobDescription) }
     ) {
         AnimatedContent(
             targetState = uiState,
@@ -116,27 +143,50 @@ fun ResumeScreen(
             }
         ) { state ->
             when (state) {
-                is ResumeUiState.Success -> {
+                is ResumeUiState.AnalysisSuccess -> {
                     AnalysisResultContent(
                         analysis = state.analysis,
                         onReset = { viewModel.resetState() },
-                        onSave = { viewModel.saveResult(0L) },
+                        onSave = { viewModel.saveResult(viewModel.resumeId.value) },
                         onTrackClick = {
-                            trackCompany = "" // Or try to extract from jobDescription
-                            trackRole = ""    // Or try to extract from jobDescription
+                            trackCompany = ""
+                            trackRole = ""
                             showTrackDialog = true
                         },
                         onNavigateToAts = onNavigateToAts,
                         onNavigateToCoverLetter = onNavigateToCoverLetter
                     )
                 }
-                else -> {
+                is ResumeUiState.Idle, is ResumeUiState.Importing, is ResumeUiState.Parsing -> {
                     ResumeInputContent(
                         resumeText = resumeText,
                         onResumeChange = { viewModel.updateResumeText(it) },
                         jobDescription = jobDescription,
                         onJobDescriptionChange = { viewModel.updateJobDescription(it) },
-                        onAnalyze = { viewModel.analyzeResume(resumeText, jobDescription) },
+                        onAnalyze = { viewModel.triggerAnalyze(viewModel.resumeId.value, jobDescription) },
+                        onPdfUploadClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }
+                    )
+                }
+                is ResumeUiState.Analyzing -> {
+                    // Loading state handled by the AivanceScreen isLoading
+                }
+                is ResumeUiState.Success -> {
+                    ResumeInputContent(
+                        resumeText = resumeText,
+                        onResumeChange = { viewModel.updateResumeText(it) },
+                        jobDescription = jobDescription,
+                        onJobDescriptionChange = { viewModel.updateJobDescription(it) },
+                        onAnalyze = { viewModel.triggerAnalyze(viewModel.resumeId.value, jobDescription) },
+                        onPdfUploadClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }
+                    )
+                }
+                is ResumeUiState.Error -> {
+                    ResumeInputContent(
+                        resumeText = resumeText,
+                        onResumeChange = { viewModel.updateResumeText(it) },
+                        jobDescription = jobDescription,
+                        onJobDescriptionChange = { viewModel.updateJobDescription(it) },
+                        onAnalyze = { viewModel.triggerAnalyze(viewModel.resumeId.value, jobDescription) },
                         onPdfUploadClick = { pdfPickerLauncher.launch(arrayOf("application/pdf")) }
                     )
                 }
@@ -330,7 +380,31 @@ private fun AnalysisResultContent(
                 fontWeight = FontWeight.SemiBold
             )
             analysis.tips.forEach { tip ->
-                OptimizationTipItem(tip.category, tip.description)
+                DashboardCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Lightbulb,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column {
+                            Text(
+                                text = tip.category,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = tip.description,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -363,79 +437,6 @@ private fun AnalysisResultContent(
 
         Spacer(Modifier.height(40.dp))
     }
-}
-
-@Composable
-private fun OptimizationTipItem(category: String, description: String) {
-    DashboardCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Lightbulb,
-                contentDescription = null,
-                tint = Color(0xFFFFD700),
-                modifier = Modifier.size(24.dp)
-            )
-            Column {
-                Text(
-                    text = category,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun TrackJobDialog(
-    company: String,
-    onCompanyChange: (String) -> Unit,
-    role: String,
-    onRoleChange: (String) -> Unit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Track this Job") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Confirm details to add to your Job Tracker.")
-                OutlinedTextField(
-                    value = company,
-                    onValueChange = onCompanyChange,
-                    label = { Text("Company") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = role,
-                    onValueChange = onRoleChange,
-                    label = { Text("Role") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            ActionButton(
-                text = "Add to Tracker",
-                onClick = onConfirm,
-                enabled = company.isNotBlank() && role.isNotBlank()
-            )
-        },
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)

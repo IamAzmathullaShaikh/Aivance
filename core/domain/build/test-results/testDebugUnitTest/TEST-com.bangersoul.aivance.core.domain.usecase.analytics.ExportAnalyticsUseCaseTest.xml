@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.analytics.ExportAnalyticsUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:15.356Z" hostname="BANGERSOUL" time="0.143">
-  <properties/>
-  <testcase name="should handle empty analytics" classname="com.bangersoul.aivance.core.domain.usecase.analytics.ExportAnalyticsUseCaseTest" time="0.116"/>
-  <testcase name="should export analytics with data" classname="com.bangersoul.aivance.core.domain.usecase.analytics.ExportAnalyticsUseCaseTest" time="0.027"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

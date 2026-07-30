@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.resume.CalculateATSScoreUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.617Z" hostname="BANGERSOUL" time="0.036">
-  <properties/>
-  <testcase name="should clamp score between 0 and 100" classname="com.bangersoul.aivance.core.domain.usecase.resume.CalculateATSScoreUseCaseTest" time="0.018"/>
-  <testcase name="should fail for invalid resume ID" classname="com.bangersoul.aivance.core.domain.usecase.resume.CalculateATSScoreUseCaseTest" time="0.003"/>
-  <testcase name="should calculate ATS score successfully" classname="com.bangersoul.aivance.core.domain.usecase.resume.CalculateATSScoreUseCaseTest" time="0.014"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

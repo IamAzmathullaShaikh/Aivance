@@ -99,10 +99,11 @@ fun JobDetailsScreen(
                                 MetricChip(label = job.location)
                                 MetricChip(label = if (job.isRemote) "Remote" else "On-site")
                             }
-                            if (job.salaryRange != null) {
+                            val salaryRange = job.salaryRange?.toString()
+                            if (salaryRange != null) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = job.salaryRange,
+                                    text = salaryRange,
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = DarkAccent

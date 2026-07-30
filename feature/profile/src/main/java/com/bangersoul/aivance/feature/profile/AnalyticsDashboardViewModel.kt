@@ -3,8 +3,10 @@ package com.bangersoul.aivance.feature.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.ExportAnalyticsUseCase
 import com.bangersoul.aivance.core.domain.usecase.analytics.GenerateUsageReportUseCase
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -12,8 +14,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -87,9 +87,11 @@ class AnalyticsDashboardViewModel @Inject constructor(
             _uiState.value = AnalyticsDashboardUiState.Loading
             trackEventUseCase(TrackEventRequest(eventName = "analytics_dashboard_load"))
 
-            val report = generateUsageReportUseCase().firstOrNull()
+            val report = generateUsageReportUseCase()
             when (report) {
-                is CoreResult.Success -> {
+                is Result.Success<*> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val usageReport = (report as Result.Success<com.bangersoul.aivance.core.domain.usecase.analytics.UsageReport>).data
                     _uiState.value = AnalyticsDashboardUiState.Success(
                         metrics = listOf(
                             AnalyticsMetric("ATS Analyses", "12", 15.0, TrendDirection.UP),
@@ -98,7 +100,7 @@ class AnalyticsDashboardViewModel @Inject constructor(
                             AnalyticsMetric("Applications", "24", 20.0, TrendDirection.UP),
                             AnalyticsMetric("Avg. ATS Score", "78%", 12.0, TrendDirection.UP)
                         ),
-                        totalAnalyses = 12,
+                        totalAnalyses = usageReport.totalEvents,
                         totalCoverLetters = 8,
                         totalInterviews = 6,
                         totalApplications = 24,
@@ -110,17 +112,9 @@ class AnalyticsDashboardViewModel @Inject constructor(
                         )
                     )
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _uiState.value = AnalyticsDashboardUiState.Error(
                         report.error.message ?: "Failed to load analytics"
-                    )
-                }
-                null -> {
-                    _uiState.value = AnalyticsDashboardUiState.Success(
-                        metrics = listOf(
-                            AnalyticsMetric("ATS Analyses", "0", 0.0, TrendDirection.NEUTRAL),
-                            AnalyticsMetric("Cover Letters", "0", 0.0, TrendDirection.NEUTRAL)
-                        )
                     )
                 }
             }
@@ -134,19 +128,17 @@ class AnalyticsDashboardViewModel @Inject constructor(
             if (state is AnalyticsDashboardUiState.Success) {
                 _uiState.value = state.copy(isExporting = true)
 
-                val result = exportAnalyticsUseCase("report").firstOrNull()
+                val result = exportAnalyticsUseCase()
                 when (result) {
-                    is CoreResult.Success -> {
+                    is Result.Success<*> -> {
                         _uiState.value = state.copy(isExporting = false)
-                        _effects.send(AnalyticsDashboardUiEffect.ExportResult(result.data))
+                        val path = (result.data ?: "").toString()
+                        _effects.send(AnalyticsDashboardUiEffect.ExportResult(path))
                         _effects.send(AnalyticsDashboardUiEffect.ShowSnackbar("Report exported"))
                     }
-                    is CoreResult.Failure -> {
+                    is Result.Failure -> {
                         _uiState.value = state.copy(isExporting = false)
                         _effects.send(AnalyticsDashboardUiEffect.ShowSnackbar("Export failed"))
-                    }
-                    null -> {
-                        _uiState.value = state.copy(isExporting = false)
                     }
                 }
             }
@@ -156,16 +148,16 @@ class AnalyticsDashboardViewModel @Inject constructor(
     private fun exportAnalytics() {
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest(eventName = "analytics_export_data"))
-            val result = exportAnalyticsUseCase("csv").firstOrNull()
+            val result = exportAnalyticsUseCase()
             when (result) {
-                is CoreResult.Success -> {
-                    _effects.send(AnalyticsDashboardUiEffect.ExportResult(result.data))
+                is Result.Success<*> -> {
+                    val path = (result.data ?: "").toString()
+                    _effects.send(AnalyticsDashboardUiEffect.ExportResult(path))
                     _effects.send(AnalyticsDashboardUiEffect.ShowSnackbar("Analytics exported"))
                 }
-                is CoreResult.Failure -> {
+                is Result.Failure -> {
                     _effects.send(AnalyticsDashboardUiEffect.ShowSnackbar("Export failed"))
                 }
-                null -> { /* noop */ }
             }
         }
     }

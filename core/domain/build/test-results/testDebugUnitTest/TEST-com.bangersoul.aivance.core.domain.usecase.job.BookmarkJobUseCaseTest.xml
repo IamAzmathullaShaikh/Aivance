@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobUseCaseTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:16.077Z" hostname="BANGERSOUL" time="0.019">
-  <properties/>
-  <testcase name="should fail for blank role" classname="com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobUseCaseTest" time="0.007"/>
-  <testcase name="should fail for blank company" classname="com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobUseCaseTest" time="0.006"/>
-  <testcase name="should bookmark job successfully" classname="com.bangersoul.aivance.core.domain.usecase.job.BookmarkJobUseCaseTest" time="0.006"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

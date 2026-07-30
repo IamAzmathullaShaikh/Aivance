@@ -32,8 +32,8 @@ class NotificationsViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns com.bangersoul.aivance.core.common.result.CoreResult.Success(Unit)
-        coEvery { mockLoadSettings() } returns flowOf(com.bangersoul.aivance.core.common.result.CoreResult.Success(emptyMap()))
+        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns com.bangersoul.aivance.core.common.result.Result.Success(Unit)
+        coEvery { mockLoadSettings() } returns flowOf(com.bangersoul.aivance.core.common.result.Result.Success(emptyMap()))
     }
 
     @After

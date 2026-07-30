@@ -122,7 +122,7 @@ class DownloadManager @Inject constructor(
                 .build()
             notificationManager.notify(notifId, successNotification)
 
-            Timber.d("Downloaded: %s (%d bytes)", safeFileName, totalBytesRead)
+            Timber.d("Downloaded: %s (%d bytes)", safeFileName, outputFile.length())
             outputFile
 
         } catch (e: Exception) {

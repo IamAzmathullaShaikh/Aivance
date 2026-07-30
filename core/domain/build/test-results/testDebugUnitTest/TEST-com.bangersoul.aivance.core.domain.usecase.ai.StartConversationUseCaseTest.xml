@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.bangersoul.aivance.core.domain.usecase.ai.StartConversationUseCaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-07-30T07:52:15.329Z" hostname="BANGERSOUL" time="0.023">
-  <properties/>
-  <testcase name="should start conversation successfully" classname="com.bangersoul.aivance.core.domain.usecase.ai.StartConversationUseCaseTest" time="0.015"/>
-  <testcase name="should fail for blank provider ID" classname="com.bangersoul.aivance.core.domain.usecase.ai.StartConversationUseCaseTest" time="0.007"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>
