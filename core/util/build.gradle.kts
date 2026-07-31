@@ -17,6 +17,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.timber)
     implementation(libs.pdfbox.android)
+    implementation(libs.poi)
+    implementation(libs.poi.ooxml)
+    implementation(libs.tink.android)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 

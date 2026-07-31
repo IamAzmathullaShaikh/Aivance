@@ -10,8 +10,11 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.job.base.RestJobProvider
 import com.bangersoul.aivance.job.cache.JobCache
 import com.bangersoul.aivance.job.greenhouse.dto.GreenhouseJobDto
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.text.SimpleDateFormat
@@ -26,10 +29,18 @@ class GreenhouseProvider(
     metadata = ProviderMetadata(
         id = "greenhouse",
         name = "Greenhouse",
+        type = ProviderType.JOB,
         version = "1.0.0",
         description = "Job listings from Greenhouse ATS.",
         icon = "https://www.greenhouse.io/favicon.ico",
-        author = "BangerSoul"
+        author = "BangerSoul",
+        configFields = listOf(
+            ConfigField(
+                key = "boardToken",
+                label = "Greenhouse Board Token",
+                isRequired = true
+            )
+        )
     ),
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
@@ -48,7 +59,7 @@ class GreenhouseProvider(
     ): List<JobListing> {
         val response = api.getJobs(boardToken)
         if (response.isSuccessful) {
-            return response.body()?.jobs?.filter { 
+            return response.body()?.jobs?.filter {
                 it.title?.contains(filter.query, ignoreCase = true) == true &&
                 (filter.location.isBlank() || it.location?.name?.contains(filter.location, ignoreCase = true) == true)
             }?.map { mapToJobListing(it) } ?: emptyList()
@@ -65,7 +76,7 @@ class GreenhouseProvider(
         return JobListing(
             id = dto.id?.toString() ?: "",
             title = dto.title ?: "No Title",
-            company = boardToken.replaceFirstChar { it.uppercase() }, 
+            company = boardToken.replaceFirstChar { it.uppercase() },
             location = dto.location?.name ?: "Unknown",
             employmentType = EmploymentType.FULL_TIME,
             remoteType = if (dto.location?.name?.contains("Remote", ignoreCase = true) == true) RemoteType.REMOTE else RemoteType.ON_SITE,

@@ -1,8 +1,14 @@
 package com.bangersoul.aivance.sdk.infrastructure
 
+import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.sdk.config.ProviderConfiguration
 import com.bangersoul.aivance.sdk.core.BaseProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderStatus
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
@@ -21,6 +27,22 @@ class ProviderManager @Inject constructor(
 ) {
     private val orchestrator = LifecycleOrchestrator()
 
+    private val _providerStatuses = MutableStateFlow<Map<String, ProviderStatus>>(emptyMap())
+
+    /**
+     * Reactive map of all registered providers and their current status.
+     */
+    val providerStatuses: StateFlow<Map<String, ProviderStatus>> = _providerStatuses.asStateFlow()
+
+    init {
+        // Initialize status map
+        val initialMap = mutableMapOf<String, ProviderStatus>()
+        registry.getAllProviders().forEach { provider ->
+            initialMap[provider.metadata.id] = provider.status
+        }
+        _providerStatuses.value = initialMap
+    }
+
     /**
      * Initializes all currently registered providers.
      * Moves providers from [ProviderStatus.Uninitialized] to [ProviderStatus.Ready].
@@ -28,6 +50,7 @@ class ProviderManager @Inject constructor(
     suspend fun initializeAll() {
         registry.getAllProviders().forEach { provider ->
             orchestrator.transitionTo(provider, ProviderStatus.Ready)
+            updateInternalStatus(provider.metadata.id, provider.status)
         }
     }
 
@@ -40,6 +63,7 @@ class ProviderManager @Inject constructor(
     suspend fun startProvider(id: String) {
         registry.getProvider(id)?.let { provider ->
             orchestrator.transitionTo(provider, ProviderStatus.Active)
+            updateInternalStatus(id, provider.status)
         }
     }
 
@@ -52,6 +76,41 @@ class ProviderManager @Inject constructor(
     suspend fun stopProvider(id: String) {
         registry.getProvider(id)?.let { provider ->
             orchestrator.transitionTo(provider, ProviderStatus.Ready)
+            updateInternalStatus(id, provider.status)
+        }
+    }
+
+    /**
+     * Validates a provider configuration without persisting it.
+     * Useful during onboarding or settings updates.
+     */
+    suspend fun validateProvider(id: String, config: ProviderConfiguration): Result<Unit> {
+        val provider = registry.getProvider(id) ?: return Result.Failure(
+            com.bangersoul.aivance.core.common.result.DomainError("Provider $id not found")
+        )
+
+        return try {
+            updateInternalStatus(id, ProviderStatus.Initializing)
+
+            // In a real implementation, we would apply the config to the provider instance
+            // and perform a 'ping' test.
+            provider.onInitialize()
+            val health = provider.checkHealth()
+
+            updateInternalStatus(id, health)
+
+            if (health == ProviderStatus.Ready || health == ProviderStatus.Active) {
+                Result.Success(Unit)
+            } else {
+                Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError(
+                    providerId = id, message = "Validation failed with status: $health"
+                ))
+            }
+        } catch (e: Exception) {
+            updateInternalStatus(id, ProviderStatus.Error)
+            Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError(
+                providerId = id, message = e.message ?: "Validation failed", cause = e
+            ))
         }
     }
 
@@ -63,7 +122,7 @@ class ProviderManager @Inject constructor(
      */
     fun getBestProviderFor(capability: ProviderCapability): BaseProvider? {
         val candidates = registry.getProvidersByCapability(capability)
-        
+
         // Priority: Active > Ready > Others
         return candidates.firstOrNull { it.status == ProviderStatus.Active }
             ?: candidates.firstOrNull { it.status == ProviderStatus.Ready }
@@ -72,11 +131,17 @@ class ProviderManager @Inject constructor(
 
     /**
      * Triggers a health check for a specific provider.
-     * 
+     *
      * @param id The unique identifier of the provider.
      */
     fun triggerHealthCheck(id: String) {
         // Placeholder for health check logic
+    }
+
+    private fun updateInternalStatus(id: String, status: ProviderStatus) {
+        _providerStatuses.update { current ->
+            current.toMutableMap().apply { put(id, status) }
+        }
     }
 
     /**

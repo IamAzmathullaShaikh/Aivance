@@ -1,8 +1,7 @@
 package com.bangersoul.aivance.core.domain.usecase.resume
 
 import com.bangersoul.aivance.core.common.model.Resume
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
-import com.bangersoul.aivance.core.common.model.ResumeSection
+import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ValidationError
@@ -14,76 +13,37 @@ import javax.inject.Inject
 
 data class ImproveResumeRequest(
     val resumeId: Long,
+    val versionId: Long,
     val jobDescription: String? = null,
-    val targetImprovements: List<String> = emptyList()
-)
-
-data class ImproveResumeResponse(
-    val originalResume: Resume,
-    val improvedResume: Resume,
-    val changes: List<String>
+    val feedback: String = ""
 )
 
 /**
- * Improves a resume based on AI analysis and specific improvement targets.
- *
- * Business rules:
- * - Resume must exist.
- * - AI must provide actionable improvement suggestions.
- * - Original resume is preserved alongside the improved version.
- * - Changes are tracked for user review.
+ * Improves a specific resume version using AI.
  */
 class ImproveResumeUseCase @Inject constructor(
     private val resumeRepository: ResumeRepository
-) : UseCase<ImproveResumeRequest, CoreResult<ImproveResumeResponse>>() {
+) : UseCase<ImproveResumeRequest, CoreResult<ResumeVersion>>() {
 
-    override suspend operator fun invoke(input: ImproveResumeRequest): CoreResult<ImproveResumeResponse> {
-        if (input.resumeId <= 0) {
-            return Result.Failure(ValidationError("resumeId", "Invalid resume ID."))
-        }
-
+    override suspend operator fun invoke(input: ImproveResumeRequest): CoreResult<ResumeVersion> {
         return runCatchingCore {
-            val resumeResult = resumeRepository.getResumeById(input.resumeId).firstOrNull()
-            val resume = when (resumeResult) {
-                is Result.Success -> resumeResult.data
-                is Result.Failure -> throw Exception(resumeResult.error.message)
-                null -> throw Exception("Resume not found.")
-            }
+            // Placeholder logic for improvement flow
+            // In a real implementation, this would call AI and then save a NEW version.
+            val versionsResult = resumeRepository.getVersions(input.resumeId).firstOrNull()
+            val versions = (versionsResult as? Result.Success)?.data ?: throw Exception("Failed to fetch versions")
+            val original = versions.find { it.id == input.versionId } ?: throw Exception("Version not found")
 
-            val analysis = if (!input.jobDescription.isNullOrBlank()) {
-                val analysisResult = resumeRepository.analyzeResume(input.resumeId, input.jobDescription)
-                when (analysisResult) {
-                    is Result.Success -> analysisResult.data
-                    is Result.Failure -> throw Exception(analysisResult.error.message)
-                }
-            } else {
-                null
-            }
-
-            val changes = mutableListOf<String>()
-            val improvedSections = resume.sections.toMutableList()
-
-            if (analysis != null) {
-                if (analysis.missingKeywords.isNotEmpty()) {
-                    changes.add("Added missing keywords: ${analysis.missingKeywords.take(5).joinToString(", ")}")
-                }
-            }
-
-            input.targetImprovements.forEach { improvement ->
-                changes.add("Applied improvement: $improvement")
-            }
-
-            val improvedResume = resume.copy(
-                sections = improvedSections
+            val improved = original.copy(
+                id = 0, // Force new entry
+                versionName = "${original.versionName} (Improved)",
+                lastModified = System.currentTimeMillis()
             )
 
-            resumeRepository.updateResume(improvedResume)
-
-            ImproveResumeResponse(
-                originalResume = resume,
-                improvedResume = improvedResume,
-                changes = changes
-            )
+            val newVersionId = resumeRepository.saveVersion(improved)
+            when (val res = newVersionId) {
+                is Result.Success -> improved.copy(id = res.data)
+                is Result.Failure -> throw Exception(res.error.message)
+            }
         }
     }
 }

@@ -3,9 +3,16 @@ package com.bangersoul.aivance.job.mapper
 import com.bangersoul.aivance.core.common.enums.EmploymentType
 import com.bangersoul.aivance.core.common.enums.ExperienceLevel
 import com.bangersoul.aivance.core.common.enums.RemoteType
+import com.bangersoul.aivance.job.adzuna.dto.AdzunaCompanyDto
+import com.bangersoul.aivance.job.adzuna.dto.AdzunaJobDto
+import com.bangersoul.aivance.job.adzuna.dto.AdzunaLocationDto
 import com.bangersoul.aivance.job.apify.dto.ApifyDatasetItem
+import com.bangersoul.aivance.job.arbeitnow.dto.ArbeitnowJobDto
+import com.bangersoul.aivance.job.jobicy.dto.JobicyJobDto
 import com.bangersoul.aivance.job.remoteok.dto.RemoteOKJobDto
 import com.bangersoul.aivance.job.remotive.dto.RemotiveJobDto
+import com.bangersoul.aivance.job.usajobs.dto.USAJobsDescriptorDto
+import com.bangersoul.aivance.job.usajobs.dto.USAJobsLocationDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -161,6 +168,184 @@ class JobMapperTest {
         assertEquals(EmploymentType.FULL_TIME, result.employmentType)
         assertEquals(RemoteType.REMOTE, result.remoteType)
         assertTrue(result.isRemote)
+    }
+
+    @Test
+    fun `mapToJobListing from ArbeitnowJobDto with all fields`() {
+        val dto = ArbeitnowJobDto(
+            slug = "android-dev-berlin-123",
+            companyName = "TechBerlin",
+            title = "Android Developer",
+            description = "Kotlin role in Berlin.",
+            remote = true,
+            url = "https://www.arbeitnow.com/jobs/android-dev-berlin-123",
+            tags = listOf("android", "kotlin"),
+            jobTypes = listOf("full-time"),
+            location = "Berlin",
+            createdAt = 1785499244
+        )
+
+        val result = JobMapper.mapToJobListing(dto, "arbeitnow")
+
+        assertEquals("android-dev-berlin-123", result.id)
+        assertEquals("Android Developer", result.title)
+        assertEquals("TechBerlin", result.company)
+        assertEquals("Berlin", result.location)
+        assertEquals(EmploymentType.FULL_TIME, result.employmentType)
+        assertEquals(RemoteType.REMOTE, result.remoteType)
+        assertTrue(result.isRemote)
+        assertEquals("Kotlin role in Berlin.", result.description)
+        assertEquals("https://www.arbeitnow.com/jobs/android-dev-berlin-123", result.url)
+        assertEquals("arbeitnow", result.sourceProvider)
+        assertEquals(1785499244000L, result.postedDate)
+    }
+
+    @Test
+    fun `mapToJobListing from ArbeitnowJobDto with null fields yields defaults`() {
+        val dto = ArbeitnowJobDto()
+
+        val result = JobMapper.mapToJobListing(dto, "arbeitnow")
+
+        assertNotNull(result.id)
+        assertEquals("No Title", result.title)
+        assertEquals("Unknown Company", result.company)
+        assertEquals("Germany", result.location)
+        assertEquals(RemoteType.ON_SITE, result.remoteType)
+        assertTrue("Posted date should be valid", result.postedDate > 0)
+    }
+
+    @Test
+    fun `mapToJobListing from JobicyJobDto with all fields`() {
+        val dto = JobicyJobDto(
+            id = 147706L,
+            url = "https://jobicy.com/jobs/147706",
+            jobSlug = "147706-account-lead",
+            jobTitle = "Account Technical Lead",
+            companyName = "Autodesk",
+            companyLogo = "https://jobicy.com/logo.png",
+            jobIndustry = listOf("Technical Support"),
+            jobType = listOf("Full-Time"),
+            jobGeo = "APAC, Australia",
+            jobLevel = "Senior",
+            jobExcerpt = "Leads technical engagements.",
+            jobDescription = "<p>Full description</p>",
+            pubDate = "2026-07-30T19:45:05+00:00"
+        )
+
+        val result = JobMapper.mapToJobListing(dto, "jobicy")
+
+        assertEquals("147706", result.id)
+        assertEquals("Account Technical Lead", result.title)
+        assertEquals("Autodesk", result.company)
+        assertEquals("https://jobicy.com/logo.png", result.companyLogoUrl)
+        assertEquals("APAC, Australia", result.location)
+        assertEquals(EmploymentType.FULL_TIME, result.employmentType)
+        assertEquals(RemoteType.REMOTE, result.remoteType)
+        assertTrue(result.isRemote)
+        assertEquals("<p>Full description</p>", result.descriptionHtml)
+        assertEquals("https://jobicy.com/jobs/147706", result.url)
+        assertEquals("jobicy", result.sourceProvider)
+    }
+
+    @Test
+    fun `mapToJobListing from JobicyJobDto with null fields yields defaults`() {
+        val dto = JobicyJobDto()
+
+        val result = JobMapper.mapToJobListing(dto, "jobicy")
+
+        assertNotNull(result.id)
+        assertEquals("No Title", result.title)
+        assertEquals("Unknown Company", result.company)
+        assertEquals("Remote", result.location)
+        assertTrue(result.isRemote)
+    }
+
+    @Test
+    fun `mapToJobListing from AdzunaJobDto with all fields`() {
+        val dto = AdzunaJobDto(
+            id = "adz-1",
+            title = "Backend Engineer",
+            company = AdzunaCompanyDto(displayName = "CloudCorp", logo = "https://cloudcorp.com/logo.png"),
+            location = AdzunaLocationDto(displayName = "Remote, US"),
+            salaryMin = 110000.0,
+            salaryMax = 140000.0,
+            description = "Backend role.",
+            redirectUrl = "https://www.adzuna.com/land/ad/adz-1",
+            created = "2026-07-20T10:00:00Z",
+            contractType = "full_time"
+        )
+
+        val result = JobMapper.mapToJobListing(dto, "adzuna", "us")
+
+        assertEquals("adz-1", result.id)
+        assertEquals("Backend Engineer", result.title)
+        assertEquals("CloudCorp", result.company)
+        assertEquals("https://cloudcorp.com/logo.png", result.companyLogoUrl)
+        assertEquals("Remote, US", result.location)
+        assertEquals(110000.0, result.salaryMin!!, 0.001)
+        assertEquals(140000.0, result.salaryMax!!, 0.001)
+        assertEquals("USD", result.currency)
+        assertEquals(EmploymentType.FULL_TIME, result.employmentType)
+        assertEquals(RemoteType.REMOTE, result.remoteType)
+        assertTrue(result.isRemote)
+        assertEquals("https://www.adzuna.com/land/ad/adz-1", result.url)
+        assertEquals("adzuna", result.sourceProvider)
+    }
+
+    @Test
+    fun `mapToJobListing from AdzunaJobDto uses country currency`() {
+        val dto = AdzunaJobDto(id = "adz-2", title = "Engineer")
+
+        val gbResult = JobMapper.mapToJobListing(dto, "adzuna", "gb")
+        val deResult = JobMapper.mapToJobListing(dto, "adzuna", "de")
+
+        assertEquals("GBP", gbResult.currency)
+        assertEquals("EUR", deResult.currency)
+    }
+
+    @Test
+    fun `mapToJobListing from USAJobsDescriptorDto with all fields`() {
+        val dto = USAJobsDescriptorDto(
+            positionId = "usa-1",
+            positionTitle = "Software Engineer",
+            organizationName = "Department of Defense",
+            positions = listOf(USAJobsLocationDto(locationName = "Remote, Arlington, VA")),
+            schedules = listOf(com.bangersoul.aivance.job.usajobs.dto.USAJobsLabelDto(name = "Full-time")),
+            offeringTypes = listOf(com.bangersoul.aivance.job.usajobs.dto.USAJobsLabelDto(name = "Permanent")),
+            minimumRange = 90000.0,
+            maximumRange = 120000.0,
+            qualificationSummary = "Degree required.",
+            applyUri = "https://www.usajobs.gov/GetJob/ViewDetails/1",
+            startDate = "2026-07-01T00:00:00"
+        )
+
+        val result = JobMapper.mapToJobListing(dto, "usajobs")
+
+        assertEquals("usa-1", result.id)
+        assertEquals("Software Engineer", result.title)
+        assertEquals("Department of Defense", result.company)
+        assertEquals("Remote, Arlington, VA", result.location)
+        assertEquals(90000.0, result.salaryMin!!, 0.001)
+        assertEquals(120000.0, result.salaryMax!!, 0.001)
+        assertEquals("USD", result.currency)
+        assertEquals(EmploymentType.FULL_TIME, result.employmentType)
+        assertTrue(result.isRemote)
+        assertEquals("Degree required.", result.description)
+        assertEquals("https://www.usajobs.gov/GetJob/ViewDetails/1", result.url)
+        assertEquals("usajobs", result.sourceProvider)
+    }
+
+    @Test
+    fun `mapToJobListing from USAJobsDescriptorDto with null fields yields defaults`() {
+        val dto = USAJobsDescriptorDto()
+
+        val result = JobMapper.mapToJobListing(dto, "usajobs")
+
+        assertNotNull(result.id)
+        assertEquals("No Title", result.title)
+        assertEquals("US Government", result.company)
+        assertEquals("United States", result.location)
+        assertEquals("USD", result.currency)
     }
 
     @Test

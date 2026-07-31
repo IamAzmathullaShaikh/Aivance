@@ -5,9 +5,13 @@ import com.bangersoul.aivance.core.common.enums.ExperienceLevel
 import com.bangersoul.aivance.core.common.enums.RemoteType
 import com.bangersoul.aivance.core.common.enums.JobType
 import com.bangersoul.aivance.core.common.model.JobListing
+import com.bangersoul.aivance.job.adzuna.dto.AdzunaJobDto
 import com.bangersoul.aivance.job.apify.dto.ApifyDatasetItem
+import com.bangersoul.aivance.job.arbeitnow.dto.ArbeitnowJobDto
+import com.bangersoul.aivance.job.jobicy.dto.JobicyJobDto
 import com.bangersoul.aivance.job.remoteok.dto.RemoteOKJobDto
 import com.bangersoul.aivance.job.remotive.dto.RemotiveJobDto
+import com.bangersoul.aivance.job.usajobs.dto.USAJobsDescriptorDto
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.UUID
@@ -81,6 +85,85 @@ object JobMapper {
         )
     }
 
+    fun mapToJobListing(dto: ArbeitnowJobDto, providerId: String): JobListing {
+        return JobListing(
+            id = dto.slug ?: dto.url ?: UUID.randomUUID().toString(),
+            title = dto.title ?: "No Title",
+            company = dto.companyName ?: "Unknown Company",
+            location = dto.location ?: "Germany",
+            employmentType = parseEmploymentType(dto.jobTypes?.joinToString(" ")),
+            remoteType = if (dto.remote == true) RemoteType.REMOTE else RemoteType.ON_SITE,
+            isRemote = dto.remote ?: false,
+            description = dto.description ?: "",
+            descriptionHtml = dto.description,
+            url = dto.url ?: "",
+            sourceProvider = providerId,
+            postedDate = dto.createdAt?.let { it * 1000 } ?: System.currentTimeMillis()
+        )
+    }
+
+    fun mapToJobListing(dto: JobicyJobDto, providerId: String): JobListing {
+        return JobListing(
+            id = dto.id?.toString() ?: dto.jobSlug ?: UUID.randomUUID().toString(),
+            title = dto.jobTitle ?: "No Title",
+            company = dto.companyName ?: "Unknown Company",
+            companyLogoUrl = dto.companyLogo,
+            location = dto.jobGeo ?: "Remote",
+            employmentType = parseEmploymentType(dto.jobType?.joinToString(" ")),
+            remoteType = RemoteType.REMOTE,
+            isRemote = true,
+            description = dto.jobDescription ?: dto.jobExcerpt ?: "",
+            descriptionHtml = dto.jobDescription,
+            url = dto.url ?: "",
+            sourceProvider = providerId,
+            postedDate = parseDate(dto.pubDate)
+        )
+    }
+
+    fun mapToJobListing(dto: AdzunaJobDto, providerId: String, countryCode: String = "us"): JobListing {
+        val location = dto.location?.displayName ?: "Unknown"
+        return JobListing(
+            id = dto.id ?: dto.redirectUrl ?: UUID.randomUUID().toString(),
+            title = dto.title ?: "No Title",
+            company = dto.company?.displayName ?: "Unknown Company",
+            companyLogoUrl = dto.company?.logo,
+            location = location,
+            salaryMin = dto.salaryMin,
+            salaryMax = dto.salaryMax,
+            currency = currencyForCountry(countryCode),
+            employmentType = parseEmploymentType(dto.contractType),
+            remoteType = if (location.contains("Remote", ignoreCase = true)) RemoteType.REMOTE else RemoteType.ON_SITE,
+            isRemote = location.contains("Remote", ignoreCase = true),
+            description = dto.description ?: "",
+            descriptionHtml = dto.description,
+            url = dto.redirectUrl ?: "",
+            sourceProvider = providerId,
+            postedDate = parseDate(dto.created)
+        )
+    }
+
+    fun mapToJobListing(dto: USAJobsDescriptorDto, providerId: String): JobListing {
+        val location = dto.positions?.firstOrNull()?.locationName ?: "United States"
+        val schedule = dto.schedules?.firstOrNull()?.name ?: ""
+        val offering = dto.offeringTypes?.firstOrNull()?.name ?: ""
+        return JobListing(
+            id = dto.positionId ?: dto.applyUri ?: UUID.randomUUID().toString(),
+            title = dto.positionTitle ?: "No Title",
+            company = dto.organizationName ?: "US Government",
+            location = location,
+            salaryMin = dto.minimumRange,
+            salaryMax = dto.maximumRange,
+            currency = "USD",
+            employmentType = parseEmploymentType("$schedule $offering"),
+            remoteType = if (location.contains("Remote", ignoreCase = true)) RemoteType.REMOTE else RemoteType.ON_SITE,
+            isRemote = location.contains("Remote", ignoreCase = true),
+            description = dto.qualificationSummary ?: "",
+            url = dto.applyUri ?: "",
+            sourceProvider = providerId,
+            postedDate = parseDate(dto.startDate)
+        )
+    }
+
     internal fun parseSalary(salary: String?, min: Boolean): Double? {
         if (salary == null) return null
         // Extract numbers, potentially with 'k' suffix
@@ -138,6 +221,24 @@ object JobMapper {
             "senior" -> ExperienceLevel.SENIOR_LEVEL
             "lead", "manager" -> ExperienceLevel.EXECUTIVE
             else -> ExperienceLevel.NOT_SPECIFIED
+        }
+    }
+
+    private fun currencyForCountry(countryCode: String): String {
+        return when (countryCode.lowercase()) {
+            "gb" -> "GBP"
+            "us" -> "USD"
+            "de", "fr", "nl", "at", "it" -> "EUR"
+            "ca" -> "CAD"
+            "au" -> "AUD"
+            "in" -> "INR"
+            "pl" -> "PLN"
+            "br" -> "BRL"
+            "nz" -> "NZD"
+            "sg" -> "SGD"
+            "za" -> "ZAR"
+            "mx" -> "MXN"
+            else -> "USD"
         }
     }
 }

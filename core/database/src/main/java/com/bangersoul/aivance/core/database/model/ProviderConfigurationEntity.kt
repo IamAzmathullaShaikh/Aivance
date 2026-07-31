@@ -7,7 +7,10 @@ import androidx.room.PrimaryKey
 data class ProviderConfigurationEntity(
     @PrimaryKey
     val provider: String,
-    val apiKey: String,
-    val baseUrl: String?,
-    val settings: Map<String, String>
+    val type: String, // "AI", "JOB", "ENRICHMENT"
+    val baseUrl: String? = null,
+    val selectedModel: String? = null,
+    val actorId: String? = null,
+    val settings: Map<String, String> = emptyMap(),
+    val isEnabled: Boolean = true
 )

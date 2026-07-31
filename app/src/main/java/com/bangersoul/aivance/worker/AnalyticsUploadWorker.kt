@@ -45,7 +45,7 @@ class AnalyticsUploadWorker @AssistedInject constructor(
             }
 
             // Generate and upload usage report
-            val reportResult = generateUsageReportUseCase()
+            val reportResult = generateUsageReportUseCase(Unit)
             @Suppress("UNCHECKED_CAST")
             when (reportResult) {
                 is com.bangersoul.aivance.core.common.result.Result.Success<*> -> {

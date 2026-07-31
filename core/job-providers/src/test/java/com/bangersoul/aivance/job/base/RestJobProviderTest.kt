@@ -8,6 +8,7 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.job.cache.JobCache
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.core.ProviderStatus
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -157,6 +158,7 @@ class RestJobProviderTest {
         metadata = ProviderMetadata(
             id = "test-provider",
             name = "Test Provider",
+            type = ProviderType.JOB,
             version = "1.0.0",
             description = "Test",
             author = "Test"

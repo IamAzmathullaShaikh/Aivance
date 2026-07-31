@@ -2,9 +2,43 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="Aivance">
+      <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DialogSelection />
+        <DropdownSelection timestamp="2026-07-30T18:22:43.501074800Z">
+          <Target type="DEFAULT_BOOT">
+            <handle>
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=10BG3X22BJ003YN" />
+            </handle>
+          </Target>
+        </DropdownSelection>
+        <DialogSelection>
+          <targets>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=10BG3X22BJ003YN" />
+              </handle>
+            </Target>
+          </targets>
+        </DialogSelection>
+      </SelectionState>
+      <SelectionState runConfigName="New Run Config">
+        <option name="selectionMode" value="DROPDOWN" />
+        <DropdownSelection timestamp="2026-07-30T21:34:03.322599500Z">
+          <Target type="DEFAULT_BOOT">
+            <handle>
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\iamsh\.android\avd\Pixel_10_Pro_XL.avd" />
+            </handle>
+          </Target>
+        </DropdownSelection>
+        <DialogSelection>
+          <targets>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=10BG3X22BJ003YN" />
+              </handle>
+            </Target>
+          </targets>
+        </DialogSelection>
       </SelectionState>
     </selectionStates>
   </component>

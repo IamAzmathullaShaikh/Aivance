@@ -1,203 +1,312 @@
 package com.bangersoul.aivance.navigation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
+import com.bangersoul.aivance.core.designsystem.components.ActionButton
+import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
 import com.bangersoul.aivance.core.designsystem.theme.DarkAccent
+import com.bangersoul.aivance.feature.profile.OnboardingUiEvent
+import com.bangersoul.aivance.feature.profile.OnboardingUiState
 import com.bangersoul.aivance.feature.profile.OnboardingViewModel
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
+import com.bangersoul.aivance.sdk.core.ProviderMetadata
 
-/**
- * Multi-step onboarding screen.
- *
- * Uses the existing [OnboardingViewModel] from the :feature:profile module.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
     viewModel: OnboardingViewModel,
-    onComplete: () -> Unit = {},
-    onSkip: () -> Unit = {}
+    onComplete: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var apiKeyInput by remember { mutableStateOf("") }
 
-    when (uiState) {
-        is com.bangersoul.aivance.feature.profile.OnboardingUiState.Welcome -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    Icons.Rounded.AutoAwesome, contentDescription = null,
-                    modifier = Modifier.size(64.dp), tint = DarkAccent
-                )
-                Spacer(Modifier.height(24.dp))
-                Text("Welcome to Aivance!",
-                    style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Let's get you set up in just a few steps.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(32.dp))
-                Button(onClick = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.NextStep) },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = MaterialTheme.shapes.medium) {
-                    Text("Get Started", fontWeight = FontWeight.SemiBold)
-                }
-                TextButton(onClick = onSkip) {
-                    Text("Skip setup", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+    AnimatedContent(
+        targetState = uiState,
+        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        label = "OnboardingTransition"
+    ) { state ->
+        when (state) {
+            OnboardingUiState.Welcome -> WelcomeStep(onStart = { viewModel.onEvent(OnboardingUiEvent.Start) })
+
+            is OnboardingUiState.ChooseAiProvider -> ProviderSelectionStep(
+                title = "Choose AI Provider",
+                description = "Select the intelligence that will power your resume analysis and interview prep.",
+                providers = state.providers,
+                onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectAiProvider(it)) }
+            )
+
+            is OnboardingUiState.ConfigureAiProvider -> ProviderConfigStep(
+                title = "Configure ${state.provider.name}",
+                provider = state.provider,
+                config = state.config,
+                isValidating = state.isValidating,
+                error = state.error,
+                onUpdate = { k, v -> viewModel.onEvent(OnboardingUiEvent.UpdateAiConfig(k, v)) },
+                onValidate = { viewModel.onEvent(OnboardingUiEvent.ValidateAiProvider) },
+                onBack = { viewModel.onEvent(OnboardingUiEvent.Back) }
+            )
+
+            is OnboardingUiState.ChooseJobProvider -> ProviderSelectionStep(
+                title = "Choose Job Provider",
+                description = "Select where you want to fetch job listings and recruiter details from.",
+                providers = state.providers,
+                onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectJobProvider(it)) }
+            )
+
+            is OnboardingUiState.ConfigureJobProvider -> ProviderConfigStep(
+                title = "Configure ${state.provider.name}",
+                provider = state.provider,
+                config = state.config,
+                isValidating = state.isValidating,
+                error = state.error,
+                onUpdate = { k, v -> viewModel.onEvent(OnboardingUiEvent.UpdateJobConfig(k, v)) },
+                onValidate = { viewModel.onEvent(OnboardingUiEvent.ValidateJobProvider) },
+                onBack = { viewModel.onEvent(OnboardingUiEvent.Back) }
+            )
+
+            is OnboardingUiState.ChooseEnrichmentProvider -> ProviderSelectionStep(
+                title = "Enrichment Service (Optional)",
+                description = "Find verified recruiter contacts and company intelligence. Highly recommended for outreach.",
+                providers = state.providers,
+                onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectEnrichmentProvider(it)) },
+                onSkip = { viewModel.onEvent(OnboardingUiEvent.SkipEnrichment) }
+            )
+
+            is OnboardingUiState.ConfigureEnrichmentProvider -> ProviderConfigStep(
+                title = "Configure ${state.provider.name}",
+                provider = state.provider,
+                config = state.config,
+                isValidating = state.isValidating,
+                error = state.error,
+                onUpdate = { k, v -> viewModel.onEvent(OnboardingUiEvent.UpdateEnrichmentConfig(k, v)) },
+                onValidate = { viewModel.onEvent(OnboardingUiEvent.ValidateEnrichmentProvider) },
+                onBack = { viewModel.onEvent(OnboardingUiEvent.Back) }
+            )
+
+            is OnboardingUiState.Summary -> OnboardingSummaryStep(
+                aiProvider = state.aiProvider,
+                jobProvider = state.jobProvider,
+                enrichmentProvider = state.enrichmentProvider,
+                onFinish = { viewModel.onEvent(OnboardingUiEvent.Finish) }
+            )
+
+            OnboardingUiState.Complete -> {
+                onComplete()
+                Box(Modifier.fillMaxSize())
             }
-        }
-
-        is com.bangersoul.aivance.feature.profile.OnboardingUiState.Permissions -> {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(Icons.Rounded.Notifications, null, Modifier.size(64.dp), tint = DarkAccent)
-                Spacer(Modifier.height(24.dp))
-                Text("Notifications", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Get notified about application updates and interview reminders.",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(32.dp))
-                Button(onClick = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.NextStep) },
-                    modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-                    Text("Enable Notifications")
-                }
-                TextButton(onClick = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.NextStep) }) {
-                    Text("Skip")
-                }
-            }
-        }
-
-        is com.bangersoul.aivance.feature.profile.OnboardingUiState.ProviderSelection -> {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(Icons.Rounded.Tune, null, Modifier.size(64.dp), tint = DarkAccent)
-                Spacer(Modifier.height(24.dp))
-                Text("AI Provider", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Select your preferred AI provider. Gemini is the default.",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(32.dp))
-                Button(onClick = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.NextStep) },
-                    modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-                    Text("Use Gemini (Default)")
-                }
-                TextButton(onClick = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.NextStep) }) {
-                    Text("Skip")
-                }
-            }
-        }
-
-        is com.bangersoul.aivance.feature.profile.OnboardingUiState.ApiKeySetup -> {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(Icons.Rounded.Key, null, Modifier.size(64.dp), tint = DarkAccent)
-                Spacer(Modifier.height(24.dp))
-                Text("API Key", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Enter your Gemini API key to unlock all AI features.",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(24.dp))
-                OutlinedTextField(
-                    value = apiKeyInput,
-                    onValueChange = {
-                        apiKeyInput = it
-                        viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.SetApiKey(it))
-                    },
-                    label = { Text("API Key") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(Modifier.height(24.dp))
-                Button(onClick = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.NextStep) },
-                    modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-                    Text("Continue")
-                }
-                TextButton(onClick = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.NextStep) }) {
-                    Text("Skip")
-                }
-            }
-        }
-
-        is com.bangersoul.aivance.feature.profile.OnboardingUiState.ProfileSetup -> {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(Icons.Rounded.Person, null, Modifier.size(64.dp), tint = DarkAccent)
-                Spacer(Modifier.height(24.dp))
-                Text("Profile Setup", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("You can always set up your profile later from the Profile tab.",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(32.dp))
-                Button(onClick = {
-                    viewModel.onEvent(com.bangersoul.aivance.feature.profile.OnboardingUiEvent.CompleteOnboarding)
-                    onComplete()
-                }, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
-                    Text("Complete Setup", fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
-
-        is com.bangersoul.aivance.feature.profile.OnboardingUiState.Complete -> {
-            onComplete()
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-private fun OnboardingScreenPreview() {
-    AivanceTheme(darkTheme = true) {
-        OnboardingScreen(
-            viewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-            onComplete = {},
-            onSkip = {}
+private fun WelcomeStep(onStart: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(80.dp), tint = DarkAccent)
+        Spacer(Modifier.height(32.dp))
+        Text("Welcome to Aivance", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(16.dp))
+        Text(
+            "Your AI-powered Career Operating System. Let's get your providers set up to begin.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+        Spacer(Modifier.height(48.dp))
+        Button(
+            onClick = onStart,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Get Started", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun ProviderSelectionStep(
+    title: String,
+    description: String,
+    providers: List<ProviderMetadata>,
+    onSelect: (String) -> Unit,
+    onSkip: (() -> Unit)? = null
+) {
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(24.dp))
+        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(providers) { provider ->
+                Card(
+                    onClick = { onSelect(provider.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.Settings, null, Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(provider.name, fontWeight = FontWeight.Bold)
+                            Text(provider.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.Rounded.NavigateNext, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        if (onSkip != null) {
+            TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                Text("Skip for now")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProviderConfigStep(
+    title: String,
+    provider: ProviderMetadata,
+    config: Map<String, String>,
+    isValidating: Boolean,
+    error: String?,
+    onUpdate: (String, String) -> Unit,
+    onValidate: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(24.dp))
+
+        provider.configFields.forEach { field ->
+            DynamicField(
+                field = field,
+                value = config[field.key] ?: "",
+                onValueChange = { onUpdate(field.key, it) }
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        if (error != null) {
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(16.dp))
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        Button(
+            onClick = onValidate,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            enabled = !isValidating,
+            shape = MaterialTheme.shapes.medium
+        ) {
+            if (isValidating) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+            } else {
+                Text("Validate & Continue", fontWeight = FontWeight.Bold)
+            }
+        }
+        TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text("Back")
+        }
+    }
+}
+
+@Composable
+private fun DynamicField(
+    field: ConfigField,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(field.label) },
+        placeholder = { field.hint?.let { Text(it) } },
+        modifier = Modifier.fillMaxWidth(),
+        visualTransformation = if (field.fieldType == FieldType.PASSWORD) PasswordVisualTransformation() else VisualTransformation.None,
+        singleLine = true
+    )
+}
+
+@Composable
+private fun OnboardingSummaryStep(
+    aiProvider: String,
+    jobProvider: String,
+    enrichmentProvider: String?,
+    onFinish: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(Icons.Rounded.CheckCircle, null, Modifier.size(80.dp), tint = Color(0xFF4CAF50))
+        Spacer(Modifier.height(32.dp))
+        Text("All Set!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(24.dp))
+
+        SummaryItem(label = "AI Engine", value = aiProvider)
+        Spacer(Modifier.height(12.dp))
+        SummaryItem(label = "Job Source", value = jobProvider)
+        Spacer(Modifier.height(12.dp))
+        SummaryItem(label = "Enrichment", value = enrichmentProvider ?: "Not Configured")
+
+        Spacer(Modifier.height(48.dp))
+        Button(
+            onClick = onFinish,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Go to Dashboard", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun SummaryItem(label: String, value: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Text(value, fontWeight = FontWeight.Bold)
+            }
+            Icon(Icons.Rounded.CheckCircle, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+        }
     }
 }

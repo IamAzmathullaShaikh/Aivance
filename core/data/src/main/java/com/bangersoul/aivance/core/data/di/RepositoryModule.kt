@@ -1,25 +1,9 @@
 package com.bangersoul.aivance.core.data.di
 
-import com.bangersoul.aivance.core.data.repository.AiRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.AnalyticsRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.CoverLetterRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.InterviewRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.JobRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.JobTrackerRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.ResumeRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.SearchRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.SettingsRepositoryImpl
-import com.bangersoul.aivance.core.data.repository.UserRepositoryImpl
-import com.bangersoul.aivance.core.domain.repository.AiRepository
-import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
-import com.bangersoul.aivance.core.domain.repository.CoverLetterRepository
-import com.bangersoul.aivance.core.domain.repository.InterviewRepository
-import com.bangersoul.aivance.core.domain.repository.JobRepository
-import com.bangersoul.aivance.core.domain.repository.JobTrackerRepository
-import com.bangersoul.aivance.core.domain.repository.ResumeRepository
-import com.bangersoul.aivance.core.domain.repository.SearchRepository
-import com.bangersoul.aivance.core.domain.repository.SettingsRepository
-import com.bangersoul.aivance.core.domain.repository.UserRepository
+import com.bangersoul.aivance.core.data.repository.*
+import com.bangersoul.aivance.core.data.repository.crm.*
+import com.bangersoul.aivance.core.domain.repository.*
+import com.bangersoul.aivance.core.domain.repository.crm.*
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -32,61 +16,74 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindAiRepository(
-        aiRepositoryImpl: AiRepositoryImpl
-    ): AiRepository
+    abstract fun bindAiRepository(impl: AiRepositoryImpl): AiRepository
 
     @Binds
     @Singleton
-    abstract fun bindAnalyticsRepository(
-        analyticsRepositoryImpl: AnalyticsRepositoryImpl
-    ): AnalyticsRepository
+    abstract fun bindAnalyticsRepository(impl: AnalyticsRepositoryImpl): AnalyticsRepository
 
     @Binds
     @Singleton
-    abstract fun bindCoverLetterRepository(
-        coverLetterRepositoryImpl: CoverLetterRepositoryImpl
-    ): CoverLetterRepository
+    abstract fun bindCoverLetterRepository(impl: CoverLetterRepositoryImpl): CoverLetterRepository
 
     @Binds
     @Singleton
-    abstract fun bindInterviewRepository(
-        interviewRepositoryImpl: InterviewRepositoryImpl
-    ): InterviewRepository
+    abstract fun bindInterviewRepository(impl: InterviewRepositoryImpl): InterviewRepository
 
     @Binds
     @Singleton
-    abstract fun bindJobRepository(
-        jobRepositoryImpl: JobRepositoryImpl
-    ): JobRepository
+    abstract fun bindJobRepository(impl: JobRepositoryImpl): JobRepository
 
     @Binds
     @Singleton
-    abstract fun bindJobTrackerRepository(
-        jobTrackerRepositoryImpl: JobTrackerRepositoryImpl
-    ): JobTrackerRepository
+    abstract fun bindJobTrackerRepository(impl: JobTrackerRepositoryImpl): JobTrackerRepository
 
     @Binds
     @Singleton
-    abstract fun bindResumeRepository(
-        resumeRepositoryImpl: ResumeRepositoryImpl
-    ): ResumeRepository
+    abstract fun bindResumeRepository(impl: ResumeRepositoryImpl): ResumeRepository
 
     @Binds
     @Singleton
-    abstract fun bindSearchRepository(
-        searchRepositoryImpl: SearchRepositoryImpl
-    ): SearchRepository
+    abstract fun bindProviderRepository(impl: ProviderRepositoryImpl): ProviderRepository
 
     @Binds
     @Singleton
-    abstract fun bindSettingsRepository(
-        settingsRepositoryImpl: SettingsRepositoryImpl
-    ): SettingsRepository
+    abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
 
     @Binds
     @Singleton
-    abstract fun bindUserRepository(
-        userRepositoryImpl: UserRepositoryImpl
-    ): UserRepository
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAtsRepository(impl: AtsRepositoryImpl): AtsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAssistantRepository(impl: AssistantRepositoryImpl): AssistantRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindApplicationWorkflowRepository(impl: ApplicationWorkflowRepositoryImpl): ApplicationWorkflowRepository
+
+    // CRM / Networking Repositories
+    @Binds
+    @Singleton
+    abstract fun bindCompanyIntelligenceRepository(impl: CompanyIntelligenceRepositoryImpl): CompanyIntelligenceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRecruiterIntelligenceRepository(impl: RecruiterIntelligenceRepositoryImpl): RecruiterIntelligenceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindOutreachRepository(impl: OutreachRepositoryImpl): OutreachRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCRMRepository(impl: CRMRepositoryImpl): CRMRepository
 }

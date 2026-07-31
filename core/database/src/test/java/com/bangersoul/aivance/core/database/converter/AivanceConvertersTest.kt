@@ -60,8 +60,8 @@ class AivanceConvertersTest {
     @Test
     fun resumeSectionListConversion() {
         val sections = listOf(
-            ResumeSection("EXPERIENCE", "Exp", "Content 1"),
-            ResumeSection("EDUCATION", "Edu", "Content 2")
+            ResumeSection(sectionType = "EXPERIENCE", title = "Exp", content = "Content 1"),
+            ResumeSection(sectionType = "EDUCATION", title = "Edu", content = "Content 2")
         )
         val string = converters.fromResumeSectionList(sections)
         val convertedBack = converters.toResumeSectionList(string)
@@ -71,8 +71,8 @@ class AivanceConvertersTest {
     @Test
     fun interviewMessageListConversion() {
         val messages = listOf(
-            InterviewMessage("1", MessageSender.AI_INTERVIEWER, "Hello"),
-            InterviewMessage("2", MessageSender.USER, "Hi")
+            InterviewMessage(id = "1", sessionId = "session-1", sender = MessageSender.AI_INTERVIEWER, text = "Hello"),
+            InterviewMessage(id = "2", sessionId = "session-1", sender = MessageSender.USER, text = "Hi")
         )
         val string = converters.fromInterviewMessageList(messages)
         val convertedBack = converters.toInterviewMessageList(string)

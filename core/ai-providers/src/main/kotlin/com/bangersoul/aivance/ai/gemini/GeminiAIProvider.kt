@@ -7,9 +7,12 @@ import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
+import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.model.AiMessage
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
@@ -35,9 +38,20 @@ class GeminiAIProvider(
     metadata = ProviderMetadata(
         id = "gemini",
         name = "Google Gemini",
+        type = ProviderType.AI,
         version = "1.0.0",
         description = "Powered by Google's most capable AI models via Firebase.",
-        author = "Google"
+        author = "Google",
+        configFields = listOf(
+            ConfigField(
+                key = "apiKey",
+                label = "Gemini API Key",
+                isSensitive = true,
+                fieldType = FieldType.PASSWORD,
+                hint = "Get your key from Google AI Studio"
+            )
+        ),
+        supportedModels = listOf("gemini-2.0-flash", "gemini-2.0-pro-exp-02-05", "gemini-1.5-flash", "gemini-1.5-pro")
     ),
     capabilities = setOf(
         ProviderCapability.AI.Chat,
@@ -64,7 +78,7 @@ class GeminiAIProvider(
             }
 
             _generativeModel = createModel()
-            
+
             updateStatus(ProviderStatus.Ready)
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize GeminiAIProvider")
@@ -74,10 +88,10 @@ class GeminiAIProvider(
 
     private fun createModel(systemInstruction: String? = null): GenerativeModel {
         val app = firebaseApp ?: Firebase.app
-        val modelInstruction = systemInstruction?.let { 
+        val modelInstruction = systemInstruction?.let {
             content { text(it) }
         }
-        
+
         return Firebase.ai(app = app, backend = GenerativeBackend.googleAI())
             .generativeModel(
                 modelName = modelName,
@@ -142,7 +156,7 @@ class GeminiAIProvider(
         return try {
             val systemMessage = messages.find { it.role == MessageRole.SYSTEM }
             val chatMessages = messages.filter { it.role != MessageRole.SYSTEM }
-            
+
             val model = if (systemMessage != null) {
                 createModel(systemMessage.content)
             } else {
@@ -151,7 +165,7 @@ class GeminiAIProvider(
 
             val chatHistory = chatMessages.dropLast(1).map { it.toGeminiContent() }
             val lastMessage = chatMessages.last().toGeminiContent()
-            
+
             val chat = model.startChat(chatHistory)
             val response = chat.sendMessage(lastMessage)
             Result.Success(response.text ?: "")
@@ -173,7 +187,7 @@ class GeminiAIProvider(
     override fun streamChat(messages: List<AiMessage>): Flow<Result<String>> {
         val systemMessage = messages.find { it.role == MessageRole.SYSTEM }
         val chatMessages = messages.filter { it.role != MessageRole.SYSTEM }
-        
+
         val model = if (systemMessage != null) {
             createModel(systemMessage.content)
         } else {
@@ -182,7 +196,7 @@ class GeminiAIProvider(
 
         val chatHistory = chatMessages.dropLast(1).map { it.toGeminiContent() }
         val lastMessage = chatMessages.last().toGeminiContent()
-        
+
         val chat = model.startChat(chatHistory)
         return chat.sendMessageStream(lastMessage)
             .map { Result.Success(it.text ?: "") as Result<String> }

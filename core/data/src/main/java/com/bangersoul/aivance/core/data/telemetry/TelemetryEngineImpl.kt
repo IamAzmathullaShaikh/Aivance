@@ -1,11 +1,11 @@
 package com.bangersoul.aivance.core.data.telemetry
 
+import android.util.Log
 import com.bangersoul.aivance.core.common.dto.PerformanceMetric
 import com.bangersoul.aivance.core.common.dto.TraceContext
 import com.bangersoul.aivance.core.domain.telemetry.LogEntry
 import com.bangersoul.aivance.core.domain.telemetry.LogLevel
 import com.bangersoul.aivance.core.domain.telemetry.TelemetryEngine
-import timber.log.Timber
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +37,7 @@ class TelemetryEngineImpl @Inject constructor() : TelemetryEngine {
             tags = tags
         )
         synchronized(traceLock) { activeTraces[context.traceId] = context }
-        Timber.tag("Trace").d("Started: %s [%s]", operationName, context.traceId)
+        Log.d("Trace", "Started: $operationName [${context.traceId}]")
         return context
     }
 
@@ -45,7 +45,7 @@ class TelemetryEngineImpl @Inject constructor() : TelemetryEngine {
         val ended = context.copy(endTime = System.currentTimeMillis())
         synchronized(traceLock) { activeTraces.remove(context.traceId) }
         val duration = (ended.endTime ?: 0L) - context.startTime
-        Timber.tag("Trace").d("Ended: %s [%s] — %dms", context.operationName, context.traceId, duration)
+        Log.d("Trace", "Ended: ${context.operationName} [${context.traceId}] — ${duration}ms")
         recordMetric(PerformanceMetric(name = "trace.${context.operationName}.duration",
             value = duration.toDouble(), unit = "ms",
             tags = mapOf("traceId" to context.traceId, "operation" to context.operationName)))
@@ -54,7 +54,7 @@ class TelemetryEngineImpl @Inject constructor() : TelemetryEngine {
     override fun startSpan(context: TraceContext, operationName: String): TraceContext {
         val span = context.copy(spanId = generateSpanId(), parentSpanId = context.spanId,
             operationName = operationName, startTime = System.currentTimeMillis())
-        Timber.tag("Trace").d("  Span: %s [%s] parent=%s", operationName, span.spanId, span.parentSpanId)
+        Log.d("Trace", "  Span: $operationName [${span.spanId}] parent=${span.parentSpanId}")
         return span
     }
 
@@ -72,12 +72,12 @@ class TelemetryEngineImpl @Inject constructor() : TelemetryEngine {
         val msg = buildLogMessage(entry)
 
         when (entry.level) {
-            LogLevel.VERBOSE -> Timber.tag(tag).v(entry.throwable, msg)
-            LogLevel.DEBUG -> Timber.tag(tag).d(entry.throwable, msg)
-            LogLevel.INFO -> Timber.tag(tag).i(entry.throwable, msg)
-            LogLevel.WARN -> Timber.tag(tag).w(entry.throwable, msg)
-            LogLevel.ERROR -> Timber.tag(tag).e(entry.throwable, msg)
-            LogLevel.FATAL -> Timber.tag(tag).wtf(entry.throwable, msg)
+            LogLevel.VERBOSE -> Log.v(tag, msg, entry.throwable)
+            LogLevel.DEBUG -> Log.d(tag, msg, entry.throwable)
+            LogLevel.INFO -> Log.i(tag, msg, entry.throwable)
+            LogLevel.WARN -> Log.w(tag, msg, entry.throwable)
+            LogLevel.ERROR -> Log.e(tag, msg, entry.throwable)
+            LogLevel.FATAL -> Log.wtf(tag, msg, entry.throwable)
         }
 
         logBuffer.add(entry)
@@ -86,7 +86,7 @@ class TelemetryEngineImpl @Inject constructor() : TelemetryEngine {
 
     override fun recordMetric(metric: PerformanceMetric) {
         metricBuffer.add(metric)
-        Timber.tag("Metrics").d("%s = %.2f %s", metric.name, metric.value, metric.unit)
+        Log.d("Metrics", "${metric.name} = ${metric.value} ${metric.unit}")
         if (metricBuffer.size > 500) { repeat(50) { metricBuffer.poll() } }
     }
 

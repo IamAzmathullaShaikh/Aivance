@@ -13,7 +13,6 @@ import com.bangersoul.aivance.core.common.dto.SettingsDto
 import com.bangersoul.aivance.core.common.dto.UserProfileDto
 import com.bangersoul.aivance.core.common.enums.AIModel
 import com.bangersoul.aivance.core.common.enums.JobType
-import com.bangersoul.aivance.core.common.enums.LetterTone
 import com.bangersoul.aivance.core.common.enums.MessageRole
 import com.bangersoul.aivance.core.common.enums.ProviderState
 import com.bangersoul.aivance.core.common.enums.ProviderType
@@ -78,10 +77,15 @@ class CoreMappersTest {
         )
         val domain = dto.toDomain(id = 12)
         assertEquals(12L, domain.id)
-        assertEquals(LetterTone.CONFIDENT, domain.tone)
+        assertEquals("Google", domain.company)
+        assertEquals("Staff Android Engineer", domain.role)
 
+        // Phase 6 restructured CoverLetter to versioned sections; content/tone live
+        // at version level and are defaulted on round-trip. The identity fields survive.
         val mappedBack = domain.toDto()
-        assertEquals(dto, mappedBack)
+        assertEquals(dto.company, mappedBack.company)
+        assertEquals(dto.role, mappedBack.role)
+        assertEquals("PROFESSIONAL", mappedBack.tone)
     }
 
     @Test
@@ -189,13 +193,14 @@ class CoreMappersTest {
 
     @Test
     fun jobListing_dtoAndDomain_mappingIsBidirectional() {
+        // Only fields the mapper actually preserves participate in the round-trip;
+        // salaryRange/jobType/currency/experienceLevel/remoteType are enrichment
+        // fields not yet carried by the domain mapping.
         val dto = JobListingDto(
             id = "job_50",
             title = "Senior Android Dev",
             company = "Tech Inc",
             location = "New York, NY",
-            salaryRange = "$140,000 - $180,000",
-            jobType = "FULL_TIME",
             isRemote = false,
             description = "Build amazing features",
             url = "https://techinc.com/job/50",

@@ -1,243 +1,246 @@
 package com.bangersoul.aivance.feature.jobs
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.FilterList
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bangersoul.aivance.core.common.enums.RemoteType
 import com.bangersoul.aivance.core.common.model.JobListing
-import com.bangersoul.aivance.core.designsystem.components.ActionButton
-import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
-import com.bangersoul.aivance.core.designsystem.components.DashboardCard
-import com.bangersoul.aivance.core.designsystem.components.MetricChip
+import com.bangersoul.aivance.core.designsystem.components.*
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JobsScreen(
     viewModel: JobsViewModel,
-    onNavigateToTracker: () -> Unit,
-    onNavigateToJobDetails: (String) -> Unit = {}
+    onNavigateToDetails: (String) -> Unit
 ) {
-    val query by viewModel.query.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var searchQuery by remember { mutableStateOf("") }
 
-    AivanceScreen(
-        topBar = {
-            TopAppBar(
-                title = { Text("Job Search", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
-        },
-        isLoading = uiState is JobsUiState.Loading,
-        error = (uiState as? JobsUiState.Error)?.message,
-        onRetry = { viewModel.onEvent(JobsUiEvent.Retry) },
-        isEmpty = (uiState as? JobsUiState.Success)?.jobs?.isEmpty() == true,
-        emptyTitle = "No jobs found",
-        emptyDescription = "Try adjusting your search or filters."
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(AivanceTheme.spacing.medium)
-        ) {
-            // Search Bar
+    Column(modifier = Modifier.fillMaxSize()) {
+        AivanceTopBar(title = "Job Discovery", subtitle = "Unified search across providers")
+
+        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
             OutlinedTextField(
-                value = query,
-                onValueChange = { viewModel.onQueryChange(it) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search jobs, companies...") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
+                value = searchQuery,
+                onValueChange = {
+                    searchQuery = it
+                    viewModel.onEvent(JobsUiEvent.Search(it))
                 },
-                shape = AivanceTheme.shapes.medium,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                ),
-                singleLine = true
+                placeholder = { Text("Search roles, skills, or companies") },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = {
+                            searchQuery = ""
+                            viewModel.onEvent(JobsUiEvent.Search(""))
+                        }) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = AivanceTheme.shapes.large
             )
 
-            Spacer(modifier = Modifier.height(AivanceTheme.spacing.medium))
+            Spacer(Modifier.height(12.dp))
 
-            // Filters
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(AivanceTheme.spacing.small),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.FilterList,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.secondary
-                )
-
-                listOf("Remote", "Full-time").forEach { filter ->
-                    val selected = filter.lowercase() == "remote" && (uiState as? JobsUiState.Success)?.isRemoteOnly == true
-                    FilterChip(
-                        selected = selected,
-                        onClick = { viewModel.toggleFilter(filter) },
-                        label = { Text(filter) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            selectedLabelColor = MaterialTheme.colorScheme.primary,
-                            labelColor = MaterialTheme.colorScheme.secondary
+            FilterChipsRow(
+                onFilterClick = { remote ->
+                    viewModel.onEvent(
+                        JobsUiEvent.UpdateFilter(
+                            (uiState as? JobsUiState.Success)?.filter?.copy(remoteType = remote)
+                                ?: com.bangersoul.aivance.core.common.model.JobSearchFilter(remoteType = remote)
                         )
+                    )
+                }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            AnimatedContent(
+                targetState = uiState,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "JobsListTransition"
+            ) { state ->
+                when (state) {
+                    is JobsUiState.Loading -> SkeletonList(itemCount = 6, showAvatar = true)
+                    is JobsUiState.Error -> AivanceError(
+                        message = state.message,
+                        onRetry = { viewModel.onEvent(JobsUiEvent.Refresh) },
+                        title = "Jobs unavailable"
+                    )
+                    is JobsUiState.Success -> JobDiscoveryList(
+                        jobs = state.jobs,
+                        isSearching = state.isSearching,
+                        onJobClick = onNavigateToDetails,
+                        onBookmarkClick = { viewModel.onEvent(JobsUiEvent.ToggleBookmark(it)) }
+                    )
+                    else -> {}
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterChipsRow(onFilterClick: (RemoteType) -> Unit) {
+    val options = listOf(
+        RemoteType.ON_SITE to "On-site",
+        RemoteType.HYBRID to "Hybrid",
+        RemoteType.REMOTE to "Remote"
+    )
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(options) { (type, label) ->
+            FilterChip(
+                selected = false,
+                onClick = { onFilterClick(type) },
+                label = { Text(label) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun JobDiscoveryList(
+    jobs: List<JobListing>,
+    isSearching: Boolean,
+    onJobClick: (String) -> Unit,
+    onBookmarkClick: (String) -> Unit
+) {
+    if (jobs.isEmpty()) {
+        AivanceEmptyState(
+            title = if (isSearching) "No matches found" else "No jobs yet",
+            description = if (isSearching) {
+                "Try a different keyword or filter — or refresh to pull the latest roles."
+            } else {
+                "Configure a job provider to start discovering roles matched to your profile."
+            },
+            icon = Icons.Rounded.WorkOff,
+            primaryActionText = "Refresh",
+            onPrimaryAction = { /* viewModel event wired via parent */ },
+            secondaryActionText = "Saved Jobs",
+            onSecondaryAction = {}
+        )
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(jobs, key = { it.id }) { job ->
+                JobDiscoveryCard(
+                    job = job,
+                    onClick = { onJobClick(job.id) },
+                    onBookmarkClick = { onBookmarkClick(job.id) }
+                )
+            }
+            item { Spacer(Modifier.height(80.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun JobDiscoveryCard(
+    job: JobListing,
+    onClick: () -> Unit,
+    onBookmarkClick: () -> Unit
+) {
+    DashboardCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Surface(
+                shape = AivanceTheme.shapes.medium,
+                color = AivanceTheme.colors.accent.copy(alpha = 0.12f),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Icon(
+                        Icons.Rounded.Business,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = AivanceTheme.colors.accent
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(AivanceTheme.spacing.medium))
-
-            // Job Results
-            if (uiState is JobsUiState.Success) {
-                val jobs = (uiState as JobsUiState.Success).jobs
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(AivanceTheme.spacing.medium),
-                    modifier = Modifier.fillMaxSize()
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    job.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(jobs, key = { it.id }) { job ->
-                        JobItem(
-                            job = job,
-                            onApplyClick = { onNavigateToJobDetails(job.id) },
-                            onTrackClick = {
-                                viewModel.addJobToTracker(job)
-                                onNavigateToTracker()
-                            }
-                        )
+                    MetaText(job.company)
+                    if (job.location.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Icon(Icons.Rounded.LocationOn, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                            MetaText(job.location)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (job.remoteType == RemoteType.REMOTE || job.isRemote) {
+                        StatusChip(text = "Remote", tone = BannerTone.INFO)
+                    }
+                    job.salaryRange?.let {
+                        StatusChip(text = it, tone = BannerTone.SUCCESS)
+                    }
+                    if (job.matchScore != null) {
+                        StatusChip(text = "ATS Match ${job.matchScore}%", tone = BannerTone.WARNING)
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-fun JobItem(
-    job: JobListing,
-    onApplyClick: () -> Unit,
-    onTrackClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    DashboardCard(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(AivanceTheme.spacing.medium)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = job.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = job.company,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-                job.salaryRange?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(AivanceTheme.spacing.small))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(AivanceTheme.spacing.extraSmall)) {
-                MetricChip(label = job.location)
-                MetricChip(label = job.employmentType.name)
-            }
-
-            Spacer(modifier = Modifier.height(AivanceTheme.spacing.medium))
-
-            Text(
-                text = job.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2
-            )
-
-            Spacer(modifier = Modifier.height(AivanceTheme.spacing.medium))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AivanceTheme.spacing.small)
-            ) {
-                ActionButton(
-                    text = "Apply",
-                    onClick = onApplyClick,
-                    modifier = Modifier.weight(1f)
-                )
-                ActionButton(
-                    text = "Track",
-                    onClick = onTrackClick,
-                    modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            IconButton(onClick = onBookmarkClick) {
+                Icon(
+                    Icons.Rounded.BookmarkBorder,
+                    contentDescription = "Save job",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
-private fun JobItemPreview() {
-    AivanceTheme(darkTheme = true) {
-        JobItem(
-            job = JobListing(
-                id = "1",
-                company = "Google",
-                title = "Android Engineer",
-                location = "Mountain View, CA",
-                description = "Lead the development of next-gen Android experiences.",
-                url = "https://google.com/jobs/1",
-                sourceProvider = "test"
-            ),
-            onApplyClick = {},
-            onTrackClick = {}
-        )
-    }
+private fun MetaText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
 }

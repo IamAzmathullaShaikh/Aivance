@@ -39,10 +39,10 @@ class DatabaseSeed @Inject constructor(
 
     private suspend fun seedCompanies(): List<Long> {
         val companies = listOf(
-            CompanyEntity(name = "Google", logoUrl = "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png", website = "https://google.com", industry = "Technology"),
-            CompanyEntity(name = "Meta", logoUrl = "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg", website = "https://meta.com", industry = "Social Media"),
-            CompanyEntity(name = "Netflix", logoUrl = "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", website = "https://netflix.com", industry = "Entertainment"),
-            CompanyEntity(name = "Amazon", logoUrl = "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg", website = "https://amazon.com", industry = "E-commerce")
+            CompanyEntity(name = "Google", domain = "google.com", logoUrl = "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png", website = "https://google.com", industry = "Technology", headquarters = "Mountain View, CA"),
+            CompanyEntity(name = "Meta", domain = "meta.com", logoUrl = "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg", website = "https://meta.com", industry = "Social Media", headquarters = "Menlo Park, CA"),
+            CompanyEntity(name = "Netflix", domain = "netflix.com", logoUrl = "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", website = "https://netflix.com", industry = "Entertainment", headquarters = "Los Gatos, CA"),
+            CompanyEntity(name = "Amazon", domain = "amazon.com", logoUrl = "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg", website = "https://amazon.com", industry = "E-commerce", headquarters = "Seattle, WA")
         )
         return companies.map { companyDao.insertCompany(it) }
     }
@@ -53,37 +53,65 @@ class DatabaseSeed @Inject constructor(
                 companyId = companyIds[0],
                 title = "Android Engineer (Pixel)",
                 location = "Mountain View, CA",
-                type = "Full-time",
-                salary = "$150,000 - $220,000",
+                type = "FULL_TIME",
+                remoteType = "ON_SITE",
+                experienceLevel = "SENIOR",
+                salaryMin = 150000.0,
+                salaryMax = 220000.0,
+                currency = "USD",
                 description = "Work on the core system apps for Pixel devices.",
+                descriptionHtml = null,
+                url = "https://google.com/jobs/1",
+                sourceProviderId = "SEED",
                 postedDate = System.currentTimeMillis()
             ),
             JobEntity(
                 companyId = companyIds[1],
                 title = "Mobile Product Designer",
                 location = "Menlo Park, CA",
-                type = "Contract",
-                salary = "$100 - $150 / hr",
+                type = "CONTRACT",
+                remoteType = "HYBRID",
+                experienceLevel = "MID_LEVEL",
+                salaryMin = 100.0,
+                salaryMax = 150.0,
+                currency = "USD",
                 description = "Design next-generation social experiences for mobile.",
-                postedDate = System.currentTimeMillis() - 86400000 // 1 day ago
+                descriptionHtml = null,
+                url = "https://meta.com/jobs/2",
+                sourceProviderId = "SEED",
+                postedDate = System.currentTimeMillis() - 86400000
             ),
             JobEntity(
                 companyId = companyIds[2],
                 title = "Senior Data Scientist",
                 location = "Los Gatos, CA",
-                type = "Full-time",
-                salary = "$250,000+",
+                type = "FULL_TIME",
+                remoteType = "ON_SITE",
+                experienceLevel = "SENIOR",
+                salaryMin = 250000.0,
+                salaryMax = 300000.0,
+                currency = "USD",
                 description = "Optimize recommendation algorithms for millions of users.",
-                postedDate = System.currentTimeMillis() - 172800000 // 2 days ago
+                descriptionHtml = null,
+                url = "https://netflix.com/jobs/3",
+                sourceProviderId = "SEED",
+                postedDate = System.currentTimeMillis() - 172800000
             ),
             JobEntity(
                 companyId = companyIds[3],
                 title = "AWS Solutions Architect",
                 location = "Seattle, WA",
-                type = "Remote",
-                salary = "$160,000 - $240,000",
+                type = "FULL_TIME",
+                remoteType = "REMOTE",
+                experienceLevel = "SENIOR",
+                salaryMin = 160000.0,
+                salaryMax = 240000.0,
+                currency = "USD",
                 description = "Help enterprise customers migrate to the cloud.",
-                postedDate = System.currentTimeMillis() - 259200000 // 3 days ago
+                descriptionHtml = null,
+                url = "https://amazon.com/jobs/4",
+                sourceProviderId = "SEED",
+                postedDate = System.currentTimeMillis() - 259200000
             )
         )
         jobDao.insertJobs(jobs)

@@ -9,6 +9,9 @@ import androidx.room.Query
 import androidx.room.Transaction
 import com.bangersoul.aivance.core.database.model.JobEntity
 import com.bangersoul.aivance.core.database.model.JobWithDetails
+import com.bangersoul.aivance.core.database.model.SavedJobEntity
+import com.bangersoul.aivance.core.database.model.ViewedJobEntity
+import com.bangersoul.aivance.core.database.model.SearchHistoryEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,15 +24,12 @@ interface JobDao {
     @Query("SELECT * FROM jobs ORDER BY postedDate DESC")
     fun getJobsWithDetails(): Flow<List<JobWithDetails>>
 
-    @Transaction
-    @Query("SELECT * FROM jobs ORDER BY postedDate DESC LIMIT :limit OFFSET :offset")
-    fun getJobsPaginated(limit: Int, offset: Int): Flow<List<JobWithDetails>>
-
-    @Query("SELECT * FROM jobs WHERE companyId = :companyId AND title = :title LIMIT 1")
-    suspend fun getJobByCompanyAndTitle(companyId: Long, title: String): JobEntity?
-
     @Query("SELECT * FROM jobs WHERE id = :id")
     suspend fun getJobById(id: Long): JobEntity?
+
+    @Transaction
+    @Query("SELECT * FROM jobs WHERE id = :id")
+    suspend fun getJobWithDetailsById(id: Long): JobWithDetails?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertJob(job: JobEntity): Long
@@ -37,15 +37,37 @@ interface JobDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertJobs(jobs: List<JobEntity>)
 
-    @Query("DELETE FROM jobs")
-    suspend fun deleteAllJobs(): Int
-
     @Query("DELETE FROM jobs WHERE postedDate < :beforeTimestamp")
     suspend fun deleteJobsOlderThan(beforeTimestamp: Long): Int
 
-    @Query("SELECT COUNT(*) FROM jobs")
-    suspend fun getJobCount(): Int
+    @Query("DELETE FROM jobs")
+    suspend fun deleteAllJobs()
+
+    // Saved Jobs (Bookmarks)
+    @Query("SELECT jobId FROM saved_jobs ORDER BY dateSaved DESC")
+    fun getSavedJobIds(): Flow<List<Long>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSavedJob(savedJob: SavedJobEntity)
 
     @Delete
-    suspend fun deleteJob(job: JobEntity)
+    suspend fun deleteSavedJob(savedJob: SavedJobEntity)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM saved_jobs WHERE jobId = :jobId)")
+    suspend fun isJobSaved(jobId: Long): Boolean
+
+    // Viewed History
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertViewedJob(viewedJob: ViewedJobEntity)
+
+    @Transaction
+    @Query("SELECT j.* FROM jobs j INNER JOIN viewed_jobs v ON j.id = v.jobId ORDER BY v.lastViewed DESC LIMIT :limit")
+    fun getRecentlyViewedJobs(limit: Int): Flow<List<JobWithDetails>>
+
+    // Search History
+    @Query("SELECT * FROM search_history ORDER BY timestamp DESC LIMIT :limit")
+    fun getSearchHistory(limit: Int): Flow<List<SearchHistoryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSearchHistory(search: SearchHistoryEntity)
 }

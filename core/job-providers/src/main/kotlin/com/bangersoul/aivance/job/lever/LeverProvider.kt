@@ -10,8 +10,11 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.job.base.RestJobProvider
 import com.bangersoul.aivance.job.cache.JobCache
 import com.bangersoul.aivance.job.lever.dto.LeverJobDto
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 
@@ -24,10 +27,18 @@ class LeverProvider(
     metadata = ProviderMetadata(
         id = "lever",
         name = "Lever",
+        type = ProviderType.JOB,
         version = "1.0.0",
         description = "Job listings from Lever ATS.",
         icon = "https://www.lever.co/favicon.ico",
-        author = "BangerSoul"
+        author = "BangerSoul",
+        configFields = listOf(
+            ConfigField(
+                key = "companyId",
+                label = "Lever Company ID",
+                isRequired = true
+            )
+        )
     ),
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,

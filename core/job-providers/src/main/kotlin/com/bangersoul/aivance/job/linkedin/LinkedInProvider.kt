@@ -2,7 +2,10 @@ package com.bangersoul.aivance.job.linkedin
 
 import com.bangersoul.aivance.job.apify.ApifyJobProvider
 import com.bangersoul.aivance.job.cache.JobCache
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 
@@ -15,10 +18,19 @@ class LinkedInProvider(
     metadata = ProviderMetadata(
         id = "linkedin",
         name = "LinkedIn",
+        type = ProviderType.JOB,
         version = "1.0.0",
         description = "Job listings from LinkedIn via Apify.",
         icon = "https://www.linkedin.com/favicon.ico",
-        author = "BangerSoul"
+        author = "BangerSoul",
+        configFields = listOf(
+            ConfigField(
+                key = "apiKey",
+                label = "Apify API Key",
+                isSensitive = true,
+                fieldType = FieldType.PASSWORD
+            )
+        )
     ),
     apiKey = apiKey,
     actorId = "linkedin-jobs-scraper",

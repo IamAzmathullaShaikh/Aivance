@@ -87,6 +87,8 @@ dependencies {
     implementation(project(":core:util"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:ai-providers"))
+    implementation(project(":core:job-providers"))
+    implementation(project(":core:enrichment-providers"))
 
     implementation(project(":feature:dashboard"))
     implementation(project(":feature:resume"))
@@ -96,6 +98,9 @@ dependencies {
     implementation(project(":feature:interview"))
     implementation(project(":feature:jobs"))
     implementation(project(":feature:profile"))
+    implementation(project(":feature:recruiter"))
+    implementation(project(":feature:analytics"))
+    implementation(project(":feature:assistant"))
 
     implementation(project(":navigation"))
 

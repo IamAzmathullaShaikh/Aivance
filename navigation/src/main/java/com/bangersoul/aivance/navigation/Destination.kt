@@ -1,44 +1,17 @@
 package com.bangersoul.aivance.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Assessment
-import androidx.compose.material.icons.rounded.Assignment
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.BookmarkBorder
-import androidx.compose.material.icons.rounded.Chat
-import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.PersonOutline
-import androidx.compose.material.icons.rounded.QuestionAnswer
-import androidx.compose.material.icons.rounded.Route
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material.icons.rounded.WorkOutline
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
 /**
  * All navigation destinations in the application.
- * Uses Jetpack Navigation 3 type-safe routing with kotlinx.serialization.
- *
- * Deep-linking structure:
- *   aivance://jobs/{jobId}
- *   aivance://chat/{conversationId}
- *   aivance://interview/{sessionId}
- *   aivance://roadmap/{roadmapId}
- *   aivance://resume/{resumeId}
  */
 @Serializable
 sealed interface Destination : NavKey {
     val label: String
-
-    // ──────────────────────────────────────────────
-    // Auth Flow — no bottom-nav, full-screen
-    // ──────────────────────────────────────────────
 
     @Serializable
     data object Splash : Destination {
@@ -60,13 +33,14 @@ sealed interface Destination : NavKey {
         override val label = "Onboarding"
     }
 
-    // ──────────────────────────────────────────────
-    // Bottom-Nav Root Destinations
-    // ──────────────────────────────────────────────
-
     @Serializable
     data object Dashboard : Destination {
         override val label = "Dashboard"
+    }
+
+    @Serializable
+    data object Assistant : Destination {
+        override val label = "Assistant"
     }
 
     @Serializable
@@ -88,10 +62,6 @@ sealed interface Destination : NavKey {
     data object Profile : Destination {
         override val label = "Profile"
     }
-
-    // ──────────────────────────────────────────────
-    // Feature Screens (pushed onto backstack)
-    // ──────────────────────────────────────────────
 
     @Serializable
     data object Ats : Destination {
@@ -119,6 +89,11 @@ sealed interface Destination : NavKey {
     }
 
     @Serializable
+    data class RecruiterDashboard(val jobId: String) : Destination {
+        override val label = "Recruiter Discovery"
+    }
+
+    @Serializable
     data object SavedJobs : Destination {
         override val label = "Saved Jobs"
     }
@@ -136,6 +111,11 @@ sealed interface Destination : NavKey {
     @Serializable
     data object Settings : Destination {
         override val label = "Settings"
+    }
+
+    @Serializable
+    data object Appearance : Destination {
+        override val label = "Appearance"
     }
 
     @Serializable
@@ -158,32 +138,29 @@ sealed interface Destination : NavKey {
         override val label = "Analytics"
     }
 
+    @Serializable
+    data object PrivacyCenter : Destination {
+        override val label = "Privacy & Security"
+    }
+
     companion object {
-        /** Destinations shown in bottom navigation / navigation rail. */
         val rootDestinations = listOf(
-            Dashboard,
-            Resume,
-            Tracker,
-            Jobs,
-            Profile
+            Dashboard, Assistant, Resume, Tracker, Jobs, Profile
         )
 
-        /** Destinations that require authentication (api key configured). */
         val authenticatedDestinations = setOf(
-            Dashboard, Resume, Tracker, Jobs, Profile,
+            Dashboard, Assistant, Resume, Tracker, Jobs, Profile,
             Ats, CoverLetter, Interview, AiChat, SavedJobs,
             CareerRoadmap, LearningHub, Settings, AiSettings,
             ProviderManagement, Notifications, AnalyticsDashboard
         )
 
-        /** Auth-flow destinations (no bottom nav). */
         val authDestinations = setOf(
             Splash, Welcome, Login, Onboarding
         )
     }
 }
 
-/** Resolves the Material icon for each destination. Excluded from serialization. */
 val Destination.icon: ImageVector?
     get() = when (this) {
         Destination.Splash -> null
@@ -191,6 +168,7 @@ val Destination.icon: ImageVector?
         Destination.Login -> null
         Destination.Onboarding -> null
         Destination.Dashboard -> Icons.Rounded.GridView
+        Destination.Assistant -> Icons.Rounded.AutoAwesome
         Destination.Resume -> Icons.Rounded.Description
         Destination.Tracker -> Icons.Rounded.Assessment
         Destination.Jobs -> Icons.Rounded.WorkOutline
@@ -200,12 +178,15 @@ val Destination.icon: ImageVector?
         Destination.Interview -> Icons.Rounded.QuestionAnswer
         Destination.AiChat -> Icons.Rounded.Chat
         is Destination.JobDetails -> null
+        is Destination.RecruiterDashboard -> Icons.Rounded.PersonSearch
         Destination.SavedJobs -> Icons.Rounded.BookmarkBorder
         Destination.CareerRoadmap -> Icons.Rounded.Route
         Destination.LearningHub -> Icons.Rounded.School
         Destination.Settings -> Icons.Rounded.Settings
+        Destination.Appearance -> Icons.Rounded.Palette
         Destination.AiSettings -> Icons.Rounded.AutoAwesome
         Destination.ProviderManagement -> Icons.Rounded.Tune
         Destination.Notifications -> Icons.Rounded.Notifications
         Destination.AnalyticsDashboard -> Icons.Rounded.BarChart
+        Destination.PrivacyCenter -> Icons.Rounded.PrivacyTip
     }

@@ -12,6 +12,7 @@ import com.bangersoul.aivance.job.mapper.JobMapper
 import com.bangersoul.aivance.job.remoteok.dto.RemoteOKJobDto
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.text.SimpleDateFormat
@@ -25,6 +26,7 @@ class RemoteOKProvider(
     metadata = ProviderMetadata(
         id = "remoteok",
         name = "RemoteOK",
+        type = ProviderType.JOB,
         version = "1.0.0",
         description = "Remote jobs for developers, designers, and more.",
         icon = "https://remoteok.com/assets/img/favicon.png",

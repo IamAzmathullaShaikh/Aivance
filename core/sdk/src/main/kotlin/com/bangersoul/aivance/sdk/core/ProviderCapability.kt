@@ -7,7 +7,9 @@ sealed class ProviderCapability {
     data object TextAnalysis : ProviderCapability()
     data object ImageProcessing : ProviderCapability()
     data object JobSearch : ProviderCapability()
-    
+    data object RecruiterDiscovery : ProviderCapability()
+    data object EmailVerification : ProviderCapability()
+
     sealed class AI : ProviderCapability() {
         data object Chat : AI()
         data object TextGeneration : AI()
@@ -15,7 +17,7 @@ sealed class ProviderCapability {
         data object Streaming : AI()
         data object FunctionCalling : AI()
     }
-    
+
     /**
      * For providers with unique or specialized capabilities not covered by standard types.
      */

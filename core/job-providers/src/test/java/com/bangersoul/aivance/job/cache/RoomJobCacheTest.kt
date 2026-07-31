@@ -1,6 +1,8 @@
 package com.bangersoul.aivance.job.cache
 
 import com.bangersoul.aivance.core.common.enums.EmploymentType
+import com.bangersoul.aivance.core.common.enums.ExperienceLevel
+import com.bangersoul.aivance.core.common.enums.RemoteType
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.database.dao.CompanyDao
 import com.bangersoul.aivance.core.database.dao.JobDao
@@ -29,23 +31,54 @@ class RoomJobCacheTest {
         cache = RoomJobCache(jobDao, companyDao)
     }
 
+    private fun companyEntity(id: Long, name: String, logoUrl: String? = null) = CompanyEntity(
+        id = id,
+        name = name,
+        domain = null,
+        logoUrl = logoUrl,
+        website = null,
+        industry = null,
+        headquarters = null,
+        socialLinks = emptyMap()
+    )
+
+    private fun jobEntity(
+        id: Long,
+        companyId: Long,
+        title: String,
+        type: String = "FULL_TIME",
+        location: String? = "Remote",
+        salaryMin: Double? = null,
+        salaryMax: Double? = null,
+        sourceProviderId: String = "DATABASE",
+        postedDate: Long = System.currentTimeMillis()
+    ) = JobEntity(
+        id = id,
+        companyId = companyId,
+        title = title,
+        location = location,
+        type = type,
+        remoteType = RemoteType.ON_SITE.name,
+        experienceLevel = ExperienceLevel.NOT_SPECIFIED.name,
+        salaryMin = salaryMin,
+        salaryMax = salaryMax,
+        currency = "USD",
+        description = "Build Android apps.",
+        descriptionHtml = null,
+        url = "https://example.com/jobs/$id",
+        sourceProviderId = sourceProviderId,
+        postedDate = postedDate
+    )
+
     @Test
     fun `getJobs maps entities to domain`() = runTest {
-        val companyEntity = CompanyEntity(
-            id = 1L,
-            name = "TechCorp",
-            logoUrl = "https://techcorp.com/logo.png",
-            website = null,
-            industry = null
-        )
-        val jobEntity = JobEntity(
+        val companyEntity = companyEntity(1L, "TechCorp", "https://techcorp.com/logo.png")
+        val jobEntity = jobEntity(
             id = 1L,
             companyId = 1L,
             title = "Android Developer",
-            location = "Remote",
-            type = "FULL_TIME",
-            salary = "$100k - $130k",
-            description = "Build Android apps.",
+            salaryMin = 100000.0,
+            salaryMax = 130000.0,
             postedDate = 1750000000000L
         )
         val jobWithDetails = JobWithDetails(job = jobEntity, company = companyEntity)
@@ -59,7 +92,8 @@ class RoomJobCacheTest {
         assertEquals("TechCorp", result[0].company)
         assertEquals("https://techcorp.com/logo.png", result[0].companyLogoUrl)
         assertEquals("Remote", result[0].location)
-        assertEquals("$100k - $130k", result[0].salaryRange)
+        assertEquals(100000.0, result[0].salaryMin!!, 0.001)
+        assertEquals(130000.0, result[0].salaryMax!!, 0.001)
         assertEquals("Build Android apps.", result[0].description)
         assertEquals(1750000000000L, result[0].postedDate)
         assertEquals("DATABASE", result[0].sourceProvider)
@@ -68,16 +102,13 @@ class RoomJobCacheTest {
 
     @Test
     fun `getJobs handles unknown employment type`() = runTest {
-        val companyEntity = CompanyEntity(id = 1L, name = "Co", logoUrl = null, website = null, industry = null)
-        val jobEntity = JobEntity(
+        val companyEntity = companyEntity(1L, "Co")
+        val jobEntity = jobEntity(
             id = 2L,
             companyId = 1L,
             title = "Unknown Type Job",
-            location = "",
             type = "UNKNOWN_TYPE",
-            salary = null,
-            description = "",
-            postedDate = System.currentTimeMillis()
+            location = ""
         )
         val jobWithDetails = JobWithDetails(job = jobEntity, company = companyEntity)
         
@@ -119,7 +150,7 @@ class RoomJobCacheTest {
 
     @Test
     fun `saveJobs reuses existing company`() = runTest {
-        val existingCompany = CompanyEntity(id = 5L, name = "ExistingCorp", logoUrl = null, website = null, industry = null)
+        val existingCompany = companyEntity(5L, "ExistingCorp")
         coEvery { companyDao.getCompanyByName("ExistingCorp") } returns existingCompany
 
         val jobs = listOf(

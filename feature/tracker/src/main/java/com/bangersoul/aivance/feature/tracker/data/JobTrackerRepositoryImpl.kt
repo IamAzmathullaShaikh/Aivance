@@ -11,6 +11,7 @@ import com.bangersoul.aivance.feature.tracker.domain.ApplicationStatus
 import com.bangersoul.aivance.feature.tracker.domain.JobApplication
 import com.bangersoul.aivance.feature.tracker.domain.JobTrackerRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import javax.inject.Inject
@@ -48,10 +49,29 @@ class JobTrackerRepositoryImpl @Inject constructor(
 
     private suspend fun ensureJobId(companyName: String, role: String): Long {
         val companyId = companyDao.getCompanyByName(companyName)?.id
-            ?: companyDao.insertCompany(CompanyEntity(name = companyName, logoUrl = null, website = null, industry = null))
-        
-        return jobDao.getJobByCompanyAndTitle(companyId, role)?.id
-            ?: jobDao.insertJob(JobEntity(companyId = companyId, title = role, location = null, type = null, salary = null, description = null, postedDate = System.currentTimeMillis()))
+            ?: companyDao.insertCompany(CompanyEntity(name = companyName, logoUrl = null, website = null, industry = null, domain = null, headquarters = null, socialLinks = emptyMap()))
+
+        // Find existing job or create a minimal stub
+        val existingJobId = jobDao.getJobsWithDetails().map { list ->
+            list.find { it.company.name == companyName && it.job.title == role }?.job?.id
+        }.firstOrNull()
+
+        return existingJobId ?: jobDao.insertJob(JobEntity(
+            companyId = companyId,
+            title = role,
+            location = null,
+            type = null,
+            remoteType = null,
+            experienceLevel = null,
+            salaryMin = null,
+            salaryMax = null,
+            currency = null,
+            description = null,
+            descriptionHtml = null,
+            url = "",
+            sourceProviderId = "TRACKER_STUB",
+            postedDate = System.currentTimeMillis()
+        ))
     }
 }
 

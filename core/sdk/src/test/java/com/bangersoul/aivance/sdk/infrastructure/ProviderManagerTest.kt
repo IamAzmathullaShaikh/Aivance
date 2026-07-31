@@ -4,6 +4,7 @@ import com.bangersoul.aivance.sdk.core.BaseProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
+import com.bangersoul.aivance.sdk.core.ProviderType
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -17,7 +18,7 @@ class ProviderManagerTest {
 
     @Before
     fun setUp() {
-        registry = ProviderRegistry(emptySet(), emptySet())
+        registry = ProviderRegistry(emptySet(), emptySet(), emptySet())
         manager = ProviderManager(registry)
     }
 
@@ -88,6 +89,7 @@ class ProviderManagerTest {
         metadata = ProviderMetadata(
             id = id,
             name = "Test Provider $id",
+            type = ProviderType.AI,
             version = "1.0.0",
             description = "Test Description",
             author = "Tester"

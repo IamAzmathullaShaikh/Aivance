@@ -1,63 +1,36 @@
 package com.bangersoul.aivance.core.domain.usecase.coverletter
 
-import com.bangersoul.aivance.core.common.enums.LetterTone
-import com.bangersoul.aivance.core.common.model.CoverLetter
 import com.bangersoul.aivance.core.common.result.CoreResult
-import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ValidationError
-import com.bangersoul.aivance.core.common.result.runCatchingCore
 import com.bangersoul.aivance.core.domain.repository.CoverLetterRepository
 import com.bangersoul.aivance.core.domain.usecase.UseCase
 import javax.inject.Inject
 
 data class GenerateCoverLetterRequest(
-    val companyName: String,
-    val role: String,
-    val jobDescription: String,
-    val tone: LetterTone = LetterTone.PROFESSIONAL,
-    val resumeId: Long? = null
+    val resumeId: Long,
+    val resumeVersionId: Long,
+    val jobId: Long,
+    val recruiterId: String? = null,
+    val writingStyle: String = "PROFESSIONAL"
 )
 
 /**
- * Generates a tailored cover letter using AI.
- *
- * Business rules:
- * - Company name and role must be provided.
- * - Job description is optional but improves quality.
- * - Uses the specified tone for the letter.
- * - Saves the generated letter to local storage.
+ * Orchestrates the generation of a personalized cover letter.
  */
 class GenerateCoverLetterUseCase @Inject constructor(
     private val coverLetterRepository: CoverLetterRepository
-) : UseCase<GenerateCoverLetterRequest, CoreResult<CoverLetter>>() {
+) : UseCase<GenerateCoverLetterRequest, CoreResult<Long>>() {
 
-    override suspend operator fun invoke(input: GenerateCoverLetterRequest): CoreResult<CoverLetter> {
-        if (input.companyName.isBlank()) {
-            return Result.Failure(ValidationError("companyName", "Company name cannot be blank."))
-        }
-        if (input.role.isBlank()) {
-            return Result.Failure(ValidationError("role", "Job role cannot be blank."))
-        }
+    override suspend operator fun invoke(input: GenerateCoverLetterRequest): CoreResult<Long> {
+        if (input.resumeId <= 0) return com.bangersoul.aivance.core.common.result.Result.Failure(ValidationError("resumeId", "Invalid ID"))
+        if (input.jobId <= 0) return com.bangersoul.aivance.core.common.result.Result.Failure(ValidationError("jobId", "Invalid ID"))
 
-        return runCatchingCore {
-            val response = if (input.resumeId != null && input.resumeId > 0) {
-                coverLetterRepository.generateCoverLetter(
-                    resumeId = input.resumeId,
-                    jobDescription = input.jobDescription.ifBlank { "Create a cover letter for $input.role at $input.companyName" },
-                    tone = input.tone
-                )
-            } else {
-                coverLetterRepository.generateCoverLetter(
-                    resumeId = 0,
-                    jobDescription = input.jobDescription.ifBlank { "Create a cover letter for $input.role at $input.companyName" },
-                    tone = input.tone
-                )
-            }
-
-            when (response) {
-                is Result.Success -> response.data
-                is Result.Failure -> throw Exception(response.error.message)
-            }
-        }
+        return coverLetterRepository.generateCoverLetter(
+            resumeId = input.resumeId,
+            resumeVersionId = input.resumeVersionId,
+            jobId = input.jobId,
+            recruiterId = input.recruiterId,
+            writingStyle = input.writingStyle
+        )
     }
 }

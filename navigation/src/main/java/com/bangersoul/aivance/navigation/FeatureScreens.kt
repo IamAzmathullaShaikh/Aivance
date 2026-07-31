@@ -222,61 +222,7 @@ fun NotificationsScreen(
     }
 }
 
-// ──────────────────────────────────────────────────
-// Analytics Dashboard Screen
-// ──────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AnalyticsDashboardScreen(
-    viewModel: AnalyticsDashboardViewModel,
-    onBack: () -> Unit = {}
-) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    AivanceScreen(
-        topBar = {
-            TopAppBar(
-                title = { Text("Analytics", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        }
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(Icons.Rounded.BarChart, null, tint = MaterialTheme.colorScheme.primary)
-            Text("Analytics Dashboard", style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold)
-            when (uiState) {
-                is com.bangersoul.aivance.feature.profile.AnalyticsDashboardUiState.Loading ->
-                    Text("Loading...")
-                is com.bangersoul.aivance.feature.profile.AnalyticsDashboardUiState.Success -> {
-                    val state = uiState as com.bangersoul.aivance.feature.profile.AnalyticsDashboardUiState.Success
-                    Text("Analyses: ${state.totalAnalyses}", style = MaterialTheme.typography.bodyLarge)
-                    Text("Cover Letters: ${state.totalCoverLetters}", style = MaterialTheme.typography.bodyLarge)
-                    Text("Interviews: ${state.totalInterviews}", style = MaterialTheme.typography.bodyLarge)
-                    Text("Applications: ${state.totalApplications}", style = MaterialTheme.typography.bodyLarge)
-                    Text("Avg ATS: ${state.averageAtsScore}%", style = MaterialTheme.typography.bodyLarge)
-                }
-                is com.bangersoul.aivance.feature.profile.AnalyticsDashboardUiState.Error ->
-                    Text((uiState as com.bangersoul.aivance.feature.profile.AnalyticsDashboardUiState.Error).message,
-                        color = MaterialTheme.colorScheme.error)
-            }
-        }
-    }
-}
-
-// ──────────────────────────────────────────────────
 // Career Roadmap Screen
-// ──────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

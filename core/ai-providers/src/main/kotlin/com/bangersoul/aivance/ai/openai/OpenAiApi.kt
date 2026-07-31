@@ -16,7 +16,7 @@ interface OpenAiApi {
     @POST("chat/completions")
     suspend fun createChatCompletion(
         @Header("Authorization") authorization: String,
-        @Body request: ChatCompletionRequest
+        @Body request: ChatCompletionRequest,
     ): Response<ChatCompletionResponse>
 
     @Streaming
@@ -33,7 +33,7 @@ data class ChatCompletionRequest(
     val messages: List<OpenAiMessage>,
     val temperature: Float? = null,
     @SerialName("max_tokens") val maxTokens: Int? = null,
-    val stream: Boolean = false
+    val stream: Boolean = false,
 )
 
 @Serializable

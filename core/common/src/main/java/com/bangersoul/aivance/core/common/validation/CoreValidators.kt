@@ -114,13 +114,14 @@ object JsonValidator : Validator<String> {
 object ResumeValidator : Validator<Resume> {
     override fun validate(input: Resume): ValidationResult {
         val errors = mutableListOf<ValidationErrorItem>()
-        if (input.fileName.isBlank()) {
+        if (input.name.isBlank()) {
+            errors.add(ValidationErrorItem("name", "Resume name cannot be blank."))
+        }
+        if (input.fileName.isNullOrBlank()) {
             errors.add(ValidationErrorItem("fileName", "File name cannot be blank."))
         }
-        if (input.fileUri.isBlank()) {
-            errors.add(ValidationErrorItem("fileUri", "File URI cannot be blank."))
-        }
-        if (input.rawText.length < ValidationConstants.MIN_RESUME_CHAR_COUNT) {
+        val textLength = input.rawText?.length ?: 0
+        if (textLength < ValidationConstants.MIN_RESUME_CHAR_COUNT) {
             errors.add(ValidationErrorItem("rawText", "Resume text must be at least ${ValidationConstants.MIN_RESUME_CHAR_COUNT} characters."))
         }
         return if (errors.isEmpty()) ValidationResult.Valid else ValidationResult.Invalid(errors)

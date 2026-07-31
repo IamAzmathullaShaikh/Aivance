@@ -5,9 +5,12 @@ import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
+import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.model.AiMessage
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.flow.Flow
@@ -93,6 +96,12 @@ abstract class OpenAiBaseProvider(
     }
 
     override suspend fun chat(messages: List<AiMessage>): Result<String> {
+        if (!::api.isInitialized) {
+            onInitialize()
+        }
+        if (!::api.isInitialized) {
+            return Result.Failure(ProviderError(providerId = metadata.id, message = "API not initialized"))
+        }
         return try {
             val request = ChatCompletionRequest(
                 model = modelName,
@@ -126,6 +135,13 @@ abstract class OpenAiBaseProvider(
     }
 
     override fun streamChat(messages: List<AiMessage>): Flow<Result<String>> = flow {
+        if (!::api.isInitialized) {
+            onInitialize()
+        }
+        if (!::api.isInitialized) {
+            emit(Result.Failure(ProviderError(providerId = metadata.id, message = "API not initialized")))
+            return@flow
+        }
         val request = ChatCompletionRequest(
             model = modelName,
             messages = messages.map { it.toOpenAiMessage() },
@@ -142,7 +158,7 @@ abstract class OpenAiBaseProvider(
                     if (line.startsWith("data: ")) {
                         val data = line.substring(6).trim()
                         if (data == "[DONE]") break
-                        
+
                         try {
                             val chunk = json.decodeFromString<ChatCompletionChunk>(data)
                             val content = chunk.choices.firstOrNull()?.delta?.content

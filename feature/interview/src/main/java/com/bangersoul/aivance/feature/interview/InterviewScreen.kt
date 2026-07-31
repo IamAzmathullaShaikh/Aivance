@@ -4,57 +4,49 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.QuestionAnswer
+import androidx.compose.material.icons.rounded.RecordVoiceOver
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Send
+import androidx.compose.material.icons.rounded.TrendingUp
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.bangersoul.aivance.core.common.model.InterviewSession
+import com.bangersoul.aivance.core.designsystem.components.AivanceEmptyState
+import com.bangersoul.aivance.core.designsystem.components.AivancePrimaryButton
 import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
-import com.bangersoul.aivance.core.designsystem.components.ChatBubble
-import com.bangersoul.aivance.core.designsystem.components.ChatBubbleRole
-import com.bangersoul.aivance.core.designsystem.components.DashboardCard
-import com.bangersoul.aivance.core.designsystem.components.TypingIndicator
+import com.bangersoul.aivance.core.designsystem.components.AivanceSecondaryButton
+import com.bangersoul.aivance.core.designsystem.components.BannerTone
+import com.bangersoul.aivance.core.designsystem.components.InsightCard
+import com.bangersoul.aivance.core.designsystem.components.MetricCard
+import com.bangersoul.aivance.core.designsystem.components.ScoreGauge
+import com.bangersoul.aivance.core.designsystem.components.StatusChip
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
-import com.bangersoul.aivance.feature.interview.domain.InterviewFeedback
-import com.bangersoul.aivance.feature.interview.domain.InterviewMessage
-import com.bangersoul.aivance.feature.interview.domain.MessageRole
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,399 +59,429 @@ fun InterviewScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Interview AI") },
+                title = { Text("Interview Preparation", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    if (uiState is InterviewUiState.Chatting) {
-                        val sid = (uiState as InterviewUiState.Chatting).sessionId
-                        TextButton(onClick = { viewModel.onEvent(InterviewUiEvent.EndSession(sid)) }) {
-                            Text(text = "End Session", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
-        }
+        },
+        isLoading = uiState is InterviewUiState.Preparing,
+        error = (uiState as? InterviewUiState.Error)?.message,
+        onRetry = { viewModel.onEvent(InterviewUiEvent.Reset) }
     ) {
         AnimatedContent(
             targetState = uiState,
-            transitionSpec = {
-                fadeIn().togetherWith(fadeOut())
-            },
-            label = "InterviewContent"
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "InterviewTransition"
         ) { state ->
             when (state) {
-                is InterviewUiState.Idle -> {
-                    SetupView(
-                        onStart = { role, difficulty ->
-                            val diff = when (difficulty) {
-                                "Senior" -> com.bangersoul.aivance.core.common.enums.InterviewDifficulty.HARD
-                                "Junior" -> com.bangersoul.aivance.core.common.enums.InterviewDifficulty.EASY
-                                else -> com.bangersoul.aivance.core.common.enums.InterviewDifficulty.MEDIUM
-                            }
-                            viewModel.onEvent(InterviewUiEvent.StartSession(role, diff))
-                        }
-                    )
-                }
-
-                is InterviewUiState.Preparing -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "Preparing your interview...")
-                    }
-                }
-
-                is InterviewUiState.Ready -> {
-                    // Auto-transition — call onEvent to start chatting
-                    androidx.compose.runtime.LaunchedEffect(Unit) {
-                        viewModel.onEvent(InterviewUiEvent.GenerateQuestions)
-                    }
-                }
-
-                is InterviewUiState.Loading -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "Loading...")
-                    }
-                }
-
-                is InterviewUiState.Chatting -> {
-                    ChatView(
-                        messages = state.messages,
-                        isTyping = state.isTyping,
-                        onSendMessage = { text -> viewModel.onEvent(InterviewUiEvent.SendMessage(text)) }
-                    )
-                }
-
-                is InterviewUiState.GeneratingFeedback -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "Analyzing your performance...")
-                    }
-                }
-
-                is InterviewUiState.Feedback -> {
-                    FeedbackView(
-                        feedback = state.feedback,
-                        onRestart = { viewModel.onEvent(InterviewUiEvent.Reset) }
-                    )
-                }
-
-                is InterviewUiState.Error -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
-                    }
-                }
+                InterviewUiState.Idle -> InterviewPracticeHub(
+                    onStart = { r, c, t -> viewModel.onEvent(InterviewUiEvent.StartSession(r, c, t)) }
+                )
+                is InterviewUiState.Active -> MockInterviewSession(
+                    state = state,
+                    onAnswer = { viewModel.onEvent(InterviewUiEvent.SubmitAnswer(it)) },
+                    onNext = { viewModel.onEvent(InterviewUiEvent.NextQuestion) },
+                    onComplete = { viewModel.onEvent(InterviewUiEvent.Complete) }
+                )
+                is InterviewUiState.Review -> InterviewFeedbackDashboard(
+                    session = state.session,
+                    onNewSession = { viewModel.onEvent(InterviewUiEvent.Reset) }
+                )
+                else -> {}
             }
         }
     }
 }
 
+/** Session type configuration for the practice hub. */
+private data class SessionType(
+    val id: String,
+    val label: String,
+    val description: String,
+    val icon: ImageVector
+)
+
 @Composable
-fun SetupView(onStart: (String, String) -> Unit) {
+private fun InterviewPracticeHub(
+    onStart: (String, String, String) -> Unit
+) {
     var role by remember { mutableStateOf("") }
-    var selectedDifficulty by remember { mutableStateOf("Mid-Level") }
-    val difficulties = listOf("Junior", "Mid-Level", "Senior")
+    var company by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf("TECHNICAL") }
+
+    val sessionTypes = listOf(
+        SessionType("TECHNICAL", "Technical Deep Dive", "Coding, system design, and domain expertise", Icons.Rounded.RecordVoiceOver),
+        SessionType("BEHAVIORAL", "Behavioral Master", "STAR-method stories and leadership questions", Icons.Rounded.Groups),
+        SessionType("HR", "HR & Culture Fit", "Motivation, salary expectations, and team fit", Icons.Rounded.QuestionAnswer)
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
     ) {
+        Text("Practice Hub", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
         Text(
-            text = "Ready to practice?",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Tell us what role you're interviewing for.",
+            "AI-driven simulations tailored to your target role.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(32.dp))
 
-        OutlinedTextField(
-            value = role,
-            onValueChange = { role = it },
-            label = { Text("Job Role (e.g. Android Developer)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
+        Spacer(Modifier.height(28.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Text("Session type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(12.dp))
 
-        Text(
-            text = "Select Difficulty",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.align(Alignment.Start)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            difficulties.forEach { difficulty ->
-                FilterChip(
-                    selected = selectedDifficulty == difficulty,
-                    onClick = { selectedDifficulty = difficulty },
-                    label = { Text(difficulty) }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        Button(
-            onClick = { onStart(role, selectedDifficulty) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = role.isNotBlank(),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text(text = "Start Interview", modifier = Modifier.padding(vertical = 8.dp))
-        }
-    }
-}
-
-@Composable
-fun ChatView(
-    messages: List<InterviewMessage>,
-    isTyping: Boolean,
-    onSendMessage: (String) -> Unit
-) {
-    val listState = rememberLazyListState()
-    var inputText by remember { mutableStateOf("") }
-
-    LaunchedEffect(messages.size, isTyping) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size + if (isTyping) 1 else 0)
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(messages, key = { it.id }) { message ->
-                ChatBubble(
-                    text = message.text,
-                    timestamp = formatTimestamp(message.timestamp),
-                    role = if (message.role == MessageRole.AI) ChatBubbleRole.Interviewer else ChatBubbleRole.Candidate
-                )
-            }
-
-            if (isTyping) {
-                item {
-                    TypingIndicator()
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = inputText,
-                onValueChange = { inputText = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Type your answer...") },
-                maxLines = 4,
-                shape = MaterialTheme.shapes.large
-            )
-            IconButton(
-                onClick = {
-                    if (inputText.isNotBlank()) {
-                        onSendMessage(inputText)
-                        inputText = ""
+        sessionTypes.forEach { (type, label, description, icon) ->
+            val selected = selectedType == type
+            Card(
+                onClick = { selectedType = type },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                shape = AivanceTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = if (selected) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+                    } else {
+                        MaterialTheme.colorScheme.surface
                     }
-                },
-                enabled = inputText.isNotBlank()
+                ),
+                border = if (selected) {
+                    BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                } else {
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                }
             ) {
-                Icon(
-                    Icons.AutoMirrored.Rounded.Send,
-                    contentDescription = "Send",
-                    tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun FeedbackView(
-    feedback: InterviewFeedback,
-    onRestart: () -> Unit
-) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Interview Summary",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Here's how you did",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        item {
-            DashboardCard {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Overall Performance",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = feedback.summary,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Strengths", style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    feedback.strengths.forEach { strength ->
-                        DashboardCard(modifier = Modifier.padding(vertical = 4.dp)) {
-                            Text(
-                                text = "• $strength",
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Areas to Improve", style = MaterialTheme.typography.titleSmall)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    feedback.weaknesses.forEach { weakness ->
-                        DashboardCard(modifier = Modifier.padding(vertical = 4.dp)) {
-                            Text(
-                                text = "• $weakness",
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        item {
-            DashboardCard {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Pro Tips",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    feedback.tips.forEach { tip ->
+                Row(
+                    Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+                    Column {
+                        Text(label, fontWeight = FontWeight.SemiBold)
                         Text(
-                            text = "💡 $tip",
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                            description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
         }
 
-        item {
-            Button(
-                onClick = onRestart,
+        Spacer(Modifier.height(28.dp))
+
+        Text("Target role", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = role,
+            onValueChange = { role = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Target role") },
+            placeholder = { Text("e.g. Senior Android Engineer") },
+            singleLine = true
+        )
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = company,
+            onValueChange = { company = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Company (optional)") },
+            placeholder = { Text("e.g. Stripe") },
+            singleLine = true
+        )
+
+        Spacer(Modifier.height(32.dp))
+        AivancePrimaryButton(
+            text = "Start Mock Interview",
+            onClick = { onStart(role, company, selectedType) },
+            modifier = Modifier.fillMaxWidth(),
+            icon = Icons.Rounded.PlayArrow,
+            enabled = role.isNotBlank()
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Add a target role to personalize the questions.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Spacer(Modifier.height(48.dp))
+    }
+}
+
+@Composable
+private fun MockInterviewSession(
+    state: InterviewUiState.Active,
+    onAnswer: (String) -> Unit,
+    onNext: () -> Unit,
+    onComplete: () -> Unit
+) {
+    var answerText by remember { mutableStateOf("") }
+    val session = state.session
+    val question = session.questions.getOrNull(state.currentQuestionIndex)
+    val total = session.questions.size
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(session.targetRole, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (session.companyName.isNotBlank()) {
+                    Text(
+                        session.companyName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            StatusChip(
+                text = if (total > 0) "Question ${state.currentQuestionIndex + 1} of $total" else "Preparing",
+                tone = BannerTone.INFO
+            )
+        }
+
+        if (total > 0) {
+            Spacer(Modifier.height(20.dp))
+            LinearProgressIndicator(
+                progress = { (state.currentQuestionIndex + 1).coerceAtMost(total) / total.toFloat() },
+                modifier = Modifier.fillMaxWidth().height(6.dp),
+                color = AivanceTheme.colors.accent,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        if (question != null) {
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
+                shape = AivanceTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Text(text = "Practice Again", modifier = Modifier.padding(vertical = 8.dp))
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Question",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(question.text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    if (question.category.isNotBlank()) {
+                        StatusChip(text = question.category, tone = BannerTone.INFO)
+                    }
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AivanceTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            ) {
+                Column(
+                    Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = AivanceTheme.colors.accent,
+                        strokeWidth = 3.dp
+                    )
+                    Text("Preparing your questions…", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Your session has started. AI is tailoring questions to ${session.targetRole}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
-    }
-}
 
-fun formatTimestamp(timestamp: Long): String {
-    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-    return sdf.format(Date(timestamp))
-}
+        Spacer(Modifier.height(24.dp))
 
-@Preview(showBackground = true, device = "id:pixel_7")
-@Composable
-private fun SetupViewPreview() {
-    AivanceTheme(darkTheme = true) {
-        SetupView(onStart = { _, _ -> })
-    }
-}
-
-@Preview(showBackground = true, device = "id:pixel_7")
-@Composable
-private fun ChatViewPreview() {
-    AivanceTheme(darkTheme = true) {
-        ChatView(
-            messages = listOf(
-                InterviewMessage(role = MessageRole.AI, text = "Hello! Tell me about yourself."),
-                InterviewMessage(role = MessageRole.User, text = "I am an Android developer with 5 years of experience.")
-            ),
-            isTyping = true,
-            onSendMessage = {}
+        OutlinedTextField(
+            value = answerText,
+            onValueChange = { answerText = it },
+            modifier = Modifier.fillMaxWidth().height(180.dp),
+            label = { Text("Your answer") },
+            placeholder = { Text("Use the STAR method — situation, task, action, result…") },
+            enabled = !state.isSubmitting
         )
+
+        Spacer(Modifier.height(20.dp))
+
+        AivancePrimaryButton(
+            text = "Submit Answer",
+            onClick = {
+                onAnswer(answerText)
+                answerText = ""
+            },
+            modifier = Modifier.fillMaxWidth(),
+            icon = Icons.Rounded.Send,
+            enabled = answerText.length > 20 && !state.isSubmitting
+        )
+
+        if (state.isSubmitting) {
+            Spacer(Modifier.height(12.dp))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
+        if (question != null) {
+            Spacer(Modifier.height(8.dp))
+            AivanceSecondaryButton(
+                text = "Next Question",
+                onClick = onNext,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
+            Text("End Session", color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(48.dp))
     }
 }
 
-@Preview(showBackground = true, device = "id:pixel_7")
 @Composable
-private fun FeedbackViewPreview() {
-    AivanceTheme(darkTheme = true) {
-        FeedbackView(
-            feedback = InterviewFeedback(
-                summary = "You demonstrated strong technical knowledge and clear communication.",
-                strengths = listOf("Deep understanding of Jetpack Compose", "Strong architectural skills"),
-                weaknesses = listOf("Could be more concise in some answers"),
-                tips = listOf("Practice more on system design questions", "Use the STAR method for behavioral questions")
-            ),
-            onRestart = {}
+private fun InterviewFeedbackDashboard(
+    session: InterviewSession,
+    onNewSession: () -> Unit
+) {
+    val feedback = session.feedback
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Text("Session Review", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            buildString {
+                append(session.targetRole)
+                if (session.companyName.isNotBlank()) append(" · ").append(session.companyName)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(Modifier.height(24.dp))
+
+        if (feedback != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AivanceTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Row(
+                    Modifier.padding(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    ScoreGauge(score = feedback.overallScore, size = 110.dp)
+                    Column {
+                        Text("Overall Performance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            "AI evaluation of your answers",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (feedback.detailedSummary.isNotBlank()) {
+                Spacer(Modifier.height(16.dp))
+                InsightCard(text = feedback.detailedSummary, icon = Icons.Rounded.Lightbulb)
+            }
+
+            if (feedback.strengths.isNotEmpty()) {
+                Spacer(Modifier.height(24.dp))
+                Text("Key Strengths", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                feedback.strengths.forEach { strength ->
+                    Row(
+                        Modifier.padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Rounded.CheckCircle,
+                            null,
+                            tint = AivanceTheme.colors.success,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(strength, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+
+            if (feedback.improvements.isNotEmpty()) {
+                Spacer(Modifier.height(24.dp))
+                Text("Areas to Improve", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                feedback.improvements.forEach { improvement ->
+                    Row(
+                        Modifier.padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Rounded.Lightbulb,
+                            null,
+                            tint = AivanceTheme.colors.warning,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(improvement, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        } else {
+            AivanceEmptyState(
+                title = "Analysis in progress",
+                description = "Your answers have been recorded. Detailed AI feedback will appear here once the evaluation completes.",
+                icon = Icons.Rounded.TrendingUp,
+                compact = true
+            )
+            Spacer(Modifier.height(16.dp))
+            MetricCard(
+                label = "Questions prepared",
+                value = "${session.questions.size}",
+                icon = Icons.Rounded.QuestionAnswer
+            )
+            Spacer(Modifier.height(12.dp))
+            MetricCard(
+                label = "Session type",
+                value = session.type.replace('_', ' '),
+                icon = Icons.Rounded.RecordVoiceOver
+            )
+        }
+
+        Spacer(Modifier.height(32.dp))
+        AivancePrimaryButton(
+            text = "Start a New Session",
+            onClick = onNewSession,
+            modifier = Modifier.fillMaxWidth(),
+            icon = Icons.Rounded.Refresh
+        )
+        Spacer(Modifier.height(48.dp))
     }
 }

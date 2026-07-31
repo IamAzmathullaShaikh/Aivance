@@ -7,14 +7,21 @@ import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.job.base.RestJobProvider
 import com.bangersoul.aivance.job.cache.JobCache
+import com.bangersoul.aivance.job.mapper.JobMapper
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
+import kotlinx.coroutines.delay
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import retrofit2.Retrofit
+import timber.log.Timber
 
 /**
  * Job provider implementation using Apify Actors for scraping job listings.
+ *
+ * Real flow: start an actor run -> poll until SUCCEEDED -> fetch the dataset items.
  */
 open class ApifyJobProvider(
     metadata: ProviderMetadata,
@@ -32,18 +39,67 @@ open class ApifyJobProvider(
 ) {
     override val baseUrl: String = "https://api.apify.com/v2/"
 
+    private val api: ApifyApi by lazy { retrofit.create(ApifyApi::class.java) }
+
+    private val maxPollAttempts = 30
+    private val pollIntervalMs = 2_000L
+
     override suspend fun executeSearch(
         filter: JobSearchFilter,
         sortOrder: JobSortOrder,
         page: Int
     ): List<JobListing> {
-        val url = "${baseUrl}actors/$actorId/runs?token=$apiKey"
-        val request = Request.Builder()
-            .url(url)
-            .build()
-            
-        // Simulation of network call (actual logic omitted for brevity)
-        return emptyList()
+        if (apiKey.isBlank() || actorId.isBlank()) {
+            throw Exception("Apify API Key and Actor ID not configured")
+        }
+
+        // 1. Start the actor run with the search query as input.
+        val input = buildJsonObject {
+            if (filter.query.isNotBlank()) {
+                put("search", JsonPrimitive(filter.query))
+            }
+            if (filter.location.isNotBlank()) {
+                put("location", JsonPrimitive(filter.location))
+            }
+        }
+        val runResponse = api.runActor(actorId, apiKey, input)
+        if (!runResponse.isSuccessful) {
+            throw Exception("Apify run failed to start: ${runResponse.code()}")
+        }
+        val runData = runResponse.body()?.data ?: throw Exception("Apify returned empty run data")
+        Timber.d("Apify run started: ${runData.id} (${runData.status})")
+
+        // 2. Poll until the run finishes (check immediately, then wait between polls).
+        var runId = runData.id
+        var datasetId = runData.defaultDatasetId
+        var attempts = 0
+        while (attempts < maxPollAttempts) {
+            attempts++
+            val statusResponse = api.getActorRun(runId, apiKey)
+            if (!statusResponse.isSuccessful) {
+                throw Exception("Apify run status failed: ${statusResponse.code()}")
+            }
+            val data = statusResponse.body()?.data ?: runData
+            runId = data.id
+            datasetId = data.defaultDatasetId ?: datasetId
+            when (data.status) {
+                "SUCCEEDED" -> break
+                "FAILED", "ABORTED", "TIMED-OUT" ->
+                    throw Exception("Apify run ${data.status} for $actorId")
+            }
+            if (attempts < maxPollAttempts) delay(pollIntervalMs)
+        }
+        if (attempts >= maxPollAttempts) {
+            throw Exception("Apify run timed out after $maxPollAttempts polls")
+        }
+
+        // 3. Fetch the produced dataset.
+        val datasetIdFinal = datasetId ?: throw Exception("Apify run produced no dataset")
+        val itemsResponse = api.getDatasetItems(datasetIdFinal, apiKey, limit = 100, offset = (page - 1) * 100)
+        if (!itemsResponse.isSuccessful) {
+            throw Exception("Apify dataset fetch failed: ${itemsResponse.code()}")
+        }
+        return itemsResponse.body()?.map { JobMapper.mapToJobListing(it, metadata.id) } ?: emptyList()
     }
 
     override suspend fun getJobDetails(jobId: String): Result<JobListing> {
@@ -51,11 +107,14 @@ open class ApifyJobProvider(
     }
 
     override suspend fun performHealthCheck() {
-        val request = Request.Builder()
-            .url("${baseUrl}actors")
-            .head()
+        if (apiKey.isBlank() || actorId.isBlank()) {
+            throw Exception("Apify API Key and Actor ID not configured")
+        }
+        val request = okhttp3.Request.Builder()
+            .url("${baseUrl}acts?token=$apiKey")
+            .get()
             .build()
-            
+
         okHttpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw Exception("Apify service unreachable: HTTP ${response.code}")

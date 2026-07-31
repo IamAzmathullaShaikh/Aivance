@@ -6,18 +6,8 @@ import androidx.room.RoomDatabase
 import com.bangersoul.aivance.core.database.AivanceDatabase
 import com.bangersoul.aivance.core.database.DatabaseManager
 import com.bangersoul.aivance.core.database.DatabaseSeed
-import com.bangersoul.aivance.core.database.dao.AiAnalyticsDao
-import com.bangersoul.aivance.core.database.dao.AivanceDao
-import com.bangersoul.aivance.core.database.dao.AtsDao
-import com.bangersoul.aivance.core.database.dao.CompanyDao
-import com.bangersoul.aivance.core.database.dao.CoverLetterDao
-import com.bangersoul.aivance.core.database.dao.InterviewDao
-import com.bangersoul.aivance.core.database.dao.JobDao
-import com.bangersoul.aivance.core.database.dao.ProfileDao
-import com.bangersoul.aivance.core.database.dao.ResumeDao
-import com.bangersoul.aivance.core.database.dao.RoadmapDao
-import com.bangersoul.aivance.core.database.dao.SearchDao
-import com.bangersoul.aivance.core.database.dao.TrackerDao
+import com.bangersoul.aivance.core.database.converter.EncryptedTypeConverters
+import com.bangersoul.aivance.core.database.dao.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,16 +23,34 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        encryptedTypeConverters: EncryptedTypeConverters
     ): AivanceDatabase = Room.databaseBuilder(
         context,
         AivanceDatabase::class.java,
         "aivance-database"
     )
+        .addTypeConverter(encryptedTypeConverters)
         .addMigrations(
             AivanceDatabase.MIGRATION_1_2,
             AivanceDatabase.MIGRATION_2_3,
-            AivanceDatabase.MIGRATION_3_4
+            AivanceDatabase.MIGRATION_3_4,
+            AivanceDatabase.MIGRATION_4_5,
+            AivanceDatabase.MIGRATION_5_6,
+            AivanceDatabase.MIGRATION_6_7,
+            AivanceDatabase.MIGRATION_7_8,
+            AivanceDatabase.MIGRATION_8_9,
+            AivanceDatabase.MIGRATION_9_10,
+            AivanceDatabase.MIGRATION_10_11,
+            AivanceDatabase.MIGRATION_11_12,
+            AivanceDatabase.MIGRATION_12_13,
+            AivanceDatabase.MIGRATION_13_14,
+            AivanceDatabase.MIGRATION_14_15,
+            AivanceDatabase.MIGRATION_15_16,
+            AivanceDatabase.MIGRATION_16_17,
+            AivanceDatabase.MIGRATION_17_18,
+            AivanceDatabase.MIGRATION_18_19,
+            AivanceDatabase.MIGRATION_19_20
         )
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
         .setQueryExecutor(Executors.newFixedThreadPool(4))
@@ -99,4 +107,19 @@ object DatabaseModule {
 
     @Provides
     fun provideSearchDao(database: AivanceDatabase): SearchDao = database.searchDao()
+
+    @Provides
+    fun provideRecruiterDao(database: AivanceDatabase): RecruiterDao = database.recruiterDao()
+
+    @Provides
+    fun provideWorkflowDao(database: AivanceDatabase): WorkflowDao = database.workflowDao()
+
+    @Provides
+    fun provideAnalyticsDao(database: AivanceDatabase): AnalyticsDao = database.analyticsDao()
+
+    @Provides
+    fun provideAssistantDao(database: AivanceDatabase): AssistantDao = database.assistantDao()
+
+    @Provides
+    fun provideAuditDao(database: AivanceDatabase): AuditDao = database.auditDao()
 }

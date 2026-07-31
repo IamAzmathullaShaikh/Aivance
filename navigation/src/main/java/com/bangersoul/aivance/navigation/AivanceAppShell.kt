@@ -8,14 +8,18 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 import kotlinx.coroutines.launch
 
@@ -29,6 +33,8 @@ data class AppShellState(
     val dismissDialog: () -> Unit = {}
 )
 
+val LocalAppShellState = compositionLocalOf { AppShellState() }
+
 /**
  * Global application shell wrapping the navigation graph.
  *
@@ -40,11 +46,16 @@ data class AppShellState(
  */
 @Composable
 fun AivanceAppShell(
-    isAuthenticated: Boolean,
-    authViewModel: Any? = null,
     content: @Composable () -> Unit
 ) {
-    AivanceTheme {
+    val themeViewModel: AppThemeViewModel = hiltViewModel()
+    val themeState by themeViewModel.themeState.collectAsStateWithLifecycle()
+
+    AivanceTheme(
+        themeMode = themeState.themeMode,
+        accentSeed = themeState.accentSeed,
+        dynamicColor = themeState.dynamicColor
+    ) {
         val snackbarHostState = remember { SnackbarHostState() }
         val scope = rememberCoroutineScope()
         var dialogState by remember { mutableStateOf<DialogState?>(null) }
@@ -71,43 +82,50 @@ fun AivanceAppShell(
             )
         }
 
-        Scaffold(
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState) { data ->
-                    Snackbar(
-                        snackbarData = data,
-                        containerColor = com.bangersoul.aivance.core.designsystem.theme.DarkSurface,
-                        contentColor = com.bangersoul.aivance.core.designsystem.theme.DarkPrimary
-                    )
-                }
-            },
-            containerColor = androidx.compose.ui.graphics.Color.Transparent,
-            contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onBackground
-        ) { padding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
+        CompositionLocalProvider(LocalAppShellState provides shellState) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = androidx.compose.material3.MaterialTheme.colorScheme.background
             ) {
-                content()
-
-                // Global overlay dialog
-                dialogState?.let { state ->
-                    androidx.compose.material3.AlertDialog(
-                        onDismissRequest = { dialogState = null },
-                        title = { androidx.compose.material3.Text(state.title) },
-                        text = { androidx.compose.material3.Text(state.message) },
-                        confirmButton = {
-                            androidx.compose.material3.TextButton(onClick = { dialogState = null }) {
-                                androidx.compose.material3.Text(state.confirmLabel)
-                            }
-                        },
-                        dismissButton = {
-                            androidx.compose.material3.TextButton(onClick = { dialogState = null }) {
-                                androidx.compose.material3.Text("Cancel")
-                            }
+                Scaffold(
+                    snackbarHost = {
+                        SnackbarHost(hostState = snackbarHostState) { data ->
+                            Snackbar(
+                                snackbarData = data,
+                                containerColor = com.bangersoul.aivance.core.designsystem.theme.DarkSurface,
+                                contentColor = com.bangersoul.aivance.core.designsystem.theme.DarkPrimary
+                            )
                         }
-                    )
+                    },
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onBackground
+                ) { padding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
+                        content()
+
+                        // Global overlay dialog
+                        dialogState?.let { state ->
+                            androidx.compose.material3.AlertDialog(
+                                onDismissRequest = { dialogState = null },
+                                title = { androidx.compose.material3.Text(state.title) },
+                                text = { androidx.compose.material3.Text(state.message) },
+                                confirmButton = {
+                                    androidx.compose.material3.TextButton(onClick = { dialogState = null }) {
+                                        androidx.compose.material3.Text(state.confirmLabel)
+                                    }
+                                },
+                                dismissButton = {
+                                    androidx.compose.material3.TextButton(onClick = { dialogState = null }) {
+                                        androidx.compose.material3.Text("Cancel")
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

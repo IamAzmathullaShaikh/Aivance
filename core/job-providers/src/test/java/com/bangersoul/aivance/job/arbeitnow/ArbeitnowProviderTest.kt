@@ -1,0 +1,101 @@
+package com.bangersoul.aivance.job.arbeitnow
+
+import com.bangersoul.aivance.job.cache.JobCache
+import com.bangersoul.aivance.sdk.core.ProviderCapability
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import retrofit2.Retrofit
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
+
+/**
+ * Verifies the Retrofit interface parses the real Arbeitnow API schema
+ * (verified against the live https://www.arbeitnow.com/api/job-board-api response).
+ */
+class ArbeitnowProviderTest {
+
+    private lateinit var mockWebServer: MockWebServer
+    private lateinit var api: ArbeitnowApi
+
+    @Before
+    fun setUp() {
+        mockWebServer = MockWebServer()
+        mockWebServer.start()
+        api = buildApi(mockWebServer)
+    }
+
+    @After
+    fun tearDown() {
+        mockWebServer.shutdown()
+    }
+
+    @Test
+    fun `getJobs parses the live Arbeitnow schema`() = runTest {
+        val json = """
+        {
+          "data": [
+            {
+              "slug": "android-dev-berlin-123",
+              "company_name": "TechBerlin",
+              "title": "Android Developer",
+              "description": "Kotlin role in Berlin.",
+              "remote": true,
+              "url": "https://www.arbeitnow.com/jobs/android-dev-berlin-123",
+              "tags": ["android", "kotlin"],
+              "job_types": ["full-time"],
+              "location": "Berlin",
+              "created_at": 1785499244
+            }
+          ],
+          "meta": { "count": 1, "page": 1 }
+        }
+        """.trimIndent()
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(json))
+
+        val response = api.getJobs(page = 1)
+
+        assertTrue("Expected success but was code ${response.code()}", response.isSuccessful)
+        val jobs = response.body()?.data ?: emptyList()
+        assertEquals(1, jobs.size)
+        val dto = jobs.first()
+        assertEquals("android-dev-berlin-123", dto.slug)
+        assertEquals("Android Developer", dto.title)
+        assertEquals("TechBerlin", dto.companyName)
+        assertEquals("Berlin", dto.location)
+        assertEquals(1785499244L, dto.createdAt)
+        assertTrue(dto.remote == true)
+    }
+
+    @Test
+    fun `provider metadata is correct`() {
+        val provider = ArbeitnowProvider(
+            jobCache = mockk<JobCache>(),
+            okHttpClient = OkHttpClient(),
+            retrofit = buildRetrofit(mockWebServer)
+        )
+        assertEquals("arbeitnow", provider.metadata.id)
+        assertEquals("Arbeitnow", provider.metadata.name)
+        assertTrue(provider.hasCapability(ProviderCapability.JobSearch))
+    }
+
+    private fun buildApi(server: MockWebServer): ArbeitnowApi =
+        buildRetrofit(server).create(ArbeitnowApi::class.java)
+
+    private fun buildRetrofit(server: MockWebServer): Retrofit {
+        val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+        return Retrofit.Builder()
+            .baseUrl(server.url("/"))
+            .client(OkHttpClient())
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+}

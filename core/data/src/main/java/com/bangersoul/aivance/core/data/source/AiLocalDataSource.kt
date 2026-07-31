@@ -9,6 +9,7 @@ import com.bangersoul.aivance.core.data.mapper.toEntity
 import com.bangersoul.aivance.core.database.dao.AiAnalyticsDao
 import com.bangersoul.aivance.core.database.model.AIConversationEntity
 import com.bangersoul.aivance.core.database.model.ProviderConfigurationEntity
+import com.bangersoul.aivance.core.datastore.SecretsManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -18,17 +19,18 @@ interface AiLocalDataSource {
     fun getConversations(): Flow<List<AIConversation>>
     suspend fun saveConversation(conversation: AIConversation)
     suspend fun saveMessage(message: AIMessage)
-    
+
     fun getProviderConfigs(): Flow<List<AiProviderConfig>>
     suspend fun getProviderConfig(provider: String): AiProviderConfig?
     suspend fun saveProviderConfig(config: AiProviderConfig)
-    
+
     fun getAnalyticsEvents(): Flow<List<AnalyticsEvent>>
     suspend fun saveAnalyticsEvent(event: AnalyticsEvent)
 }
 
 class AiLocalDataSourceImpl @Inject constructor(
-    private val aiAnalyticsDao: AiAnalyticsDao
+    private val aiAnalyticsDao: AiAnalyticsDao,
+    private val secretsManager: SecretsManager
 ) : AiLocalDataSource {
 
     override fun getConversations(): Flow<List<AIConversation>> {
@@ -58,21 +60,24 @@ class AiLocalDataSourceImpl @Inject constructor(
     }
 
     override suspend fun getProviderConfig(provider: String): AiProviderConfig? {
-        return aiAnalyticsDao.getProviderConfig(provider)?.toDomain()
+        val entity = aiAnalyticsDao.getProviderConfig(provider) ?: return null
+        val apiKey = secretsManager.getSecret("provider_${provider}_apiKey") ?: ""
+        return entity.toDomain().copy(apiKey = apiKey)
     }
 
     override suspend fun saveProviderConfig(config: AiProviderConfig) {
         val entity = ProviderConfigurationEntity(
             provider = config.providerId,
-            apiKey = config.apiKey,
+            type = "AI",
             baseUrl = config.customBaseUrl,
+            selectedModel = config.selectedModel,
             settings = mapOf(
-                "selectedModel" to config.selectedModel,
                 "temperature" to config.temperature.toString(),
                 "maxTokens" to config.maxTokens.toString()
             )
         )
         aiAnalyticsDao.insertProviderConfig(entity)
+        secretsManager.saveSecret("provider_${config.providerId}_apiKey", config.apiKey)
     }
 
     override fun getAnalyticsEvents(): Flow<List<AnalyticsEvent>> {

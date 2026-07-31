@@ -10,9 +10,9 @@ import javax.inject.Inject
 
 interface CoverLetterLocalDataSource {
     fun getCoverLetters(): Flow<List<CoverLetter>>
-    suspend fun getCoverLetterById(id: Int): CoverLetter?
+    suspend fun getCoverLetterById(id: Long): CoverLetter?
     suspend fun saveCoverLetter(coverLetter: CoverLetter): Long
-    suspend fun deleteCoverLetter(id: Int)
+    suspend fun deleteCoverLetter(coverLetter: CoverLetter)
 }
 
 class CoverLetterLocalDataSourceImpl @Inject constructor(
@@ -25,7 +25,7 @@ class CoverLetterLocalDataSourceImpl @Inject constructor(
         }
     }
 
-    override suspend fun getCoverLetterById(id: Int): CoverLetter? {
+    override suspend fun getCoverLetterById(id: Long): CoverLetter? {
         return coverLetterDao.getCoverLetterById(id)?.toDomain()
     }
 
@@ -33,7 +33,7 @@ class CoverLetterLocalDataSourceImpl @Inject constructor(
         return coverLetterDao.insertCoverLetter(coverLetter.toEntity())
     }
 
-    override suspend fun deleteCoverLetter(id: Int) {
-        coverLetterDao.deleteCoverLetterById(id)
+    override suspend fun deleteCoverLetter(coverLetter: CoverLetter) {
+        coverLetterDao.deleteCoverLetter(coverLetter.toEntity())
     }
 }

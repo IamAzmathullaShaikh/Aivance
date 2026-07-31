@@ -1,11 +1,11 @@
 package com.bangersoul.aivance.job.cache
 
-import com.bangersoul.aivance.core.common.enums.EmploymentType
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.database.dao.CompanyDao
 import com.bangersoul.aivance.core.database.dao.JobDao
 import com.bangersoul.aivance.core.database.model.CompanyEntity
-import com.bangersoul.aivance.core.database.model.JobEntity
+import com.bangersoul.aivance.core.data.mapper.toDomain
+import com.bangersoul.aivance.core.data.mapper.toEntity
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,25 +17,7 @@ class RoomJobCache @Inject constructor(
 ) : JobCache {
 
     override suspend fun getJobs(): List<JobListing> {
-        return jobDao.getJobsWithDetails().first().map { entity ->
-            JobListing(
-                id = entity.job.id.toString(),
-                title = entity.job.title,
-                company = entity.company.name,
-                companyLogoUrl = entity.company.logoUrl,
-                location = entity.job.location ?: "",
-                salaryRange = entity.job.salary,
-                postedDate = entity.job.postedDate,
-                description = entity.job.description ?: "",
-                url = "", // JobEntity is missing URL field, using empty as placeholder
-                sourceProvider = "DATABASE",
-                employmentType = try {
-                    EmploymentType.valueOf(entity.job.type ?: "FULL_TIME")
-                } catch (e: Exception) {
-                    EmploymentType.FULL_TIME
-                }
-            )
-        }
+        return jobDao.getJobsWithDetails().first().map { it.toDomain() }
     }
 
     override suspend fun saveJobs(jobs: List<JobListing>) {
@@ -49,22 +31,14 @@ class RoomJobCache @Inject constructor(
                         name = job.company,
                         logoUrl = job.companyLogoUrl,
                         website = null,
-                        industry = null
+                        industry = null,
+                        domain = null,
+                        headquarters = null,
+                        socialLinks = emptyMap()
                     )
                 )
             }
-
-            jobDao.insertJob(
-                JobEntity(
-                    companyId = companyId,
-                    title = job.title,
-                    location = job.location,
-                    type = job.employmentType.name,
-                    salary = job.salaryRange,
-                    description = job.description,
-                    postedDate = job.postedDate
-                )
-            )
+            jobDao.insertJob(job.toEntity(companyId))
         }
     }
 

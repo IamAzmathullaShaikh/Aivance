@@ -1,9 +1,9 @@
 package com.bangersoul.aivance.core.domain.usecase.resume
 
 import com.bangersoul.aivance.core.common.model.AtsResult
+import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeAnalysis
 import com.bangersoul.aivance.core.common.result.CoreResult
-import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ValidationError
 import com.bangersoul.aivance.core.common.result.runCatchingCore
@@ -14,6 +14,7 @@ import javax.inject.Inject
 
 data class AtsScoreRequest(
     val resumeId: Long,
+    val versionId: Long,
     val jobDescription: String,
     val companyName: String? = null
 )
@@ -24,13 +25,7 @@ data class AtsScoreResponse(
 )
 
 /**
- * Calculates the ATS (Applicant Tracking System) score for a resume.
- *
- * Business rules:
- * - Score is calculated based on keyword matching and formatting analysis.
- * - Score ranges from 0 to 100.
- * - Missing keywords are identified for improvement suggestions.
- * - Formatting issues are evaluated.
+ * Calculates the ATS score for a specific resume version.
  */
 class CalculateATSScoreUseCase @Inject constructor(
     private val resumeRepository: ResumeRepository
@@ -52,7 +47,7 @@ class CalculateATSScoreUseCase @Inject constructor(
                 null -> throw Exception("Resume not found.")
             }
 
-            val analysis = resumeRepository.analyzeResume(input.resumeId, input.jobDescription)
+            val analysis = resumeRepository.analyzeResume(input.resumeId, input.versionId, input.jobDescription)
             val analysisData = when (analysis) {
                 is Result.Success -> analysis.data
                 is Result.Failure -> throw Exception(analysis.error.message)
@@ -60,11 +55,11 @@ class CalculateATSScoreUseCase @Inject constructor(
 
             val atsResult = AtsResult(
                 score = analysisData.overallScore.coerceIn(0, 100),
-                resumeName = resume.fileName,
+                resumeName = resume.name,
                 feedback = analysisData.matchSummary,
                 missingKeywords = analysisData.missingKeywords,
                 matchingKeywords = analysisData.matchingKeywords,
-                formattingScore = calculateFormattingScore(resume.rawText)
+                formattingScore = calculateFormattingScore(resume.rawText ?: "")
             )
 
             AtsScoreResponse(
@@ -76,26 +71,11 @@ class CalculateATSScoreUseCase @Inject constructor(
 
     private fun calculateFormattingScore(text: String): Int {
         var score = 100
+        if (text.isBlank()) return 0
 
-        // Check for common formatting issues
-        if (text.lines().any { it.length > 150 }) {
-            score -= 10
-        }
-
+        if (text.lines().any { it.length > 150 }) score -= 10
         val bulletPoints = text.count { it == '•' || it == '-' || it == '*' }
-        if (bulletPoints == 0 && text.length > 500) {
-            score -= 15
-        }
-
-        val emailRegex = Regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
-        if (!emailRegex.containsMatchIn(text)) {
-            score -= 5
-        }
-
-        val phoneRegex = Regex("\\+?[0-9]{7,15}")
-        if (!phoneRegex.containsMatchIn(text)) {
-            score -= 5
-        }
+        if (bulletPoints == 0 && text.length > 500) score -= 15
 
         return score.coerceIn(0, 100)
     }

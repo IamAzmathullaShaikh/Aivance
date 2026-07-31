@@ -9,19 +9,20 @@ import androidx.room.PrimaryKey
     tableName = "resume_sections",
     foreignKeys = [
         ForeignKey(
-            entity = ResumeEntity::class,
+            entity = ResumeVersionEntity::class,
             parentColumns = ["id"],
-            childColumns = ["resumeId"],
+            childColumns = ["versionId"],
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index(value = ["resumeId"])]
+    indices = [Index(value = ["versionId"])]
 )
 data class ResumeSectionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val resumeId: Long,
+    val versionId: Long,
     val title: String,
     val content: String,
-    val sectionOrder: Int
+    val sectionOrder: Int,
+    val sectionType: String
 )

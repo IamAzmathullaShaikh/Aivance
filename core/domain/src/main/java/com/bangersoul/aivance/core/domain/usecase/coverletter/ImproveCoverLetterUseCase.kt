@@ -1,6 +1,5 @@
 package com.bangersoul.aivance.core.domain.usecase.coverletter
 
-import com.bangersoul.aivance.core.common.model.CoverLetter
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ValidationError
@@ -16,18 +15,13 @@ data class ImproveCoverLetterRequest(
 )
 
 /**
- * Improves an existing cover letter based on user feedback or AI suggestions.
- *
- * Business rules:
- * - Cover letter must exist.
- * - Preserves the original version.
- * - Uses AI to apply improvements based on feedback.
+ * Improves an existing cover letter draft.
  */
 class ImproveCoverLetterUseCase @Inject constructor(
     private val coverLetterRepository: CoverLetterRepository
-) : UseCase<ImproveCoverLetterRequest, CoreResult<CoverLetter>>() {
+) : UseCase<ImproveCoverLetterRequest, CoreResult<Long>>() {
 
-    override suspend operator fun invoke(input: ImproveCoverLetterRequest): CoreResult<CoverLetter> {
+    override suspend operator fun invoke(input: ImproveCoverLetterRequest): CoreResult<Long> {
         if (input.coverLetterId <= 0) {
             return Result.Failure(ValidationError("coverLetterId", "Invalid cover letter ID."))
         }
@@ -40,21 +34,17 @@ class ImproveCoverLetterUseCase @Inject constructor(
                 null -> throw Exception("Cover letter not found.")
             }
 
-            val improvementsPrompt = if (input.feedback.isNotBlank()) {
-                "Improve this cover letter based on: ${input.feedback}"
-            } else {
-                "Improve this cover letter's tone and professionalism"
-            }
-
-            val improvedLetter = coverLetterRepository.generateCoverLetter(
-                resumeId = 0,
-                jobDescription = improvementsPrompt,
-                tone = letter.tone
+            val improvedId = coverLetterRepository.generateCoverLetter(
+                resumeId = 0L,
+                resumeVersionId = letter.resumeVersionId ?: 0L,
+                jobId = letter.jobId ?: 0L,
+                recruiterId = letter.recruiterId,
+                writingStyle = "IMPROVED: ${input.feedback}"
             )
 
-            when (improvedLetter) {
-                is Result.Success -> improvedLetter.data
-                is Result.Failure -> throw Exception(improvedLetter.error.message)
+            when (improvedId) {
+                is Result.Success -> improvedId.data
+                is Result.Failure -> throw Exception(improvedId.error.message)
             }
         }
     }

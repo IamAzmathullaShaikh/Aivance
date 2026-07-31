@@ -7,9 +7,11 @@ import com.bangersoul.aivance.core.data.cache.MemoryCache
 import com.bangersoul.aivance.core.data.config.PrivacyManagerImpl
 import com.bangersoul.aivance.core.data.util.Clock
 import com.bangersoul.aivance.core.data.util.DefaultClock
+import com.bangersoul.aivance.core.data.service.TextGenerationServiceImpl
 import com.bangersoul.aivance.core.domain.config.PlayIntegrityManager
 import com.bangersoul.aivance.core.domain.config.PlayIntegrityManagerStub
 import com.bangersoul.aivance.core.domain.config.PrivacyManager
+import com.bangersoul.aivance.core.domain.service.TextGenerationService
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -28,6 +30,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindPlayIntegrityManager(stub: PlayIntegrityManagerStub): PlayIntegrityManager
+
+    @Binds
+    @Singleton
+    abstract fun bindTextGenerationService(
+        impl: TextGenerationServiceImpl
+    ): TextGenerationService
 
     companion object {
         @Provides

@@ -8,9 +8,12 @@ import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
+import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.model.AiMessage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -27,14 +30,24 @@ import timber.log.Timber
  * Anthropic Claude AI Provider implementation.
  */
 class ClaudeProvider(
-    private val config: ProviderConfiguration
+    private val config: ProviderConfiguration,
 ) : AIProvider(
     metadata = ProviderMetadata(
         id = "anthropic",
         name = "Anthropic Claude",
+        type = ProviderType.AI,
         version = "1.0.0",
         description = "Anthropic's powerful AI models like Claude 3.5 Sonnet.",
-        author = "Anthropic"
+        author = "Anthropic",
+        configFields = listOf(
+            ConfigField(
+                key = "apiKey",
+                label = "Anthropic API Key",
+                isSensitive = true,
+                fieldType = FieldType.PASSWORD
+            )
+        ),
+        supportedModels = listOf("claude-3-5-sonnet-20240620", "claude-3-opus-20240229", "claude-3-haiku-20240307")
     ),
     capabilities = setOf(
         ProviderCapability.AI.Chat,
@@ -167,7 +180,7 @@ class ClaudeProvider(
                     val line = source.readUtf8Line() ?: break
                     if (line.startsWith("data: ")) {
                         val data = line.substring(6).trim()
-                        
+
                         try {
                             val event = json.decodeFromString<ClaudeStreamEvent>(data)
                             if (event.type == "content_block_delta") {
@@ -215,10 +228,10 @@ class ClaudeProvider(
         val systemPrompt = this.filter { it.role == MessageRole.SYSTEM }
             .joinToString("\n") { it.content }
             .takeIf { it.isNotEmpty() }
-        
+
         val claudeMessages = this.filter { it.role != MessageRole.SYSTEM }
             .map { it.toClaudeMessage() }
-        
+
         return Pair(systemPrompt, claudeMessages)
     }
 

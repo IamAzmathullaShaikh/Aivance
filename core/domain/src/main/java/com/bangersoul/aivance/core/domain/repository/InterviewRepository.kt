@@ -10,9 +10,30 @@ import kotlinx.coroutines.flow.Flow
 interface InterviewRepository {
     fun getSessions(): Flow<CoreResult<List<InterviewSession>>>
     fun getSessionById(id: String): Flow<CoreResult<InterviewSession>>
-    suspend fun startSession(role: String, company: String, difficulty: InterviewDifficulty): CoreResult<InterviewSession>
-    suspend fun submitMessage(sessionId: String, text: String): CoreResult<InterviewMessage>
-    suspend fun generateFeedback(sessionId: String): CoreResult<InterviewFeedback>
+
+    suspend fun startSession(
+        role: String,
+        company: String,
+        difficulty: InterviewDifficulty,
+        jobId: Long?,
+        resumeVersionId: Long?,
+        type: String
+    ): CoreResult<InterviewSession>
+
+    suspend fun generateQuestions(
+        sessionId: String,
+        count: Int
+    ): CoreResult<Unit>
+
+    suspend fun submitAnswer(
+        sessionId: String,
+        message: InterviewMessage
+    ): CoreResult<Unit>
+
+    suspend fun evaluateAnswer(
+        messageId: String
+    ): CoreResult<Unit>
+
     suspend fun completeSession(sessionId: String): CoreResult<Unit>
     suspend fun deleteSession(sessionId: String): CoreResult<Unit>
 }

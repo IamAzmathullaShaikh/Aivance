@@ -1,0 +1,38 @@
+[
+  {
+    "file": "core/network/src/main/java/com/bangersoul/aivance/core/network/DelegatingAiService.kt (deleted in d0519c3)",
+    "line": "N/A - entire file deleted",
+    "summary": "Mock fallback behavior removed - DelegatingAiService fell back to MockAiService when no API key was configured (user preferences empty and no BuildConfig fallback). New TextGenerationServiceImpl throws \"No AI provider configured\" failure instead.",
+    "failure_scenario": "User without API key configured gets hard failure instead of working mock responses for resume analysis, cover letter generation, interview practice, and career roadmaps."
+  },
+  {
+    "file": "core/network/src/main/java/com/bangersoul/aivance/core/network/AiService.kt (deleted in d0519c3)",
+    "line": "N/A - entire interface deleted",
+    "summary": "Conversation history API removed - AiService had chat(history: List<AiMessage>) for multi-turn conversations. New TextGenerationService only has generateText(prompt: String). InterviewRepositoryImpl bypasses domain service and uses SDK AIProvider.chat() directly, creating architectural inconsistency.",
+    "failure_scenario": "Interview feature works (uses SDK directly) but resume/cover letter/roadmap features lose conversation context. No domain-level chat API for feature modules to use."
+  },
+  {
+    "file": "core/network/src/main/java/com/bangersoul/aivance/core/network/ai/AiMessage.kt (deleted in d0519c3)",
+    "line": "N/A - entire file deleted",
+    "summary": "Domain conversation types removed - AiMessage and AiRole enum deleted from domain layer. SDK has its own AiMessage but feature modules using TextGenerationService have no way to pass conversation history.",
+    "failure_scenario": "Feature modules wanting multi-turn conversations (e.g., iterative resume refinement, follow-up questions) have no domain types to express message history."
+  },
+  {
+    "file": "core/network/src/main/java/com/bangersoul/aivance/core/network/di/AiModule.kt (deleted in d0519c3)",
+    "line": "N/A - entire module deleted",
+    "summary": "API key resolution from user preferences removed - DelegatingAiService read geminiApiKey from UserPreferencesRepository (user config) with BuildConfig fallback. New TextGenerationServiceImpl uses ProviderRegistry which requires explicit provider registration, no user-preference-driven API key injection.",
+    "failure_scenario": "User enters API key in settings but it's not automatically picked up by AI provider. ProviderRegistry must be configured separately, breaking the user-preference-driven AI configuration flow."
+  },
+  {
+    "file": "feature/resume/src/test/java/com/bangersoul/aivance/feature/resume/data/repository/ResumeRepositoryTest.kt",
+    "line": "5-6, 16, 43, 61, 75",
+    "summary": "Test still mocks deleted AiService interface - imports core.network.AiService and mocks analyzeText(), but ResumeRepositoryImpl now uses TextGenerationService.generateText(). Test will fail to compile or test wrong interface.",
+    "failure_scenario": "Test compiles against deleted interface or tests mock behavior that doesn't match new implementation. No test coverage for TextGenerationServiceImpl error paths (no provider, provider failure)."
+  },
+  {
+    "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/service/TextGenerationServiceImpl.kt",
+    "line": "37-42",
+    "summary": "No provider selection strategy - findAvailableProvider() picks first provider with status Ready. Old DelegatingAiService used user-configured API key to initialize specific Gemini provider. New code has no way to honor user's provider choice from settings.",
+    "failure_scenario": "User configures OpenRouter API key in settings but app picks first available provider (e.g., Ollama if running locally) instead of user's chosen provider."
+  }
+]

@@ -3,7 +3,6 @@ package com.bangersoul.aivance.core.domain.usecase.interview
 import com.bangersoul.aivance.core.common.enums.InterviewDifficulty
 import com.bangersoul.aivance.core.common.model.InterviewSession
 import com.bangersoul.aivance.core.common.result.CoreResult
-import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ValidationError
 import com.bangersoul.aivance.core.common.result.runCatchingCore
@@ -14,17 +13,14 @@ import javax.inject.Inject
 data class StartInterviewSessionRequest(
     val targetRole: String,
     val companyName: String = "",
-    val difficulty: InterviewDifficulty = InterviewDifficulty.MEDIUM
+    val difficulty: InterviewDifficulty = InterviewDifficulty.MEDIUM,
+    val jobId: Long? = null,
+    val resumeVersionId: Long? = null,
+    val type: String = "BEHAVIORAL"
 )
 
 /**
  * Starts a new mock interview session.
- *
- * Business rules:
- * - Target role must be provided.
- * - Creates a new session with the configured AI interviewer.
- * - Session is persisted for later review.
- * - Returns the created session with a unique ID.
  */
 class StartInterviewSessionUseCase @Inject constructor(
     private val interviewRepository: InterviewRepository
@@ -39,7 +35,10 @@ class StartInterviewSessionUseCase @Inject constructor(
             val result = interviewRepository.startSession(
                 role = input.targetRole,
                 company = input.companyName,
-                difficulty = input.difficulty
+                difficulty = input.difficulty,
+                jobId = input.jobId,
+                resumeVersionId = input.resumeVersionId,
+                type = input.type
             )
             when (result) {
                 is Result.Success -> result.data

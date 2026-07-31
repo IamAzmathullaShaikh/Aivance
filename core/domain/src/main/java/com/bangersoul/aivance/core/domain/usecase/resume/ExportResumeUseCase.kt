@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.core.domain.usecase.resume
 
 import com.bangersoul.aivance.core.common.model.Resume
+import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ValidationError
@@ -18,104 +19,76 @@ enum class ExportFormat {
 
 data class ExportResumeRequest(
     val resumeId: Long,
+    val versionId: Long,
     val format: ExportFormat = ExportFormat.TXT
 )
 
 /**
- * Exports a resume in the specified format.
- *
- * Business rules:
- * - Resume must exist.
- * - Supports TXT, Markdown, and JSON export formats.
- * - The exported content preserves resume structure.
+ * Exports a specific resume version.
  */
 class ExportResumeUseCase @Inject constructor(
     private val resumeRepository: ResumeRepository
 ) : UseCase<ExportResumeRequest, CoreResult<String>>() {
 
     override suspend operator fun invoke(input: ExportResumeRequest): CoreResult<String> {
-        if (input.resumeId <= 0) {
-            return Result.Failure(ValidationError("resumeId", "Invalid resume ID."))
-        }
-
         return runCatchingCore {
-            val resumeResult = resumeRepository.getResumeById(input.resumeId).firstOrNull()
-            val resume = when (resumeResult) {
-                is Result.Success -> resumeResult.data
-                is Result.Failure -> throw Exception(resumeResult.error.message)
-                null -> throw Exception("Resume not found.")
+            val versionsResult = resumeRepository.getVersions(input.resumeId).firstOrNull()
+            val versions = when (versionsResult) {
+                is Result.Success -> versionsResult.data
+                is Result.Failure -> throw Exception(versionsResult.error.message)
+                null -> throw Exception("Versions not found.")
             }
+
+            val version = versions.find { it.id == input.versionId }
+                ?: throw Exception("Version ${input.versionId} not found.")
 
             when (input.format) {
-                ExportFormat.TXT -> exportAsText(resume)
-                ExportFormat.MARKDOWN -> exportAsMarkdown(resume)
-                ExportFormat.JSON -> exportAsJson(resume)
+                ExportFormat.TXT -> exportAsText(version)
+                ExportFormat.MARKDOWN -> exportAsMarkdown(version)
+                ExportFormat.JSON -> exportAsJson(version)
             }
         }
     }
 
-    private fun exportAsText(resume: Resume): String {
+    private fun exportAsText(version: ResumeVersion): String {
         return buildString {
-            appendLine("=== ${resume.fileName} ===")
-            appendLine(resume.rawText)
-            if (resume.sections.isNotEmpty()) {
+            appendLine("=== ${version.versionName} ===")
+            version.sections.forEach { section ->
                 appendLine()
-                appendLine("--- Parsed Sections ---")
-                resume.sections.forEach { section ->
-                    appendLine()
-                    appendLine("${section.title}:")
-                    appendLine(section.content)
-                }
+                appendLine("${section.title}:")
+                appendLine(section.content)
             }
         }
     }
 
-    private fun exportAsMarkdown(resume: Resume): String {
+    private fun exportAsMarkdown(version: ResumeVersion): String {
         return buildString {
-            appendLine("# Resume: ${resume.fileName}")
+            appendLine("# ${version.versionName}")
             appendLine()
-            if (resume.sections.isNotEmpty()) {
-                resume.sections.forEach { section ->
-                    appendLine("## ${section.title}")
-                    appendLine()
-                    appendLine(section.content)
-                    appendLine()
-                }
-            } else {
-                appendLine(resume.rawText)
+            version.sections.forEach { section ->
+                appendLine("## ${section.title}")
+                appendLine()
+                appendLine(section.content)
+                appendLine()
             }
         }
     }
 
-    private fun exportAsJson(resume: Resume): String {
+    private fun exportAsJson(version: ResumeVersion): String {
+        // Simple manual JSON for now
         return buildString {
             appendLine("{")
-            appendLine("  \"fileName\": \"${escapeJson(resume.fileName)}\",")
-            appendLine("  \"fileUri\": \"${escapeJson(resume.fileUri)}\",")
-            appendLine("  \"characterCount\": ${resume.characterCount},")
-            appendLine("  \"isPrimary\": ${resume.isPrimary},")
-            appendLine("  \"status\": \"${resume.status.name}\",")
+            appendLine("  \"versionName\": \"${version.versionName}\",")
             appendLine("  \"sections\": [")
-            resume.sections.forEachIndexed { index, section ->
+            version.sections.forEachIndexed { index, section ->
                 appendLine("    {")
-                appendLine("      \"sectionType\": \"${escapeJson(section.sectionType)}\",")
-                appendLine("      \"title\": \"${escapeJson(section.title)}\",")
-                appendLine("      \"content\": \"${escapeJson(section.content.take(500))}\"")
+                appendLine("      \"title\": \"${section.title}\",")
+                appendLine("      \"content\": \"${section.content.take(100)}...\"")
                 append("    }")
-                if (index < resume.sections.size - 1) appendLine(",") else appendLine()
+                if (index < version.sections.size - 1) appendLine(",") else appendLine()
             }
-            appendLine("  ],")
-            appendLine("  \"rawText\": \"${escapeJson(resume.rawText.take(1000))}\"")
+            appendLine("  ]")
             append("}")
         }
-    }
-
-    private fun escapeJson(text: String): String {
-        return text
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
     }
 }

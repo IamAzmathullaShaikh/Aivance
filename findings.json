@@ -1,0 +1,38 @@
+[
+  {
+    "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/service/TextGenerationServiceImpl.kt",
+    "line": 38,
+    "summary": "Wrong provider status check: filters for ProviderStatus.Ready but started providers are Active",
+    "failure_scenario": "ProviderManager.initializeAll() transitions providers from Uninitialized to Ready. Then ProviderManager.startProvider() transitions Ready -> Active. TextGenerationServiceImpl.findAvailableProvider() only looks for ProviderStatus.Ready, so if ProviderManager has started the provider (moving it to Active), the provider will be skipped even though it's healthy and usable. ProviderManager.getBestProviderFor() correctly checks Active first, then Ready, then others - this inconsistency means text generation may fail to find an available provider that is actually ready."
+  },
+  {
+    "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/service/TextGenerationServiceImpl.kt",
+    "line": 37,
+    "summary": "Redundant unsafe cast after type check may hide registry corruption",
+    "failure_scenario": "findAvailableProvider() filters with `it is AIProvider` then uses `as? AIProvider`. While the cast should always succeed after the type check, if the registry somehow contains a subtype that passes `is AIProvider` but isn't actually an AIProvider (e.g., due to bytecode manipulation or classloader issues), the cast would silently return null instead of failing fast. Using `as AIProvider` would surface such corruption immediately."
+  },
+  {
+    "file": "core/job-providers/src/main/kotlin/com/bangersoul/aivance/job/di/JobProvidersModule.kt",
+    "line": 61,
+    "summary": "Hardcoded placeholder API keys will cause authentication failures at runtime",
+    "failure_scenario": "LinkedInProvider(\"LINKEDIN_API_KEY\", ...), IndeedProvider(\"INDEED_API_KEY\", ...), GreenhouseProvider(\"GREENHOUSE_TOKEN\", ...), and LeverProvider(\"LEVER_COMPANY_ID\", ...) are instantiated with literal placeholder strings. These are not real credentials and will cause HTTP 401/403 errors on every API call. No configuration mechanism exists to inject real API keys from secure storage, user settings, or ProviderConfiguration (unlike AI providers which use AiProvidersModule factories)."
+  },
+  {
+    "file": "core/job-providers/src/main/kotlin/com/bangersoul/aivance/job/di/JobProvidersModule.kt",
+    "line": 82,
+    "summary": "GreenhouseProvider and LeverProvider require specific board/company config but receive hardcoded placeholders",
+    "failure_scenario": "GreenhouseProvider requires a valid board token with access to specific job boards. LeverProvider requires a valid company ID. Both are instantiated with placeholder strings that will cause immediate API failures (404 or 401). Unlike RemoteOK/Remotive which work without auth, these providers need valid credentials configured via the ProviderConfiguration mechanism (as AI providers do via AiProvidersModule factories), but JobProvidersModule bypasses this with hardcoded values."
+  },
+  {
+    "file": "core/job-providers/build.gradle.kts",
+    "line": 26,
+    "summary": "Fragile dependency structure: job-providers depends on core:data which could create cycle if core:data later needs JobProvider bindings",
+    "failure_scenario": "core:job-providers depends on core:data (line 26). core:data depends on core:sdk. core:sdk has no dependency on job-providers. Currently no cycle exists. However, if core:data later adds multibindings for JobProvider (similar to how AiProvidersModule provides AIProvider), a circular dependency would form: job-providers -> data -> sdk, and data would need job-providers for the bindings. This architectural fragility should be addressed by moving JobProvider interface to core:sdk (already done) and having a separate DI module that doesn't require data."
+  },
+  {
+    "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/di/DataModule.kt",
+    "line": 34,
+    "summary": "TextGenerationServiceImpl bound as Singleton but depends on ProviderRegistry which initializes providers lazily",
+    "failure_scenario": "DataModule binds TextGenerationServiceImpl as @Singleton. ProviderRegistry constructor receives multibound Set<AIProvider> and Set<JobProvider> and auto-registers them in init block. However, providers start in Uninitialized state and only transition to Ready after ProviderManager.initializeAll() is called. If TextGenerationServiceImpl.generateText() is called before initializeAll(), findAvailableProvider() will return null because no provider has status Ready. The singleton is created at app startup but providers aren't initialized until later, creating a time window where text generation fails."
+  }
+]

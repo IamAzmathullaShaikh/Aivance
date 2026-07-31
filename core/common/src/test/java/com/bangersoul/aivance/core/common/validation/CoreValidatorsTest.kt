@@ -81,6 +81,7 @@ class CoreValidatorsTest {
     @Test
     fun resumeValidator_validAndInvalid_returnsExpectedResult() {
         val validResume = Resume(
+            name = "John Doe",
             fileName = "John_Doe_Resume.pdf",
             fileUri = "content://com.bangersoul.aivance/resume.pdf",
             rawText = "Experienced Senior Android Developer with 8 years of Kotlin, Compose, Clean Architecture, and Hilt expertise."
@@ -88,6 +89,7 @@ class CoreValidatorsTest {
         assertTrue(ResumeValidator.validate(validResume).isValid)
 
         val invalidResume = Resume(
+            name = "",
             fileName = "",
             fileUri = "",
             rawText = "Short"

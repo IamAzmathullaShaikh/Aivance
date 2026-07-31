@@ -2,7 +2,7 @@ package com.bangersoul.aivance.job.apify
 
 import com.bangersoul.aivance.job.apify.dto.ApifyActorRunResponse
 import com.bangersoul.aivance.job.apify.dto.ApifyDatasetItem
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -15,7 +15,7 @@ interface ApifyApi {
     suspend fun runActor(
         @Path("actorId") actorId: String,
         @Query("token") token: String,
-        @Body input: Map<String, JsonElement>
+        @Body input: JsonObject
     ): Response<ApifyActorRunResponse>
 
     @GET("v2/actor-runs/{runId}")

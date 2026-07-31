@@ -1,10 +1,13 @@
 package com.bangersoul.aivance.feature.resume
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
+import com.bangersoul.aivance.core.common.model.Resume
+import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.AnalyseResumeRequest
@@ -17,8 +20,6 @@ import com.bangersoul.aivance.core.domain.usecase.resume.ExportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.GenerateResumeSummaryUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeRequest
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeUseCase
-import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeRequest
-import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeResponse
 import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ResumeSummaryRequest
 import com.bangersoul.aivance.feature.resume.domain.model.KeywordInfo
@@ -35,40 +36,34 @@ import javax.inject.Inject
 
 sealed interface ResumeUiState {
     data object Idle : ResumeUiState
-    data object Importing : ResumeUiState
-    data object Parsing : ResumeUiState
-    data object Analyzing : ResumeUiState
+    data object Loading : ResumeUiState
     data class Success(
-        val summary: String? = null,
-        val analysisResult: com.bangersoul.aivance.feature.resume.domain.model.ResumeAnalysis? = null,
+        val resume: Resume? = null,
+        val versions: List<ResumeVersion> = emptyList(),
+        val selectedVersion: ResumeVersion? = null,
         val atsScore: Int? = null,
-        val resumeId: Long = 0L
+        val analysisResult: com.bangersoul.aivance.feature.resume.domain.model.ResumeAnalysis? = null
     ) : ResumeUiState
     data class Error(val message: String) : ResumeUiState
-    data class AnalysisSuccess(
-        val analysis: com.bangersoul.aivance.feature.resume.domain.model.ResumeAnalysis
-    ) : ResumeUiState
 }
 
 sealed interface ResumeUiEvent {
-    data class ImportResume(val fileName: String, val uri: String, val rawText: String) : ResumeUiEvent
-    data class AnalyzeResume(val resumeId: Long, val jobDescription: String) : ResumeUiEvent
-    data class CalculateATSScore(val resumeId: Long, val jobDescription: String) : ResumeUiEvent
-    data class ImproveResume(val resumeId: Long, val jobDescription: String) : ResumeUiEvent
-    data class GenerateSummary(val resumeId: Long) : ResumeUiEvent
-    data class ExportResume(val resumeId: Long) : ResumeUiEvent
-    data object Reset : ResumeUiEvent
-    data object Retry : ResumeUiEvent
+    data class ImportFile(val uri: Uri) : ResumeUiEvent
+    data class SelectVersion(val versionId: Long) : ResumeUiEvent
+    data class Analyze(val jobDescription: String) : ResumeUiEvent
+    data class SaveVersion(val version: ResumeVersion) : ResumeUiEvent
+    data class Export(val format: ExportFormat) : ResumeUiEvent
+    data object Refresh : ResumeUiEvent
 }
 
 sealed interface ResumeUiEffect {
     data class ShowSnackbar(val message: String) : ResumeUiEffect
     data class ExportResult(val path: String) : ResumeUiEffect
-    data class NavigateToCoverLetter(val resumeId: Long, val jobDescription: String) : ResumeUiEffect
 }
 
 @HiltViewModel
 class ResumeViewModel @Inject constructor(
+    private val resumeRepository: ResumeRepository,
     private val analyseResumeUseCase: AnalyseResumeUseCase,
     private val calculateATSScoreUseCase: CalculateATSScoreUseCase,
     private val improveResumeUseCase: ImproveResumeUseCase,
@@ -81,202 +76,126 @@ class ResumeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<ResumeUiState>(ResumeUiState.Idle)
     val uiState: StateFlow<ResumeUiState> = _uiState.asStateFlow()
 
-    private val _resumeText = MutableStateFlow("")
-    val resumeText: StateFlow<String> = _resumeText.asStateFlow()
-
-    private val _jobDescription = MutableStateFlow("")
-    val jobDescription: StateFlow<String> = _jobDescription.asStateFlow()
-
-    private val _resumeId = MutableStateFlow(0L)
-    val resumeId: StateFlow<Long> = _resumeId.asStateFlow()
-
     private val _effects = Channel<ResumeUiEffect>(Channel.BUFFERED)
     val effects: Flow<ResumeUiEffect> = _effects.receiveAsFlow()
 
+    private var currentResumeId: Long = 0L
+    private var currentVersionId: Long = 0L
+
     fun onEvent(event: ResumeUiEvent) {
         when (event) {
-            is ResumeUiEvent.ImportResume -> importResume(event.fileName, event.uri, event.rawText)
-            is ResumeUiEvent.AnalyzeResume -> analyzeResume(event.resumeId, event.jobDescription)
-            is ResumeUiEvent.CalculateATSScore -> calculateATSScore(event.resumeId, event.jobDescription)
-            is ResumeUiEvent.ImproveResume -> improveResume(event.resumeId, event.jobDescription)
-            is ResumeUiEvent.GenerateSummary -> generateSummary(event.resumeId)
-            is ResumeUiEvent.ExportResume -> exportResume(event.resumeId)
-            ResumeUiEvent.Reset -> reset()
-            ResumeUiEvent.Retry -> retry()
+            is ResumeUiEvent.ImportFile -> importFile(event.uri)
+            is ResumeUiEvent.SelectVersion -> selectVersion(event.versionId)
+            is ResumeUiEvent.Analyze -> analyze(event.jobDescription)
+            is ResumeUiEvent.SaveVersion -> saveVersion(event.version)
+            is ResumeUiEvent.Export -> export(event.format)
+            ResumeUiEvent.Refresh -> loadResumes()
         }
     }
 
-    /** Shortcut methods for screen binding */
-    fun triggerAnalyze(resumeId: Long, jobDescription: String) {
-        if (_resumeText.value.isBlank()) {
-            _uiState.value = ResumeUiState.Error("No resume text entered. Paste resume first.")
-            return
-        }
-        onEvent(ResumeUiEvent.AnalyzeResume(if (resumeId <= 0) _resumeId.value else resumeId, jobDescription))
-    }
-
-    fun addJobToTracker(company: String, role: String) {
+    private fun loadResumes() {
         viewModelScope.launch {
-            trackEventUseCase(TrackEventRequest(eventName = "resume_track_job"))
-            sendEffect(ResumeUiEffect.ShowSnackbar("Job tracking: $company - $role"))
-        }
-    }
-
-    fun resetState() {
-        onEvent(ResumeUiEvent.Reset)
-    }
-
-    fun saveResult(resumeId: Long) {
-        viewModelScope.launch {
-            sendEffect(ResumeUiEffect.ShowSnackbar("Saved"))
-        }
-    }
-
-    private fun importResume(fileName: String, uri: String, rawText: String) {
-        viewModelScope.launch {
-            _uiState.value = ResumeUiState.Importing
-            trackEventUseCase(TrackEventRequest(eventName = "resume_import"))
-
-            val request = ImportResumeRequest(fileName = fileName, fileUri = uri, rawText = rawText)
-            val result = importResumeUseCase(request)
-            when (result) {
-                is Result.Success<*> -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val data = (result as Result.Success<ImportResumeResponse>).data
-                    _resumeId.value = data.resumeId
-                    _resumeText.value = rawText
-                    _uiState.value = ResumeUiState.Success(summary = "Imported", resumeId = data.resumeId)
-                    sendEffect(ResumeUiEffect.ShowSnackbar("Resume imported"))
-                }
-                is Result.Failure -> {
-                    _uiState.value = ResumeUiState.Error(result.error.message ?: "Import failed")
+            _uiState.value = ResumeUiState.Loading
+            resumeRepository.getResumes().collect { result ->
+                when (result) {
+                    is Result.Success -> {
+                        val resumes = result.data
+                        if (resumes.isNotEmpty()) {
+                            val primary = resumes.firstOrNull { it.id == currentResumeId } ?: resumes.first()
+                            currentResumeId = primary.id
+                            loadVersions(primary.id)
+                        } else {
+                            _uiState.value = ResumeUiState.Idle
+                        }
+                    }
+                    is Result.Failure -> _uiState.value = ResumeUiState.Error(result.error.message)
                 }
             }
         }
     }
 
-    private fun analyzeResume(resumeId: Long, jobDescription: String) {
-        if (jobDescription.isBlank()) {
-            _uiState.value = ResumeUiState.Error("Job description cannot be empty")
-            return
-        }
-        val rid = if (resumeId <= 0) _resumeId.value else resumeId
-        if (rid <= 0) {
-            _uiState.value = ResumeUiState.Error("No resume selected. Enter resume text and import first.")
-            return
-        }
+    private fun loadVersions(resumeId: Long) {
         viewModelScope.launch {
-            _uiState.value = ResumeUiState.Analyzing
-            trackEventUseCase(TrackEventRequest(eventName = "resume_analyze"))
+            resumeRepository.getVersions(resumeId).collect { result ->
+                if (result is Result.Success) {
+                    val versions = result.data
+                    val selected = versions.find { it.id == currentVersionId } ?: versions.firstOrNull()
+                    currentVersionId = selected?.id ?: 0L
 
-            val request = AnalyseResumeRequest(resumeId = rid, jobDescription = jobDescription)
-            val result = analyseResumeUseCase(request)
-            when (result) {
-                is Result.Success<*> -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val analysis = (result as Result.Success<com.bangersoul.aivance.core.common.model.ResumeAnalysis>).data
-                    _uiState.value = ResumeUiState.AnalysisSuccess(
-                        analysis = com.bangersoul.aivance.feature.resume.domain.model.ResumeAnalysis(
-                            matchScore = analysis.overallScore,
-                            keywords = analysis.matchingKeywords.map { KeywordInfo(text = it, isMatched = true) } +
-                                      analysis.missingKeywords.map { KeywordInfo(text = it, isMatched = false) },
-                            tips = analysis.suggestions.map { OptimizationTip(category = "Suggestion", description = it) }
-                        )
-                    )
-                }
-                is Result.Failure -> {
-                    _uiState.value = ResumeUiState.Error(result.error.message ?: "Analysis failed")
+                    val currentState = _uiState.value
+                    if (currentState is ResumeUiState.Success) {
+                        _uiState.value = currentState.copy(versions = versions, selectedVersion = selected)
+                    } else {
+                        _uiState.value = ResumeUiState.Success(versions = versions, selectedVersion = selected)
+                    }
                 }
             }
         }
     }
 
-    private fun calculateATSScore(resumeId: Long, jobDescription: String) {
+    private fun importFile(uri: Uri) {
         viewModelScope.launch {
-            val request = AtsScoreRequest(resumeId = resumeId, jobDescription = jobDescription)
+            _uiState.value = ResumeUiState.Loading
+            trackEventUseCase(TrackEventRequest("resume_import"))
+            val result = importResumeUseCase(uri)
+            when (result) {
+                is Result.Success -> {
+                    currentResumeId = result.data
+                    loadResumes()
+                }
+                is Result.Failure -> _uiState.value = ResumeUiState.Error(result.error.message)
+            }
+        }
+    }
+
+    private fun selectVersion(versionId: Long) {
+        currentVersionId = versionId
+        loadVersions(currentResumeId)
+    }
+
+    private fun analyze(jobDescription: String) {
+        viewModelScope.launch {
+            val currentState = _uiState.value as? ResumeUiState.Success ?: return@launch
+            _uiState.value = currentState.copy(atsScore = null, analysisResult = null)
+
+            val request = AtsScoreRequest(
+                resumeId = currentResumeId,
+                versionId = currentVersionId,
+                jobDescription = jobDescription
+            )
+
             val result = calculateATSScoreUseCase(request)
-            when (result) {
-                is Result.Success<*> -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val response = (result as Result.Success<com.bangersoul.aivance.core.domain.usecase.resume.AtsScoreResponse>).data
-                    _uiState.value = ResumeUiState.Success(atsScore = response.atsResult.score)
-                }
-                is Result.Failure -> {
-                    _uiState.value = ResumeUiState.Error(result.error.message ?: "ATS score failed")
-                }
+            if (result is Result.Success) {
+                val data = result.data
+                _uiState.value = currentState.copy(
+                    atsScore = data.atsResult.score,
+                    analysisResult = com.bangersoul.aivance.feature.resume.domain.model.ResumeAnalysis(
+                        matchScore = data.analysis.overallScore,
+                        keywords = data.analysis.matchingKeywords.map { KeywordInfo(it, true) } +
+                                  data.analysis.missingKeywords.map { KeywordInfo(it, false) },
+                        tips = data.analysis.suggestions.map { OptimizationTip("Improvement", it) }
+                    )
+                )
             }
         }
     }
 
-    private fun improveResume(resumeId: Long, jobDescription: String) {
+    private fun saveVersion(version: ResumeVersion) {
         viewModelScope.launch {
-            val request = ImproveResumeRequest(resumeId = resumeId, jobDescription = jobDescription)
-            val result = improveResumeUseCase(request)
-            when (result) {
-                is Result.Success<*> -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val data = (result as Result.Success<com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeResponse>).data
-                    _resumeText.value = data.improvedResume.rawText
-                    _uiState.value = ResumeUiState.Success(summary = "Resume improved", resumeId = resumeId)
-                    sendEffect(ResumeUiEffect.ShowSnackbar("Resume improved"))
-                }
-                is Result.Failure -> {
-                    _uiState.value = ResumeUiState.Error(result.error.message ?: "Improvement failed")
-                }
-            }
+            resumeRepository.saveVersion(version)
+            loadVersions(currentResumeId)
+            sendEffect(ResumeUiEffect.ShowSnackbar("Version saved"))
         }
     }
 
-    private fun generateSummary(resumeId: Long) {
+    private fun export(format: ExportFormat) {
         viewModelScope.launch {
-            val request = ResumeSummaryRequest(resumeId = resumeId)
-            val result = generateResumeSummaryUseCase(request)
-            when (result) {
-                is Result.Success<*> -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val summary = (result as Result.Success<String>).data
-                    _uiState.value = ResumeUiState.Success(summary = summary, resumeId = resumeId)
-                }
-                is Result.Failure -> {
-                    _uiState.value = ResumeUiState.Error(result.error.message ?: "Summary failed")
-                }
-            }
-        }
-    }
-
-    private fun exportResume(resumeId: Long) {
-        viewModelScope.launch {
-            trackEventUseCase(TrackEventRequest(eventName = "resume_export"))
-            val request = ExportResumeRequest(resumeId = resumeId, format = ExportFormat.TXT)
+            val request = ExportResumeRequest(currentResumeId, currentVersionId, format)
             val result = exportResumeUseCase(request)
-            when (result) {
-                is Result.Success<*> -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val path = (result as Result.Success<String>).data
-                    sendEffect(ResumeUiEffect.ExportResult(path))
-                    sendEffect(ResumeUiEffect.ShowSnackbar("Exported"))
-                }
-                is Result.Failure -> {
-                    sendEffect(ResumeUiEffect.ShowSnackbar(result.error.message ?: "Export failed"))
-                }
+            if (result is Result.Success) {
+                sendEffect(ResumeUiEffect.ExportResult(result.data))
             }
         }
-    }
-
-    fun updateResumeText(text: String) { _resumeText.value = text }
-    fun updateJobDescription(text: String) { _jobDescription.value = text }
-
-    private fun reset() {
-        _uiState.value = ResumeUiState.Idle
-        _resumeText.value = ""
-        _jobDescription.value = ""
-        _resumeId.value = 0L
-    }
-
-    private fun retry() {
-        val rid = _resumeId.value
-        val desc = _jobDescription.value
-        if (rid > 0 && desc.isNotBlank()) analyzeResume(rid, desc)
     }
 
     private fun sendEffect(effect: ResumeUiEffect) {

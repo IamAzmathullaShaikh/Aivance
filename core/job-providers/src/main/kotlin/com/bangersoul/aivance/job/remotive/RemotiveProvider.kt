@@ -12,6 +12,7 @@ import com.bangersoul.aivance.job.cache.JobCache
 import com.bangersoul.aivance.job.remotive.dto.RemotiveJobDto
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.text.SimpleDateFormat
@@ -25,6 +26,7 @@ class RemotiveProvider(
     metadata = ProviderMetadata(
         id = "remotive",
         name = "Remotive",
+        type = ProviderType.JOB,
         version = "1.0.0",
         description = "Remote jobs curated by Remotive.",
         icon = "https://remotive.com/favicon.ico",

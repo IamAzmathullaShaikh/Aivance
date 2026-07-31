@@ -1,32 +1,8 @@
 package com.bangersoul.aivance.core.common.mapper
 
-import com.bangersoul.aivance.core.common.dto.AiMessageDto
-import com.bangersoul.aivance.core.common.dto.AnalyticsEventDto
-import com.bangersoul.aivance.core.common.dto.ApifyJobScraperDto
-import com.bangersoul.aivance.core.common.dto.AtsResultDto
-import com.bangersoul.aivance.core.common.dto.CoverLetterDto
-import com.bangersoul.aivance.core.common.dto.InterviewFeedbackDto
-import com.bangersoul.aivance.core.common.dto.JobListingDto
-import com.bangersoul.aivance.core.common.dto.ProviderInfoDto
-import com.bangersoul.aivance.core.common.dto.ResumeAnalysisDto
-import com.bangersoul.aivance.core.common.dto.SettingsDto
-import com.bangersoul.aivance.core.common.dto.UserProfileDto
-import com.bangersoul.aivance.core.common.enums.AIModel
-import com.bangersoul.aivance.core.common.enums.JobType
-import com.bangersoul.aivance.core.common.enums.LetterTone
-import com.bangersoul.aivance.core.common.enums.MessageRole
-import com.bangersoul.aivance.core.common.enums.ProviderState
-import com.bangersoul.aivance.core.common.enums.ProviderType
-import com.bangersoul.aivance.core.common.model.AIMessage
-import com.bangersoul.aivance.core.common.model.AiProviderConfig
-import com.bangersoul.aivance.core.common.model.AnalyticsEvent
-import com.bangersoul.aivance.core.common.model.AtsResult
-import com.bangersoul.aivance.core.common.model.CoverLetter
-import com.bangersoul.aivance.core.common.model.InterviewFeedback
-import com.bangersoul.aivance.core.common.model.JobListing
-import com.bangersoul.aivance.core.common.model.ProviderInfo
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
-import com.bangersoul.aivance.core.common.model.UserProfile
+import com.bangersoul.aivance.core.common.dto.*
+import com.bangersoul.aivance.core.common.enums.*
+import com.bangersoul.aivance.core.common.model.*
 
 // ResumeAnalysis
 fun ResumeAnalysisDto.toDomain(): ResumeAnalysis = ResumeAnalysis(
@@ -72,15 +48,17 @@ fun CoverLetterDto.toDomain(id: Long = 0): CoverLetter = CoverLetter(
     id = id,
     company = company,
     role = role,
-    content = content,
-    tone = try { LetterTone.valueOf(tone.uppercase()) } catch (e: Exception) { LetterTone.PROFESSIONAL }
+    resumeVersionId = null,
+    jobId = null,
+    recruiterId = null,
+    dateCreated = System.currentTimeMillis()
 )
 
 fun CoverLetter.toDto(): CoverLetterDto = CoverLetterDto(
     company = company,
     role = role,
-    content = content,
-    tone = tone.name
+    content = "",
+    tone = "PROFESSIONAL"
 )
 
 // InterviewFeedback
@@ -104,8 +82,9 @@ fun ApifyJobScraperDto.toDomain(): JobListing = JobListing(
     title = positionName,
     company = companyName,
     location = location,
-    salaryRange = salary,
-    jobType = JobType.FULL_TIME,
+    salaryMin = null,
+    salaryMax = null,
+    employmentType = EmploymentType.FULL_TIME,
     isRemote = location.lowercase().contains("remote"),
     description = description,
     url = url,
@@ -201,8 +180,9 @@ fun JobListingDto.toDomain(): JobListing = JobListing(
     title = title,
     company = company,
     location = location,
-    salaryRange = salaryRange,
-    jobType = try { JobType.valueOf(jobType.uppercase()) } catch (e: Exception) { JobType.FULL_TIME },
+    salaryMin = salaryMin,
+    salaryMax = salaryMax,
+    employmentType = try { EmploymentType.valueOf(employmentType.uppercase()) } catch (e: Exception) { EmploymentType.FULL_TIME },
     isRemote = isRemote,
     description = description,
     url = url,
@@ -216,8 +196,9 @@ fun JobListing.toDto(): JobListingDto = JobListingDto(
     title = title,
     company = company,
     location = location,
-    salaryRange = salaryRange,
-    jobType = jobType.name,
+    salaryMin = salaryMin,
+    salaryMax = salaryMax,
+    employmentType = employmentType.name,
     isRemote = isRemote,
     description = description,
     url = url,

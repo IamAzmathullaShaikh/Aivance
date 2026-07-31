@@ -13,81 +13,48 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.ui.NavDisplay
-import com.bangersoul.aivance.feature.ats.AtsScreen
-import com.bangersoul.aivance.feature.ats.AtsViewModel
-import com.bangersoul.aivance.feature.coverletter.CoverLetterScreen
-import com.bangersoul.aivance.feature.coverletter.CoverLetterViewModel
-import com.bangersoul.aivance.feature.dashboard.DashboardScreen
-import com.bangersoul.aivance.feature.dashboard.DashboardViewModel
-import com.bangersoul.aivance.feature.interview.AiChatScreen
-import com.bangersoul.aivance.feature.interview.AiChatViewModel
-import com.bangersoul.aivance.feature.interview.InterviewScreen
-import com.bangersoul.aivance.feature.interview.InterviewViewModel
-import com.bangersoul.aivance.feature.jobs.JobDetailsScreen
-import com.bangersoul.aivance.feature.jobs.JobDetailsViewModel
-import com.bangersoul.aivance.feature.jobs.JobsScreen
-import com.bangersoul.aivance.feature.jobs.JobsViewModel
-import com.bangersoul.aivance.feature.jobs.SavedJobsScreen
-import com.bangersoul.aivance.feature.jobs.SavedJobsViewModel
+import com.bangersoul.aivance.feature.assistant.*
+import com.bangersoul.aivance.feature.ats.*
+import com.bangersoul.aivance.feature.coverletter.*
+import com.bangersoul.aivance.feature.dashboard.*
+import com.bangersoul.aivance.feature.interview.*
+import com.bangersoul.aivance.feature.jobs.*
 import com.bangersoul.aivance.feature.profile.*
-import com.bangersoul.aivance.feature.resume.ResumeScreen
-import com.bangersoul.aivance.feature.resume.ResumeViewModel
-import com.bangersoul.aivance.feature.tracker.TrackerScreen
-import com.bangersoul.aivance.feature.tracker.TrackerViewModel
+import com.bangersoul.aivance.feature.recruiter.*
+import com.bangersoul.aivance.feature.resume.*
+import com.bangersoul.aivance.feature.tracker.*
+import com.bangersoul.aivance.feature.analytics.*
 
-/**
- * Root composable that drives the entire navigation tree.
- *
- * Uses Navigation 3's [rememberNavBackStack] for type-safe state-driven navigation
- * and [NavigationSuiteScaffold] for adaptive bottom-bar / navigation rail.
- *
- * Supported phases:
- * 1. **Auth flow** – Splash → Welcome → Login/Onboarding → Dashboard
- * 2. **Main app** – Bottom-nav screens + pushed detail screens
- * 3. **Deep links** – Parameterized routes (aivance://jobs/{id}, etc.)
- */
 @Composable
 fun AivanceNavGraph() {
-    // Single auth ViewModel instance shared across all auth screens
     val authViewModel: AuthenticationViewModel = hiltViewModel()
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
-
-    // Check for deep link from cold start
     val deepLinkDestination = remember { DeepLinkHandler.consumePending() }
 
-    val initialDestination: Destination = when {
-        deepLinkDestination != null -> deepLinkDestination
-        authState is AuthenticationUiState.Authenticated -> Destination.Dashboard
-        else -> Destination.Splash
+    val initialDestination = remember {
+        when {
+            deepLinkDestination != null -> {
+                if (deepLinkDestination in Destination.authenticatedDestinations &&
+                    authState !is AuthenticationUiState.Authenticated
+                ) Destination.Splash else deepLinkDestination
+            }
+            authState is AuthenticationUiState.Authenticated -> Destination.Dashboard
+            else -> Destination.Splash
+        }
     }
 
-    AivanceAppShell(
-        isAuthenticated = authState is AuthenticationUiState.Authenticated
-    ) {
-        AivanceMainNavGraph(
-            initialDestination = initialDestination,
-            authViewModel = authViewModel
-        )
+    AivanceAppShell {
+        AivanceMainNavGraph(initialDestination, authViewModel)
     }
 }
 
-/**
- * Inner navigation graph — separated from the shell so the Scaffold in
- * [AivanceAppShell] wraps the entire navigation area.
- */
 @Composable
 private fun AivanceMainNavGraph(
     initialDestination: Destination,
@@ -95,116 +62,74 @@ private fun AivanceMainNavGraph(
 ) {
     @Suppress("UNCHECKED_CAST")
     val backStack = rememberNavBackStack(initialDestination) as NavBackStack<Destination>
-    val currentDestination = if (backStack.isNotEmpty()) {
-        backStack.last()
-    } else initialDestination
+    val currentDestination = if (backStack.isNotEmpty()) backStack.last() else initialDestination
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
 
-    val onNavigate: (Destination) -> Unit = remember(backStack) {
+    val onNavigate: (Destination) -> Unit = remember(backStack, authState) {
         { destination ->
-            when {
-                destination in Destination.rootDestinations || destination in Destination.authDestinations -> {
-                    // Root/auth destinations: clear backstack and swap
+            val isAuthed = authState is AuthenticationUiState.Authenticated
+            if (destination in Destination.authenticatedDestinations && !isAuthed) {
+                while (backStack.isNotEmpty()) {
+                    backStack.removeAt(backStack.lastIndex)
+                }
+                backStack.add(Destination.Login)
+            } else {
+                if (destination in Destination.rootDestinations || destination in Destination.authDestinations) {
                     while (backStack.isNotEmpty()) {
                         backStack.removeAt(backStack.lastIndex)
                     }
-                    backStack.add(destination)
                 }
-                else -> {
-                    // Detail screens: push onto backstack
-                    backStack.add(destination)
-                }
+                backStack.add(destination)
             }
         }
     }
 
-    // Reactively navigate to Dashboard once authenticated
-    val authState by authViewModel.uiState.collectAsState()
-    LaunchedEffect(authState, currentDestination) {
-        if (authState is AuthenticationUiState.Authenticated &&
-            currentDestination in Destination.authDestinations &&
-            currentDestination != Destination.Dashboard
-        ) {
+    LaunchedEffect(authState) {
+        if (authState is AuthenticationUiState.Authenticated && currentDestination in Destination.authDestinations && currentDestination != Destination.Dashboard) {
             onNavigate(Destination.Dashboard)
         }
     }
 
-    val isRootDestination = currentDestination in Destination.rootDestinations
-
-    if (isRootDestination && currentDestination is Destination) {
+    if (currentDestination in Destination.rootDestinations) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
                 Destination.rootDestinations.forEach { destination ->
                     item(
                         selected = currentDestination == destination,
                         onClick = { onNavigate(destination) },
-                        icon = {
-                            destination.icon?.let {
-                                Icon(it, contentDescription = destination.label)
-                            }
-                        },
+                        icon = { destination.icon?.let { Icon(it, null) } },
                         label = { Text(destination.label) }
                     )
                 }
             }
         ) {
-            NavHostContent(
-                backStack = backStack,
-                onNavigate = onNavigate,
-                authViewModel = authViewModel
-            )
+            NavHostContent(backStack, onNavigate, authViewModel)
         }
     } else {
-        NavHostContent(
-            backStack = backStack,
-            onNavigate = onNavigate,
-            authViewModel = authViewModel
-        )
+        NavHostContent(backStack, onNavigate, authViewModel)
     }
 }
 
-/**
- * Renders the current navigation entry with animated transitions.
- */
 @Composable
 private fun NavHostContent(
     backStack: NavBackStack<Destination>,
     onNavigate: (Destination) -> Unit,
     authViewModel: AuthenticationViewModel
 ) {
-    val currentDestination = if (backStack.isNotEmpty()) {
-        backStack.last() as Destination
-    } else return
-
+    val currentDestination = if (backStack.isNotEmpty()) backStack.last() else return
     AnimatedContent(
         targetState = currentDestination,
-        transitionSpec = {
-            (slideInHorizontally { it / 4 } + fadeIn())
-                .togetherWith(slideOutHorizontally { -it / 4 } + fadeOut())
-        },
+        transitionSpec = { (slideInHorizontally { it / 4 } + fadeIn()).togetherWith(slideOutHorizontally { -it / 4 } + fadeOut()) },
         label = "NavTransition"
     ) { destination ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            ScreenContent(
-                destination = destination,
-                onNavigate = onNavigate,
-                authViewModel = authViewModel,
-                onBack = {
-                    if (backStack.size > 1) {
-                        backStack.removeLastOrNull()
-                    }
-                }
-            )
+        Box(Modifier.fillMaxSize()) {
+            ScreenContent(destination, onNavigate, authViewModel) {
+                if (backStack.size > 1) backStack.removeLastOrNull()
+            }
         }
     }
 }
 
-/**
- * Maps each [Destination] to its corresponding screen composable.
- *
- * ViewModels are resolved via Hilt's [hiltViewModel] through Navigation 3's
- * [rememberViewModelStoreNavEntryDecorator] (applied in NavDisplay entries).
- */
-@Suppress("UNUSED_PARAMETER")
 @Composable
 private fun ScreenContent(
     destination: Destination?,
@@ -213,175 +138,37 @@ private fun ScreenContent(
     onBack: () -> Unit
 ) {
     when (destination) {
-        // ── Auth Flow ─────────────────────────────────
-        is Destination.Splash -> {
-            SplashScreen(
-                onSplashComplete = {
-                    val state = authViewModel.uiState.value
-                    if (state is AuthenticationUiState.Authenticated) {
-                        onNavigate(Destination.Dashboard)
-                    } else {
-                        onNavigate(Destination.Welcome)
-                    }
-                }
-            )
-        }
+        Destination.Splash -> SplashScreen(onSplashComplete = {
+            if (authViewModel.uiState.value is AuthenticationUiState.Authenticated) onNavigate(Destination.Dashboard)
+            else onNavigate(Destination.Welcome)
+        })
+        Destination.Welcome -> WelcomeScreen(onGetStarted = { onNavigate(Destination.Login) }, onSkip = { onNavigate(Destination.Dashboard) })
+        Destination.Login -> LoginScreen(onLogin = { authViewModel.onEvent(AuthenticationUiEvent.Login(it)) }, onSkip = { onNavigate(Destination.Onboarding) })
+        Destination.Onboarding -> OnboardingScreen(viewModel = hiltViewModel(), onComplete = { onNavigate(Destination.Dashboard) })
 
-        is Destination.Welcome -> {
-            WelcomeScreen(
-                onGetStarted = { onNavigate(Destination.Login) },
-                onSkip = { onNavigate(Destination.Dashboard) }
-            )
-        }
+        Destination.Dashboard -> DashboardScreen(hiltViewModel(), { onNavigate(Destination.Resume) }, { onNavigate(Destination.Tracker) }, { onNavigate(Destination.Profile) }, { onNavigate(Destination.Interview) }, { onNavigate(Destination.AnalyticsDashboard) }, { onNavigate(Destination.Jobs) })
+        Destination.Assistant -> AssistantScreen(hiltViewModel<AssistantViewModel>(), { onNavigate(Destination.ProviderManagement) })
+        Destination.Resume -> ResumeScreen(hiltViewModel(), { onNavigate(Destination.Ats) }, { onNavigate(Destination.CoverLetter) })
+        Destination.Tracker -> TrackerScreen(hiltViewModel(), onBack)
+        Destination.Jobs -> JobsScreen(hiltViewModel()) { onNavigate(Destination.JobDetails(it)) }
+        Destination.Profile -> ProfileScreen(hiltViewModel(), { onNavigate(Destination.Interview) }, { onNavigate(Destination.Settings) }, { onNavigate(Destination.AiSettings) }, { onNavigate(Destination.ProviderManagement) }, { onNavigate(Destination.Notifications) }, { onNavigate(Destination.AnalyticsDashboard) }, { onNavigate(Destination.CareerRoadmap) }, { onNavigate(Destination.LearningHub) }, { onNavigate(Destination.SavedJobs) }, { onNavigate(Destination.AiChat) })
 
-        is Destination.Login -> {
-            // Use the shared authViewModel — do NOT create a second instance
-            LoginScreen(
-                onLogin = { apiKey ->
-                    authViewModel.onEvent(AuthenticationUiEvent.Login(apiKey))
-                },
-                onSkip = { onNavigate(Destination.Onboarding) }
-            )
-        }
-
-        is Destination.Onboarding -> {
-            val onboardingVm: OnboardingViewModel = hiltViewModel()
-            OnboardingScreen(
-                viewModel = onboardingVm,
-                onComplete = { onNavigate(Destination.Dashboard) },
-                onSkip = { onNavigate(Destination.Dashboard) }
-            )
-        }
-
-        // ── Root Destinations ────────────────────────
-        is Destination.Dashboard -> {
-            val vm: DashboardViewModel = hiltViewModel()
-            DashboardScreen(
-                viewModel = vm,
-                onNavigateToResume = { onNavigate(Destination.Resume) },
-                onNavigateToTracker = { onNavigate(Destination.Tracker) },
-                onNavigateToProfile = { onNavigate(Destination.Profile) },
-                onNavigateToInterview = { onNavigate(Destination.Interview) }
-            )
-        }
-
-        is Destination.Resume -> {
-            val vm: ResumeViewModel = hiltViewModel()
-            ResumeScreen(
-                viewModel = vm,
-                onNavigateToAts = { onNavigate(Destination.Ats) },
-                onNavigateToCoverLetter = { onNavigate(Destination.CoverLetter) }
-            )
-        }
-
-        is Destination.Tracker -> {
-            val vm: TrackerViewModel = hiltViewModel()
-            TrackerScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.Jobs -> {
-            val vm: JobsViewModel = hiltViewModel()
-            JobsScreen(
-                viewModel = vm,
-                onNavigateToTracker = { onNavigate(Destination.Tracker) },
-                onNavigateToJobDetails = { jobId -> onNavigate(Destination.JobDetails(jobId)) }
-            )
-        }
-
-        is Destination.Profile -> {
-            val vm: ProfileViewModel = hiltViewModel()
-            ProfileScreen(
-                viewModel = vm,
-                onNavigateToInterview = { onNavigate(Destination.Interview) },
-                onNavigateToSettings = { onNavigate(Destination.Settings) },
-                onNavigateToAiSettings = { onNavigate(Destination.AiSettings) },
-                onNavigateToProviders = { onNavigate(Destination.ProviderManagement) },
-                onNavigateToNotifications = { onNavigate(Destination.Notifications) },
-                onNavigateToAnalytics = { onNavigate(Destination.AnalyticsDashboard) },
-                onNavigateToRoadmap = { onNavigate(Destination.CareerRoadmap) },
-                onNavigateToLearning = { onNavigate(Destination.LearningHub) },
-                onNavigateToSavedJobs = { onNavigate(Destination.SavedJobs) },
-                onNavigateToAiChat = { onNavigate(Destination.AiChat) }
-            )
-        }
-
-        // ── Detail Screens ───────────────────────────
-        is Destination.Ats -> {
-            val vm: AtsViewModel = hiltViewModel()
-            AtsScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.CoverLetter -> {
-            val vm: CoverLetterViewModel = hiltViewModel()
-            CoverLetterScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.Interview -> {
-            val vm: InterviewViewModel = hiltViewModel()
-            InterviewScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.AiChat -> {
-            val vm: AiChatViewModel = hiltViewModel()
-            AiChatScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.JobDetails -> {
-            val vm: JobDetailsViewModel = hiltViewModel()
-            JobDetailsScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.SavedJobs -> {
-            val vm: SavedJobsViewModel = hiltViewModel()
-            SavedJobsScreen(
-                viewModel = vm,
-                onBack = onBack,
-                onJobClick = { jobId -> onNavigate(Destination.JobDetails(jobId)) }
-            )
-        }
-
-        is Destination.Settings -> {
-            val vm: SettingsViewModel = hiltViewModel()
-            SettingsScreen(
-                viewModel = vm,
-                onBack = onBack,
-                onNavigateToAiSettings = { onNavigate(Destination.AiSettings) },
-                onNavigateToProviders = { onNavigate(Destination.ProviderManagement) },
-                onNavigateToAnalytics = { onNavigate(Destination.AnalyticsDashboard) }
-            )
-        }
-
-        is Destination.AiSettings -> {
-            val vm: AiSettingsViewModel = hiltViewModel()
-            AiSettingsScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.ProviderManagement -> {
-            val vm: ProviderManagementViewModel = hiltViewModel()
-            ProviderManagementScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.Notifications -> {
-            val vm: NotificationsViewModel = hiltViewModel()
-            NotificationsScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.AnalyticsDashboard -> {
-            val vm: AnalyticsDashboardViewModel = hiltViewModel()
-            AnalyticsDashboardScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.CareerRoadmap -> {
-            val vm: CareerRoadmapViewModel = hiltViewModel()
-            CareerRoadmapScreen(viewModel = vm, onBack = onBack)
-        }
-
-        is Destination.LearningHub -> {
-            val vm: LearningHubViewModel = hiltViewModel()
-            LearningHubScreen(viewModel = vm, onBack = onBack)
-        }
-
-        // ── Fallback ─────────────────────────────────
-        null -> InvalidRouteScreen(onBack = onBack)
+        Destination.Ats -> AtsScreen(hiltViewModel(), onBack)
+        Destination.CoverLetter -> CoverLetterScreen(hiltViewModel(), onBack)
+        Destination.Interview -> InterviewScreen(hiltViewModel(), onBack)
+        Destination.AiChat -> AiChatScreen(hiltViewModel(), onBack)
+        is Destination.JobDetails -> JobDetailsScreen(hiltViewModel(), onBack)
+        is Destination.RecruiterDashboard -> RecruiterDashboardScreen(hiltViewModel<RecruiterViewModel>(), onBack)
+        Destination.SavedJobs -> SavedJobsScreen(hiltViewModel(), onBack) { onNavigate(Destination.JobDetails(it)) }
+        Destination.Settings -> SettingsScreen(hiltViewModel(), onBack, { onNavigate(Destination.AiSettings) }, { onNavigate(Destination.ProviderManagement) }, { onNavigate(Destination.AnalyticsDashboard) }, { onNavigate(Destination.PrivacyCenter) }, { onNavigate(Destination.Appearance) })
+        Destination.Appearance -> AppearanceScreen(hiltViewModel(), onBack)
+        Destination.AiSettings -> AiSettingsScreen(hiltViewModel(), onBack)
+        Destination.ProviderManagement -> ProviderManagementScreen(hiltViewModel(), onBack)
+        Destination.Notifications -> NotificationsScreen(hiltViewModel(), onBack)
+        Destination.AnalyticsDashboard -> AnalyticsScreen(hiltViewModel<AnalyticsViewModel>(), onBack)
+        Destination.PrivacyCenter -> PrivacyCenterScreen(hiltViewModel<PrivacyViewModel>(), onBack)
+        Destination.CareerRoadmap -> CareerRoadmapScreen(hiltViewModel(), onBack)
+        Destination.LearningHub -> LearningHubScreen(hiltViewModel(), onBack)
+        else -> InvalidRouteScreen(onBack)
     }
 }

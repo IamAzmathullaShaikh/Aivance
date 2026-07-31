@@ -1,13 +1,17 @@
 package com.bangersoul.aivance.job.di
 
+import com.bangersoul.aivance.job.adzuna.AdzunaProvider
+import com.bangersoul.aivance.job.arbeitnow.ArbeitnowProvider
 import com.bangersoul.aivance.job.cache.JobCache
 import com.bangersoul.aivance.job.cache.RoomJobCache
 import com.bangersoul.aivance.job.greenhouse.GreenhouseProvider
 import com.bangersoul.aivance.job.indeed.IndeedProvider
+import com.bangersoul.aivance.job.jobicy.JobicyProvider
 import com.bangersoul.aivance.job.lever.LeverProvider
 import com.bangersoul.aivance.job.linkedin.LinkedInProvider
 import com.bangersoul.aivance.job.remoteok.RemoteOKProvider
 import com.bangersoul.aivance.job.remotive.RemotiveProvider
+import com.bangersoul.aivance.job.usajobs.USAJobsProvider
 import com.bangersoul.aivance.sdk.api.JobProvider
 import dagger.Binds
 import dagger.Module
@@ -92,6 +96,62 @@ abstract class JobProvidersModule {
             retrofit: Retrofit
         ): JobProvider {
             return LeverProvider("LEVER_COMPANY_ID", jobCache, okHttpClient, retrofit)
+        }
+
+        /**
+         * Arbeitnow - free, no API key required. Jobs in Germany & the EU.
+         */
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideArbeitnowProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return ArbeitnowProvider(jobCache, okHttpClient, retrofit)
+        }
+
+        /**
+         * Jobicy - free, no API key required. Global remote jobs.
+         */
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideJobicyProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return JobicyProvider(jobCache, okHttpClient, retrofit)
+        }
+
+        /**
+         * Adzuna - free tier (16 countries). Requires app_id + app_key.
+         */
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideAdzunaProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return AdzunaProvider("", "", "us", jobCache, okHttpClient, retrofit)
+        }
+
+        /**
+         * USAJobs - free US federal job API. Requires a free API key.
+         */
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideUSAJobsProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return USAJobsProvider("", jobCache = jobCache, okHttpClient = okHttpClient, retrofit = retrofit)
         }
     }
 }

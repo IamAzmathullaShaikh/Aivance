@@ -19,23 +19,68 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Resume(
     val id: Long = 0,
-    val fileName: String,
-    val fileUri: String,
-    val rawText: String,
-    val parsedDate: Long = System.currentTimeMillis(),
-    val characterCount: Int = rawText.length,
-    val isPrimary: Boolean = false,
-    val status: ResumeStatus = ResumeStatus.PARSED,
+    val name: String,
+    val primaryVersionId: Long? = null,
+    val fileName: String? = null,
+    val fileUri: String? = null,
+    val rawText: String? = null,
+    val dateCreated: Long = System.currentTimeMillis(),
+    val lastModified: Long = System.currentTimeMillis(),
+    val versions: List<ResumeVersion> = emptyList()
+)
+
+@Serializable
+data class ResumeVersion(
+    val id: Long = 0,
+    val resumeId: Long,
+    val versionName: String,
+    val templateId: String = "modern",
+    val lastModified: Long = System.currentTimeMillis(),
     val sections: List<ResumeSection> = emptyList()
 )
 
 @Serializable
 data class ResumeSection(
+    val id: Long = 0,
+    val versionId: Long = 0,
     val sectionType: String,
     val title: String,
-    val content: String
+    val content: String,
+    val sectionOrder: Int = 0
 )
 
+@Serializable
+data class AtsReport(
+    val id: Long = 0,
+    val resumeVersionId: Long,
+    val jobDescriptionId: Long,
+    val overallScore: Int,
+    val matchPercentage: Int,
+    val matchedKeywords: List<String> = emptyList(),
+    val missingKeywords: List<String> = emptyList(),
+    val sectionScores: Map<String, Int> = emptyMap(),
+    val optimizationTips: List<OptimizationTip> = emptyList(),
+    val dateGenerated: Long = System.currentTimeMillis()
+)
+
+@Serializable
+data class OptimizationTip(
+    val category: String,
+    val description: String,
+    val priority: String = "MEDIUM" // "HIGH", "MEDIUM", "LOW"
+)
+
+@Serializable
+data class JobDescription(
+    val id: Long = 0,
+    val companyName: String? = null,
+    val jobTitle: String? = null,
+    val rawText: String,
+    val extractedSkills: List<String> = emptyList(),
+    val dateCreated: Long = System.currentTimeMillis()
+)
+
+@Deprecated("Use AtsReport")
 @Serializable
 data class ResumeAnalysis(
     val overallScore: Int,
@@ -45,6 +90,7 @@ data class ResumeAnalysis(
     val matchSummary: String = ""
 )
 
+@Deprecated("Use AtsReport")
 @Serializable
 data class AtsResult(
     val id: Long = 0,
@@ -60,31 +106,84 @@ data class AtsResult(
 @Serializable
 data class CoverLetter(
     val id: Long = 0,
+    val resumeVersionId: Long?,
+    val jobId: Long?,
+    val recruiterId: String?,
+    val primaryVersionId: Long? = null,
     val company: String,
     val role: String,
-    val content: String,
     val dateCreated: Long = System.currentTimeMillis(),
-    val tone: LetterTone = LetterTone.PROFESSIONAL
+    val versions: List<CoverLetterVersion> = emptyList()
+)
+
+@Serializable
+data class CoverLetterVersion(
+    val id: Long = 0,
+    val coverLetterId: Long,
+    val versionName: String,
+    val templateId: String = "modern",
+    val writingStyle: String = "PROFESSIONAL",
+    val state: String = "DRAFT",
+    val lastModified: Long = System.currentTimeMillis(),
+    val sections: List<CoverLetterSection> = emptyList()
+)
+
+@Serializable
+data class CoverLetterSection(
+    val id: Long = 0,
+    val versionId: Long = 0,
+    val sectionType: String,
+    val title: String,
+    val content: String,
+    val sectionOrder: Int = 0
 )
 
 @Serializable
 data class InterviewSession(
     val id: String,
+    val resumeVersionId: Long? = null,
+    val jobId: Long? = null,
     val targetRole: String,
+    val type: String = "BEHAVIORAL",
     val companyName: String = "",
     val difficulty: InterviewDifficulty = InterviewDifficulty.MEDIUM,
     val messages: List<InterviewMessage> = emptyList(),
+    val questions: List<InterviewQuestion> = emptyList(),
     val feedback: InterviewFeedback? = null,
     val startTime: Long = System.currentTimeMillis(),
     val isCompleted: Boolean = false
 )
 
 @Serializable
+data class InterviewQuestion(
+    val id: Long = 0,
+    val text: String,
+    val category: String,
+    val difficulty: String,
+    val expectedKeyPoints: List<String> = emptyList(),
+    val idealAnswer: String? = null
+)
+
+@Serializable
 data class InterviewMessage(
     val id: String,
+    val sessionId: String,
     val sender: MessageSender,
     val text: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val evaluation: InterviewEvaluation? = null
+)
+
+@Serializable
+data class InterviewEvaluation(
+    val id: Long = 0,
+    val messageId: String,
+    val scoreClarity: Int,
+    val scoreAccuracy: Int,
+    val scoreTone: Int,
+    val starMethodScore: Int? = null,
+    val feedback: String,
+    val improvementTips: List<String> = emptyList()
 )
 
 @Serializable
@@ -124,11 +223,56 @@ data class JobListing(
 data class Company(
     val id: String,
     val name: String,
+    val domain: String? = null,
     val logoUrl: String? = null,
     val websiteUrl: String? = null,
     val location: String = "",
     val industry: String = "",
-    val description: String = ""
+    val description: String = "",
+    val headquarters: String? = null,
+    val socialLinks: Map<String, String> = emptyMap()
+)
+
+@Serializable
+data class Recruiter(
+    val id: String,
+    val name: String,
+    val companyId: String,
+    val title: String? = null,
+    val department: String? = null,
+    val linkedinUrl: String? = null,
+    val contacts: List<RecruiterContact> = emptyList()
+)
+
+@Serializable
+data class RecruiterContact(
+    val id: String,
+    val recruiterId: String,
+    val email: String,
+    val confidence: Int = 0,
+    val isVerified: Boolean = false,
+    val lastUpdated: Long = System.currentTimeMillis()
+)
+
+@Serializable
+data class OutreachDraft(
+    val id: Long = 0,
+    val recruiterId: String,
+    val jobId: String,
+    val type: String, // "COLD_EMAIL", "LINKEDIN_REQUEST", etc.
+    val content: String,
+    val dateCreated: Long = System.currentTimeMillis()
+)
+
+@Serializable
+data class CommunicationHistory(
+    val id: Long = 0,
+    val recruiterId: String,
+    val messageType: String,
+    val content: String,
+    val sentDate: Long,
+    val status: String, // "DRAFT", "SENT", "RESPONDED"
+    val notes: String? = null
 )
 
 @Serializable

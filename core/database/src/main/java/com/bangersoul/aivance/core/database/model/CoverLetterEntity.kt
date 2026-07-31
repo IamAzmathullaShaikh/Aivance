@@ -6,10 +6,12 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "cover_letters")
 data class CoverLetterEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
+    val resumeVersionId: Long?,
+    val jobId: Long?,
+    val recruiterId: String?,
+    val primaryVersionId: Long? = null,
     val company: String,
     val role: String,
-    val content: String,
-    val dateCreated: Long,
-    val tone: String
+    val dateCreated: Long = System.currentTimeMillis()
 )

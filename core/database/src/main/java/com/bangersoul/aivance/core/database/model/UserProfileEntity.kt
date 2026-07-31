@@ -13,9 +13,13 @@ data class UserProfileEntity(
     val id: String,
     val name: String,
     val email: String,
-    val currentRole: String?,
-    val skills: List<String>,
-    val targetRole: String?,
-    val bio: String?,
-    val profilePictureUrl: String?
+    val phone: String? = null,
+    val currentRole: String? = null,
+    val skills: List<String> = emptyList(),
+    val targetRole: String? = null,
+    val bio: String? = null,
+    val location: String? = null,
+    val experienceYears: Int = 0,
+    val profilePictureUrl: String? = null,
+    val createdDate: Long = System.currentTimeMillis()
 )

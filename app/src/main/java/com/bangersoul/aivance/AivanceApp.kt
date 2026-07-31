@@ -7,6 +7,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.WorkManager
 import com.bangersoul.aivance.core.data.telemetry.StructuredTimberTree
 import com.bangersoul.aivance.core.domain.telemetry.TelemetryEngine
+import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import com.bangersoul.aivance.worker.AnalyticsUploadWorker
 import com.bangersoul.aivance.worker.CacheCleanupWorker
 import com.bangersoul.aivance.worker.DatabaseCleanupWorker
@@ -15,6 +16,9 @@ import com.bangersoul.aivance.worker.JobSyncWorker
 import com.bangersoul.aivance.worker.ProviderRefreshWorker
 import com.bangersoul.aivance.worker.SyncWorker
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -36,6 +40,9 @@ class AivanceApp : Application(), Configuration.Provider {
     @Inject
     lateinit var telemetryEngine: TelemetryEngine
 
+    @Inject
+    lateinit var providerManager: ProviderManager
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -47,6 +54,12 @@ class AivanceApp : Application(), Configuration.Provider {
         initializeLogging()
         checkEnvironmentIntegrity()
         scheduleAllPeriodicWorkers()
+
+        // Initialize AI/Job providers in background
+        val scope = kotlinx.coroutines.MainScope()
+        scope.launch(Dispatchers.IO + SupervisorJob()) {
+            providerManager.initializeAll()
+        }
     }
 
     /**

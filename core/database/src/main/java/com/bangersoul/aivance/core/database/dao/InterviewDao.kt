@@ -6,9 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import com.bangersoul.aivance.core.database.model.InterviewMessageEntity
-import com.bangersoul.aivance.core.database.model.InterviewSessionEntity
-import com.bangersoul.aivance.core.database.model.InterviewSessionWithMessages
+import com.bangersoul.aivance.core.database.model.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -19,7 +17,7 @@ interface InterviewDao {
 
     @Transaction
     @Query("SELECT * FROM interview_sessions WHERE id = :sessionId")
-    fun getInterviewSessionWithMessages(sessionId: Long): Flow<InterviewSessionWithMessages?>
+    suspend fun getInterviewSessionWithMessagesById(sessionId: Long): InterviewSessionWithMessages?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: InterviewSessionEntity): Long
@@ -27,21 +25,20 @@ interface InterviewDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: InterviewMessageEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessages(messages: List<InterviewMessageEntity>)
-
     @Delete
     suspend fun deleteSession(session: InterviewSessionEntity)
 
-    @Transaction
-    suspend fun deleteSessionAndMessages(sessionId: Long) {
-        deleteMessagesForSession(sessionId)
-        deleteSessionById(sessionId)
-    }
+    // Questions
+    @Query("SELECT * FROM interview_questions WHERE sessionId = :sessionId")
+    fun getQuestionsForSession(sessionId: Long): Flow<List<InterviewQuestionEntity>>
 
-    @Query("DELETE FROM interview_messages WHERE sessionId = :sessionId")
-    suspend fun deleteMessagesForSession(sessionId: Long)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertQuestion(question: InterviewQuestionEntity): Long
 
-    @Query("DELETE FROM interview_sessions WHERE id = :sessionId")
-    suspend fun deleteSessionById(sessionId: Long)
+    // Evaluations
+    @Query("SELECT * FROM interview_evaluations WHERE messageId = :messageId")
+    suspend fun getEvaluationForMessage(messageId: Long): InterviewEvaluationEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEvaluation(evaluation: InterviewEvaluationEntity): Long
 }

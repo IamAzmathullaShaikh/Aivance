@@ -43,7 +43,12 @@ class GenerateResumeSummaryUseCase @Inject constructor(
                 null -> throw Exception("Resume not found.")
             }
 
-            generateSummary(resume.rawText, input.maxLength)
+            val text = resume.rawText ?: throw Exception("Resume has no text content.")
+            if (text.isBlank()) {
+                throw Exception("Resume has no text content.")
+            }
+
+            generateSummary(text, input.maxLength)
         }
     }
 

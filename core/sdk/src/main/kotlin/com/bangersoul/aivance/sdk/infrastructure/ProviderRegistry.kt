@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.sdk.infrastructure
 
 import com.bangersoul.aivance.sdk.api.AIProvider
+import com.bangersoul.aivance.sdk.api.EnrichmentProvider
 import com.bangersoul.aivance.sdk.api.JobProvider
 import com.bangersoul.aivance.sdk.core.BaseProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
@@ -17,7 +18,8 @@ import javax.inject.Singleton
 @Singleton
 class ProviderRegistry @Inject constructor(
     aiProviders: Set<@JvmSuppressWildcards AIProvider>,
-    jobProviders: Set<@JvmSuppressWildcards JobProvider>
+    jobProviders: Set<@JvmSuppressWildcards JobProvider>,
+    enrichmentProviders: Set<@JvmSuppressWildcards EnrichmentProvider>
 ) {
 
     private val providers = ConcurrentHashMap<String, BaseProvider>()
@@ -25,6 +27,7 @@ class ProviderRegistry @Inject constructor(
     init {
         aiProviders.forEach { register(it) }
         jobProviders.forEach { register(it) }
+        enrichmentProviders.forEach { register(it) }
     }
 
     /**

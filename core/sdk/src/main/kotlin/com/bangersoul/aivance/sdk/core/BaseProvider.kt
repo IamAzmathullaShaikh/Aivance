@@ -1,5 +1,8 @@
 package com.bangersoul.aivance.sdk.core
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -15,21 +18,26 @@ abstract class BaseProvider(
     val metadata: ProviderMetadata,
     private val capabilities: Set<ProviderCapability>
 ) {
-    private val _status = AtomicReference(ProviderStatus.Uninitialized)
-    
+    private val _status = MutableStateFlow(ProviderStatus.Uninitialized)
+
     /**
      * Current lifecycle status of the provider.
      */
     val status: ProviderStatus
-        get() = _status.get()
+        get() = _status.value
+
+    /**
+     * Observable stream of status changes.
+     */
+    val statusFlow: StateFlow<ProviderStatus> = _status.asStateFlow()
 
     /**
      * Updates the provider status in a thread-safe manner.
-     * 
+     *
      * @param newStatus The new status to transition to.
      */
     fun updateStatus(newStatus: ProviderStatus) {
-        _status.set(newStatus)
+        _status.value = newStatus
     }
 
     /**

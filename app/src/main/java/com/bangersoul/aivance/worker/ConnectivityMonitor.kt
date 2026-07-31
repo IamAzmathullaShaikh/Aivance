@@ -70,14 +70,18 @@ class ConnectivityMonitor @Inject constructor(
      */
     fun observeNetworkState(): Flow<NetworkState> = callbackFlow {
         val currentState = checkCurrentNetworkState()
+        _networkState.value = currentState
         trySend(currentState)
 
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                trySend(checkCurrentNetworkState())
+                val state = checkCurrentNetworkState()
+                _networkState.value = state
+                trySend(state)
             }
 
             override fun onLost(network: Network) {
+                _networkState.value = NetworkState.UNAVAILABLE
                 trySend(NetworkState.UNAVAILABLE)
             }
 
@@ -90,6 +94,7 @@ class ConnectivityMonitor @Inject constructor(
                         NetworkState.UNMETERED
                     else -> NetworkState.METERED
                 }
+                _networkState.value = state
                 trySend(state)
             }
         }

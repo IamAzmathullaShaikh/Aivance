@@ -1,7 +1,5 @@
 package com.bangersoul.aivance.core.data.repository
 
-import com.bangersoul.aivance.core.common.result.Result
-import com.bangersoul.aivance.core.data.mapper.toDomain
 import com.bangersoul.aivance.core.database.dao.CompanyDao
 import com.bangersoul.aivance.core.database.dao.JobDao
 import com.bangersoul.aivance.core.database.dao.SearchDao
@@ -20,7 +18,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -53,32 +50,37 @@ class JobRepositoryIntegrationTest {
         )
     }
 
+    private fun sampleCompany() = CompanyEntity(
+        id = 1, name = "Tech Corp", domain = null,
+        logoUrl = null, website = null, industry = "Technology", headquarters = null
+    )
+
+    private fun sampleJob(
+        id: Long,
+        title: String,
+        location: String = "Remote",
+        description: String = "Build apps",
+        sourceProviderId: String = "PROVIDER"
+    ) = JobEntity(
+        id = id, companyId = 1, title = title,
+        location = location, type = "FULL_TIME", remoteType = "ON_SITE",
+        experienceLevel = "SENIOR", salaryMin = 150_000.0, salaryMax = 200_000.0,
+        currency = "USD", description = description,
+        descriptionHtml = null, url = "https://tech.com/job/$id",
+        sourceProviderId = sourceProviderId, postedDate = System.currentTimeMillis()
+    )
+
     @Test
     fun `getJobs maps entities to domain correctly`() = runBlocking {
-        val companyEntity = CompanyEntity(
-            id = 1, name = "Tech Corp", logoUrl = null, website = null, industry = "Technology"
-        )
+        val companyEntity = sampleCompany()
         val sampleEntities = listOf(
-            JobEntity(
-                id = 1, companyId = 1, title = "Android Engineer",
-                location = "Mountain View", type = "FULL_TIME",
-                salary = "$150k-$200k", description = "Build Android apps",
-                postedDate = System.currentTimeMillis()
-            ),
-            JobEntity(
-                id = 2, companyId = 1, title = "iOS Engineer",
-                location = "Cupertino", type = "FULL_TIME",
-                salary = "$160k-$210k", description = "Build iOS apps",
-                postedDate = System.currentTimeMillis()
-            )
+            sampleJob(1, "Android Engineer", location = "Mountain View"),
+            sampleJob(2, "iOS Engineer", location = "Cupertino")
         )
 
         every { mockJobDao.getJobsWithDetails() } returns flowOf(
             sampleEntities.map { entity ->
-                JobWithDetails(
-                    job = entity,
-                    company = companyEntity
-                )
+                JobWithDetails(job = entity, company = companyEntity)
             }
         )
 
@@ -113,15 +115,8 @@ class JobRepositoryIntegrationTest {
 
     @Test
     fun `getApplications maps tracker entities correctly`() = runBlocking {
-        val companyEntity = CompanyEntity(
-            id = 1, name = "Tech Corp", logoUrl = null, website = null, industry = "Technology"
-        )
-        val jobEntity = JobEntity(
-            id = 1, companyId = 1, title = "Android Engineer",
-            location = "Remote", type = "FULL_TIME",
-            salary = "$150k", description = "Build apps",
-            postedDate = System.currentTimeMillis()
-        )
+        val companyEntity = sampleCompany()
+        val jobEntity = sampleJob(1, "Android Engineer")
         val appEntity = JobApplicationEntity(
             id = 1, jobId = 1, status = "INTERVIEWING",
             dateApplied = System.currentTimeMillis(),
@@ -165,7 +160,7 @@ class JobRepositoryIntegrationTest {
 
     @Test
     fun `getJobById returns null when not found`() = runBlocking {
-        coEvery { mockJobDao.getJobById(any()) } returns null
+        coEvery { mockJobDao.getJobWithDetailsById(any()) } returns null
         val job = localDataSource.getJobById(999L)
         assertEquals(null, job)
     }

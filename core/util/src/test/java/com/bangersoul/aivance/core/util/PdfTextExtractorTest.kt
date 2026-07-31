@@ -11,7 +11,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28, 34, 35])
+// API 35 is not resolvable by the bundled Robolectric (UnknownSdk); the PDFBox path
+// exercised here is the fallback used on all devices below Android 15.
+@Config(sdk = [28, 34])
 class PdfTextExtractorTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

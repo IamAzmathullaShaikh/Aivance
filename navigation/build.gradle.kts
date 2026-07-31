@@ -21,6 +21,8 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:datastore"))
+    implementation(project(":core:sdk"))
     implementation(project(":feature:dashboard"))
     implementation(project(":feature:resume"))
     implementation(project(":feature:ats"))
@@ -29,6 +31,9 @@ dependencies {
     implementation(project(":feature:jobs"))
     implementation(project(":feature:profile"))
     implementation(project(":feature:tracker"))
+    implementation(project(":feature:recruiter"))
+    implementation(project(":feature:analytics"))
+    implementation(project(":feature:assistant"))
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.compose.adaptive.navigation3)

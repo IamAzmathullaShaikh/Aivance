@@ -1,18 +1,29 @@
 package com.bangersoul.aivance.core.datastore
 
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import kotlinx.coroutines.test.runTest
 
-@RunWith(RobolectricTestRunner::class)
 class UserPreferencesSerializerTest {
 
-    private val cryptoManager = CryptoManager()
+    // The production CryptoManager is backed by the AndroidKeyStore provider, which cannot
+    // generate keys under Robolectric. Substitute a reversible pass-through double so the
+    // serializer's wire format (JSON -> encrypt -> decrypt -> JSON) is what gets tested.
+    private val cryptoManager = mockk<CryptoManager>().apply {
+        every { encrypt(any(), any()) } answers {
+            secondArg<OutputStream>().write(firstArg<ByteArray>())
+        }
+        every { decrypt(any()) } answers {
+            firstArg<InputStream>().readBytes()
+        }
+    }
     private val serializer = UserPreferencesSerializer(cryptoManager)
 
     @Test

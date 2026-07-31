@@ -37,6 +37,7 @@ include(":core:designsystem")
 include(":core:sdk")
 include(":core:ai-providers")
 include(":core:job-providers")
+include(":core:enrichment-providers")
 
 // Feature modules
 include(":feature:dashboard")
@@ -47,6 +48,9 @@ include(":feature:tracker")
 include(":feature:interview")
 include(":feature:jobs")
 include(":feature:profile")
+include(":feature:recruiter")
+include(":feature:analytics")
+include(":feature:assistant")
 
 // Navigation module
 include(":navigation")

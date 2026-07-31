@@ -1,55 +1,114 @@
 package com.bangersoul.aivance.core.data.repository
 
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
-import androidx.paging.PagingData
-import androidx.paging.map
 import com.bangersoul.aivance.core.common.enums.JobSortOrder
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
-import com.bangersoul.aivance.core.common.model.SearchFilter
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.runCatchingCore
+import com.bangersoul.aivance.core.data.job.JobNormalizer
 import com.bangersoul.aivance.core.data.mapper.toDomain
-import com.bangersoul.aivance.core.data.source.JobLocalDataSource
+import com.bangersoul.aivance.core.data.mapper.toEntity
+import com.bangersoul.aivance.core.database.dao.CompanyDao
 import com.bangersoul.aivance.core.database.dao.JobDao
+import com.bangersoul.aivance.core.database.model.CompanyEntity
+import com.bangersoul.aivance.core.database.model.SavedJobEntity
+import com.bangersoul.aivance.core.database.model.ViewedJobEntity
 import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.sdk.api.JobProvider
-import com.bangersoul.aivance.sdk.core.ProviderCapability
-import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
+import com.bangersoul.aivance.sdk.infrastructure.ProviderRegistry
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class JobRepositoryImpl @Inject constructor(
-    private val localDataSource: JobLocalDataSource,
     private val jobDao: JobDao,
-    private val providerManager: ProviderManager
+    private val companyDao: CompanyDao,
+    private val providerRegistry: ProviderRegistry,
+    private val normalizer: JobNormalizer
 ) : JobRepository {
 
-    override fun searchJobs(query: String, filter: SearchFilter): Flow<PagingData<JobListing>> {
-        val provider = providerManager.getBestProviderFor(ProviderCapability.JobSearch) as? JobProvider
-
-        return Pager(
-            config = PagingConfig(pageSize = 20),
-            pagingSourceFactory = { jobDao.getJobsPagingSource() }
-        ).flow.map { pagingData ->
-            pagingData.map { it.toDomain() }
+    override fun getJobs(): Flow<CoreResult<List<JobListing>>> {
+        return jobDao.getJobsWithDetails().map { entities ->
+            runCatchingCore { entities.map { it.toDomain() } }
         }
     }
 
-    override fun getJobById(id: String): Flow<CoreResult<JobListing>> {
-        return localDataSource.getJobs().map { jobs ->
-            runCatchingCore { jobs.find { it.id == id } ?: throw Exception("Job not found") }
+    override suspend fun searchJobs(
+        filter: JobSearchFilter,
+        sortOrder: JobSortOrder
+    ): CoreResult<List<JobListing>> = coroutineScope {
+        runCatchingCore {
+            val providers = providerRegistry.getAllProviders()
+                .filterIsInstance<JobProvider>()
+                .filter { it.status == com.bangersoul.aivance.sdk.core.ProviderStatus.Active ||
+                           it.status == com.bangersoul.aivance.sdk.core.ProviderStatus.Ready }
+
+            val deferredResults = providers.map { provider ->
+                async {
+                    provider.searchJobs(filter, sortOrder, 1).let { result ->
+                        when (result) {
+                            is Result.Success -> result.data.map { normalizer.normalize(provider.metadata.id, it) }
+                            is Result.Failure -> emptyList()
+                        }
+                    }
+                }
+            }
+
+            val aggregated = deferredResults.awaitAll().flatten()
+
+            // Cache in background
+            aggregated.forEach { job ->
+                val companyId = companyDao.insertCompany(CompanyEntity(
+                    name = job.company,
+                    logoUrl = job.companyLogoUrl,
+                    website = null,
+                    industry = null,
+                    domain = null,
+                    headquarters = null,
+                    socialLinks = emptyMap()
+                ))
+                jobDao.insertJob(job.toEntity(companyId))
+            }
+
+            aggregated
         }
     }
 
-    private fun SearchFilter.toJobSearchFilter(): JobSearchFilter {
-        return JobSearchFilter(
-            query = keywords,
-            location = location,
-            minSalary = minSalary?.toDouble(),
-            maxSalary = maxSalary?.toDouble()
-        )
+    override suspend fun getJobById(id: String): CoreResult<JobListing> = runCatchingCore {
+        val longId = id.toLongOrNull() ?: throw Exception("Invalid ID")
+        jobDao.getJobWithDetailsById(longId)?.toDomain() ?: throw Exception("Job not found")
+    }
+
+    override fun getSavedJobs(): Flow<CoreResult<List<JobListing>>> {
+        return jobDao.getJobsWithDetails().map { allJobs ->
+            val savedIds = jobDao.getSavedJobIds().firstOrNull() ?: emptyList()
+            runCatchingCore {
+                allJobs.filter { savedIds.contains(it.job.id) }.map { it.toDomain() }
+            }
+        }
+    }
+
+    override suspend fun toggleBookmark(jobId: String): CoreResult<Boolean> = runCatchingCore {
+        val id = jobId.toLongOrNull() ?: throw Exception("Invalid ID")
+        val isSaved = jobDao.isJobSaved(id)
+        if (isSaved) {
+            jobDao.deleteSavedJob(SavedJobEntity(id))
+            false
+        } else {
+            jobDao.insertSavedJob(SavedJobEntity(id))
+            true
+        }
+    }
+
+    override suspend fun markAsViewed(jobId: String): CoreResult<Unit> = runCatchingCore {
+        val id = jobId.toLongOrNull() ?: throw Exception("Invalid ID")
+        jobDao.insertViewedJob(ViewedJobEntity(id))
     }
 }

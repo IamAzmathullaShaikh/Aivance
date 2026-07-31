@@ -1,8 +1,8 @@
 package com.bangersoul.aivance.core.domain.usecase.coverletter
 
 import com.bangersoul.aivance.core.common.model.CoverLetter
+import com.bangersoul.aivance.core.common.model.CoverLetterVersion
 import com.bangersoul.aivance.core.common.result.CoreResult
-import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.ValidationError
 import com.bangersoul.aivance.core.common.result.runCatchingCore
@@ -24,11 +24,6 @@ enum class ExportLetterFormat {
 
 /**
  * Exports a cover letter in the specified format.
- *
- * Business rules:
- * - Cover letter must exist.
- * - Supports TXT, Markdown, and plain text formats.
- * - Exported content includes company name, role, and generated text.
  */
 class ExportCoverLetterUseCase @Inject constructor(
     private val coverLetterRepository: CoverLetterRepository
@@ -47,37 +42,39 @@ class ExportCoverLetterUseCase @Inject constructor(
                 null -> throw Exception("Cover letter not found.")
             }
 
+            val version = letter.versions.firstOrNull() ?: throw Exception("No versions found")
+
             when (input.format) {
-                ExportLetterFormat.TXT -> exportAsText(letter)
-                ExportLetterFormat.MARKDOWN -> exportAsMarkdown(letter)
-                ExportLetterFormat.PLAIN_TEXT -> letter.content
+                ExportLetterFormat.TXT -> exportAsText(letter, version)
+                ExportLetterFormat.MARKDOWN -> exportAsMarkdown(letter, version)
+                ExportLetterFormat.PLAIN_TEXT -> version.sections.joinToString("\n\n") { it.content }
             }
         }
     }
 
-    private fun exportAsText(letter: CoverLetter): String {
+    private fun exportAsText(letter: CoverLetter, version: CoverLetterVersion): String {
         return buildString {
             appendLine("=== Cover Letter ===")
             appendLine("Company: ${letter.company}")
             appendLine("Position: ${letter.role}")
-            appendLine("Tone: ${letter.tone.name}")
+            appendLine("Style: ${version.writingStyle}")
             appendLine("Date: ${java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault()).format(java.util.Date(letter.dateCreated))}")
             appendLine()
-            appendLine(letter.content)
+            version.sections.forEach { appendLine(it.content); appendLine() }
         }
     }
 
-    private fun exportAsMarkdown(letter: CoverLetter): String {
+    private fun exportAsMarkdown(letter: CoverLetter, version: CoverLetterVersion): String {
         return buildString {
             appendLine("# Cover Letter")
             appendLine()
             appendLine("**Company:** ${letter.company}")
             appendLine("**Position:** ${letter.role}")
-            appendLine("**Tone:** ${letter.tone.name}")
+            appendLine("**Style:** ${version.writingStyle}")
             appendLine()
             appendLine("---")
             appendLine()
-            appendLine(letter.content)
+            version.sections.forEach { appendLine(it.content); appendLine() }
         }
     }
 }

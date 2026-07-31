@@ -1,0 +1,237 @@
+╭─── Claude Code v2.1.220 ─────────────────────────────────────────────────────╮
+│                                               │ Tips for getting started     │
+│                 Welcome back!                 │ Run /init to create a CLAUD… │
+│                                               │ ──────────────────────────── │
+│                    ▐▛███▜▌                    │ What's new                   │
+│                   ▝▜█████▛▘                   │ Bug fixes and reliability i… │
+│                     ▘▘ ▝▝                     │ Added Claude Opus 5 (`claud… │
+│                                               │ Added `sandbox.network.stri… │
+│   nemotron-3-ultra-free · API Usage Billing   │ /release-notes for more      │
+│              D:\Projects\Aivance              │                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+❯ /code-review                                                                  
+  ⎿  Running in the background as @code-review
+
+❯ /code-review                                                                  
+  ⎿  Based on my comprehensive code review of the changes, here are the findings:
+
+     [
+       {
+         "file": "core/sdk/src/main/kotlin/com/bangersoul/aivance/sdk/infrastructure/ProviderRegistry.kt",
+         "line": 25,
+         "summary": "AI/Job providers registered but never initialized - lifecycle hooks (onInitialize/onStart) never called",
+         "failure_scenario": "TextGenerationServiceImpl.findAvailableProvider() filters for ProviderStatus.Ready, but providers remain in Uninitialized state forever because no component calls onInitialize() or onStart(). All AI text generation fails with 'No AI provider configured'."
+       },
+       {
+         "file": "core/job-providers/src/main/kotlin/com/bangersoul/aivance/job/di/JobProvidersModule.kt",
+         "line": 61,
+         "summary": "Hardcoded placeholder API keys/secrets instead of reading from configuration",
+         "failure_scenario": "LinkedInProvider('LINKEDIN_API_KEY'), IndeedProvider('INDEED_API_KEY'), GreenhouseProvider('GREENHOUSE_TOKEN'), LeverProvider('LEVER_COMPANY_ID') use literal strings as credentials. All job search API calls will fail with 401/403 authentication errors."
+       },
+       {
+         "file": "core/job-providers/src/test/java/com/bangersoul/aivance/job/apify/ApifyJobProviderTest.kt",
+         "line": 45,
+         "summary": "ApifyJobProviderTest doesn't test ApifyJobProvider - tests LinkedInProvider and IndeedProvider instead",
+         "failure_scenario": "Test class named ApifyJobProviderTest with test 'Apify provider lifecycle transitions correctly' actually instantiates LinkedInProvider and IndeedProvider. ApifyJobProvider has zero test coverage for its lifecycle."
+       },
+       {
+         "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/service/TextGenerationServiceImpl.kt",
+         "line": 37,
+         "summary": "findAvailableProvider() returns first Ready AIProvider but doesn't prefer user-configured/default provider",
+         "failure_scenario": "If multiple AI providers are configured (e.g., OpenAI + Gemini + Claude), the first one in the iteration order (non-deterministic Set iteration) becomes the active provider. User's preferred provider setting is ignored."
+       },
+       {
+         "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/service/TextGenerationServiceImpl.kt",
+         "line": 23,
+         "summary": "No test coverage for TextGenerationServiceImpl - critical component used by 3 feature modules",
+         "failure_scenario": "ResumeRepositoryImpl, CoverLetterRepositoryImpl, and RoadmapRepositoryImpl all depend on TextGenerationService. Any regression in provider selection, error handling, or JSON parsing goes undetected."
+       },
+       {
+         "file": "app/build.gradle.kts",
+         "line": 90,
+         "summary": "core:job-providers module added to app dependencies but no feature module consumes JobProvider implementations",
+         "failure_scenario": "feature:jobs uses mock JobSearchRepositoryImpl with hardcoded job listings. The 6 real job providers (Greenhouse, Lever, LinkedIn, Indeed, RemoteOK, Remotive) are registered in DI but never injected or used. Dead code increases build time and binary size."
+       },
+       {
+         "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/service/TextGenerationServiceImpl.kt",
+         "line": 30,
+         "summary": "generateText() catches all exceptions but loses exception type information - wraps everything as DomainError",
+         "failure_scenario": "Network errors, rate limits, auth failures from AIProvider.generateText() all become generic DomainError('Text generation failed: ...'). Callers can't distinguish retryable errors (rate limit, network) from permanent failures (auth, bad request)."
+       },
+       {
+         "file": "core/job-providers/src/main/kotlin/com/bangersoul/aivance/job/greenhouse/GreenhouseProvider.kt",
+         "line": 49,
+         "summary": "executeSearch() throws Exception on API failure instead of returning Result.Failure",
+         "failure_scenario": "GreenhouseProvider.executeSearch() throws Exception('Greenhouse API failed: ${response.code()}') on non-2xx responses. Callers expecting Result<List<JobListing>> will crash instead of handling error gracefully. Other providers (e.g., ApifyJobProvider) correctly return empty list or Result.Failure."
+       },
+       {
+         "file": "core/ai-providers/src/main/kotlin/com/bangersoul/aivance/ai/anthropic/ClaudeProvider.kt",
+         "line": 118,
+         "summary": "Potential NPE in streamChat() - response.body() nullable but used without null check before .source()",
+         "failure_scenario": "If API returns 2xx but empty body, response.body() is null. Code does 'val responseBody = response.body() ?: throw Exception(\"Empty response body\")' then 'responseBody.source()' - but the throw is inside the isSuccessful block, so null body on success throws unhandled exception."
+       },
+       {
+         "file": "core/data/src/main/java/com/bangersoul/aivance/core/data/di/DataModule.kt",
+         "line": 34,
+         "summary": "TextGenerationServiceImpl bound as Singleton but depends on ProviderRegistry which may not have initialized providers yet",
+         "failure_scenario": "Hilt creates TextGenerationServiceImpl singleton at app startup. ProviderRegistry init block registers AIProviders from multibinding, but providers' onInitialize() is never called (Finding #1). Service works but always returns 'No AI provider configured'."
+       }
+     ]
+
+● Agent "/code-review" finished · 4m 10s
+
+● Agent "Angle B: Removed behavior auditor" finished · 17m 17s
+
+  Thought for 8s (ctrl+o to expand)
+
+● The code review has completed with 10 findings across the codebase. Let me
+  summarize and prioritize them:
+
+  ---
+  🔴 Critical (Blockers)
+
+  ┌─────┬───────────────────────────────┬───────────────────────────────────┐
+  │  #  │             Issue             │              Impact               │
+  ├─────┼───────────────────────────────┼───────────────────────────────────┤
+  │     │ AI/Job providers never        │ All AI text generation fails with │
+  │ 1   │ initialized                   │  "No AI provider configured" —    │
+  │     │ (ProviderRegistry.kt:25)      │ onInitialize()/onStart() never    │
+  │     │                               │ called                            │
+  ├─────┼───────────────────────────────┼───────────────────────────────────┤
+  │     │ Hardcoded placeholder API     │ All job search APIs return        │
+  │ 2   │ keys                          │ 401/403 — LinkedIn, Indeed,       │
+  │     │ (JobProvidersModule.kt:61)    │ Greenhouse, Lever use literal     │
+  │     │                               │ strings                           │
+  └─────┴───────────────────────────────┴───────────────────────────────────┘
+
+  ---
+  🟠 High (Architecture & Correctness)
+
+  ┌─────┬─────────────────────────────────────┬─────────────────────────────┐
+  │  #  │                Issue                │           Impact            │
+  ├─────┼─────────────────────────────────────┼─────────────────────────────┤
+  │     │ Non-deterministic provider          │ User's preferred provider   │
+  │ 4   │ selection                           │ ignored; first Ready        │
+  │     │ (TextGenerationServiceImpl.kt:37)   │ provider in Set iteration   │
+  │     │                                     │ wins                        │
+  ├─────┼─────────────────────────────────────┼─────────────────────────────┤
+  │     │                                     │ All errors become generic   │
+  │ 7   │ Exception type info lost            │ DomainError — callers can't │
+  │     │ (TextGenerationServiceImpl.kt:30)   │  distinguish retryable vs   │
+  │     │                                     │ permanent failures          │
+  ├─────┼─────────────────────────────────────┼─────────────────────────────┤
+  │     │ GreenhouseProvider throws instead   │ Callers expecting           │
+  │ 8   │ of Result.Failure                   │ Result<List<JobListing>>    │
+  │     │ (GreenhouseProvider.kt:49)          │ crash on API errors         │
+  ├─────┼─────────────────────────────────────┼─────────────────────────────┤
+  │     │ Potential NPE in                    │ Empty 2xx response body     │
+  │ 9   │ ClaudeProvider.streamChat()         │ crashes with unhandled      │
+  │     │ (ClaudeProvider.kt:118)             │ exception                   │
+  └─────┴─────────────────────────────────────┴─────────────────────────────┘
+
+  ---
+  🟡 Medium (Test Coverage & Dead Code)
+
+  ┌─────┬────────────────────────────────────────┬──────────────────────────┐
+  │  #  │                 Issue                  │          Impact          │
+  ├─────┼────────────────────────────────────────┼──────────────────────────┤
+  │     │ ApifyJobProviderTest tests wrong       │ ApifyJobProvider has     │
+  │ 3   │ providers (ApifyJobProviderTest.kt:45) │ zero lifecycle test      │
+  │     │                                        │ coverage                 │
+  ├─────┼────────────────────────────────────────┼──────────────────────────┤
+  │     │ No tests for TextGenerationServiceImpl │ Critical component used  │
+  │ 5   │  (TextGenerationServiceImpl.kt:23)     │ by 3 feature modules —   │
+  │     │                                        │ regressions undetected   │
+  ├─────┼────────────────────────────────────────┼──────────────────────────┤
+  │     │ Job providers registered but unused    │ 6 real providers dead    │
+  │ 6   │ (app/build.gradle.kts:90)              │ code; feature:jobs uses  │
+  │     │                                        │ mock repository          │
+  └─────┴────────────────────────────────────────┴──────────────────────────┘
+
+  ---
+  🔵 Low (DI Timing)
+
+  ┌─────┬───────────────────────────────────┬───────────────────────────────┐
+  │  #  │               Issue               │            Impact             │
+  ├─────┼───────────────────────────────────┼───────────────────────────────┤
+  │     │ Singleton created before          │ Hilt creates service at       │
+  │ 10  │ providers initialized             │ startup; providers still      │
+  │     │ (DataModule.kt:34)                │ Uninitialized                 │
+  └─────┴───────────────────────────────────┴───────────────────────────────┘
+
+  ---
+  Suggested Fix Order
+
+  1. Fix #1 + #10 together — Add provider lifecycle initialization (call
+  onInitialize()/onStart() in ProviderRegistry or via Hilt OnAppCreate)
+  2. Fix #2 — Wire job provider credentials from UserPreferences / secure config
+  3. Fix #4 — Add user preference for default provider; respect it in
+  findAvailableProvider()
+  4. Fix #7 + #8 — Preserve exception types; make GreenhouseProvider return
+  Result.Failure
+  5. Fix #9 — Add null check before .source() in ClaudeProvider
+  6. Fix #3, #5 — Add proper tests
+  7. Fix #6 — Either wire real job providers into feature:jobs or remove dead
+  code
+
+  ---
+  Would you like me to:
+  - Start implementing fixes (I can create a task list and work through them)?
+  - Focus on a specific subset (e.g., just the critical blockers)?
+  - Review any finding in more detail first?
+
+✻ Cogitated for 20s
+
+● Agent "Angle A: Line-by-line diff scan for correctness bugs" finished · 24m 
+58s
+
+  Thought for 9s (ctrl+o to expand)
+
+● I see additional audit agents have completed with overlapping findings. Let me
+  consolidate:
+
+  ---
+  Consolidated Critical Issues
+
+  Issue: Providers never initialized (onInitialize/onStart never called)
+  Found By: Code Review #1
+  Location: ProviderRegistry.kt:25
+  ────────────────────────────────────────
+  Issue: Hardcoded placeholder API keys
+  Found By: Code Review #2, Diff Scan #3/4
+  Location: JobProvidersModule.kt:61,82
+  ────────────────────────────────────────
+  Issue: Wrong status check (Ready vs Active)
+  Found By: Diff Scan #1
+  Location: TextGenerationServiceImpl.kt:38
+  ────────────────────────────────────────
+  Issue: Singleton timing window before providers ready
+  Found By: Code Review #10, Diff Scan #6
+  Location: DataModule.kt:34
+  ────────────────────────────────────────
+  Issue: Exception info lost / Greenhouse throws
+  Found By: Code Review #7,8
+  Location: TextGenerationServiceImpl.kt:30, GreenhouseProvider.kt:49
+  ────────────────────────────────────────
+  Issue: NPE in ClaudeProvider
+  Found By: Code Review #9
+  Location: ClaudeProvider.kt:118
+  ────────────────────────────────────────
+  Issue: Circular dependency risk
+  Found By: Diff Scan #5
+  Location: job-providers/build.gradle.kts:26
+
+  ---
+  The user's question from earlier still stands — would you like me to:
+  1. Start fixing (I'll create a task list and work through critical blockers
+  first)?
+  2. Focus on a specific area?
+  3. Review any finding in more detail?
+
+  Just let me know how you'd like to proceed.
+
+✻ Cooked for 6m 33s
+
+※ recap: Goal: fix critical AI/job provider initialization bugs blocking all text generation and job search. Current task: reviewing10 audit findings. Next action: implement provider lifecycle initialization (call onInitialize/onStart) and wire real API keys from user preferences. (disable recaps in /config)

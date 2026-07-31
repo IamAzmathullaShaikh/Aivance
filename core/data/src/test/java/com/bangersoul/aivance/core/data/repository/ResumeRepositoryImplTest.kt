@@ -1,11 +1,13 @@
 package com.bangersoul.aivance.core.data.repository
 
+import android.content.Context
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.AtsResult
 import com.bangersoul.aivance.core.common.model.Resume
-import com.bangersoul.aivance.core.common.model.ResumeSection
+import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.getOrNull
+import com.bangersoul.aivance.core.data.resume.ResumeParser
 import com.bangersoul.aivance.core.data.source.ResumeLocalDataSource
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
@@ -24,19 +26,33 @@ import org.junit.Test
 class ResumeRepositoryImplTest {
 
     private lateinit var repository: ResumeRepositoryImpl
+    private val context: Context = mockk()
     private val localDataSource: ResumeLocalDataSource = mockk()
     private val providerManager: ProviderManager = mockk()
+    private val resumeParser: ResumeParser = mockk()
     private val mockAIProvider: AIProvider = mockk()
 
     @Before
     fun setUp() {
-        every { providerManager.getBestProviderFor(ProviderCapability.AI.Chat) } returns mockAIProvider
-        repository = ResumeRepositoryImpl(localDataSource, providerManager)
+        repository = ResumeRepositoryImpl(
+            context = context,
+            localDataSource = localDataSource,
+            providerManager = providerManager,
+            resumeParser = resumeParser
+        )
     }
+
+    private fun sampleResume(id: Long = 1L, fileName: String = "resume.pdf") = Resume(
+        id = id,
+        name = fileName.substringBeforeLast("."),
+        fileName = fileName,
+        fileUri = "",
+        rawText = "text"
+    )
 
     @Test
     fun `getResumes returns success with list of resumes`() = runTest {
-        val resumes = listOf(Resume(id = 1, fileName = "resume.pdf", fileUri = "", rawText = "text"))
+        val resumes = listOf(sampleResume())
         every { localDataSource.getResumes() } returns flowOf(resumes)
 
         repository.getResumes().test {
@@ -50,7 +66,7 @@ class ResumeRepositoryImplTest {
     @Test
     fun `getResumeById returns success when resume exists`() = runTest {
         val resumeId = 1L
-        val resumes = listOf(Resume(id = resumeId, fileName = "resume.pdf", fileUri = "", rawText = "text"))
+        val resumes = listOf(sampleResume(resumeId))
         every { localDataSource.getResumes() } returns flowOf(resumes)
 
         repository.getResumeById(resumeId).test {
@@ -66,40 +82,31 @@ class ResumeRepositoryImplTest {
         val resumeId = 1L
         every { localDataSource.getResumes() } returns flowOf(emptyList())
 
+        // runCatchingCore wraps every Throwable into Result.Failure.
         repository.getResumeById(resumeId).test {
             val result = awaitItem()
-            assertTrue(result is Result.Failure)
+            assertTrue(result.isFailure)
             assertEquals("Resume not found", (result as Result.Failure).error.message)
             awaitComplete()
         }
     }
 
     @Test
-    fun `insertResume calls localDataSource and returns id`() = runTest {
-        val resume = Resume(id = 1, fileName = "new.pdf", fileUri = "", rawText = "text")
-        coEvery { localDataSource.saveResume(any()) } returns Unit
+    fun `saveResume calls localDataSource and returns id`() = runTest {
+        val resume = sampleResume()
+        coEvery { localDataSource.saveResume(resume) } returns 1L
 
-        val result = repository.insertResume(resume)
-
-        assertTrue(result.isSuccess)
-        coVerify { localDataSource.saveResume(resume) }
-    }
-
-    @Test
-    fun `updateResume calls localDataSource`() = runTest {
-        val resume = Resume(id = 1, fileName = "updated.pdf", fileUri = "", rawText = "text")
-        coEvery { localDataSource.saveResume(any()) } returns Unit
-
-        val result = repository.updateResume(resume)
+        val result = repository.saveResume(resume)
 
         assertTrue(result.isSuccess)
+        assertEquals(1L, result.getOrNull())
         coVerify { localDataSource.saveResume(resume) }
     }
 
     @Test
     fun `deleteResume calls localDataSource when resume exists`() = runTest {
         val resumeId = 1L
-        val resume = Resume(id = resumeId, fileName = "delete.pdf", fileUri = "", rawText = "text")
+        val resume = sampleResume(resumeId)
         coEvery { localDataSource.getResumeById(resumeId) } returns resume
         coEvery { localDataSource.deleteResume(resume) } returns Unit
 
@@ -110,28 +117,28 @@ class ResumeRepositoryImplTest {
     }
 
     @Test
-    fun `updateSections updates resume with new sections`() = runTest {
-        val resumeId = 1L
-        val resume = Resume(id = resumeId, fileName = "resume.pdf", fileUri = "", rawText = "text")
-        val sections = listOf(ResumeSection("WORK", "Title", "Content"))
-        coEvery { localDataSource.getResumeById(resumeId) } returns resume
-        coEvery { localDataSource.saveResume(any()) } returns Unit
+    fun `getVersions returns versions from localDataSource`() = runTest {
+        val versions = listOf(ResumeVersion(resumeId = 1L, versionName = "Original Import"))
+        every { localDataSource.getVersionsForResume(1L) } returns flowOf(versions)
 
-        val result = repository.updateSections(resumeId, sections)
-
-        assertTrue(result.isSuccess)
-        coVerify { localDataSource.saveResume(resume.copy(sections = sections)) }
+        repository.getVersions(1L).test {
+            val result = awaitItem()
+            assertTrue(result is Result.Success)
+            assertEquals(versions, (result as Result.Success).data)
+            awaitComplete()
+        }
     }
 
     @Test
     fun `analyzeResume returns analysis from AI provider`() = runTest {
         val resumeId = 1L
-        val resume = Resume(id = resumeId, fileName = "resume.pdf", fileUri = "", rawText = "resume text")
-        val jobDescription = "job description"
-        coEvery { localDataSource.getResumeById(resumeId) } returns resume
+        val versionId = 1L
+        val version = ResumeVersion(id = versionId, resumeId = resumeId, versionName = "Original Import")
+        coEvery { localDataSource.getVersionsForResume(resumeId) } returns flowOf(listOf(version))
+        every { providerManager.getBestProviderFor(ProviderCapability.AI.Chat) } returns mockAIProvider
         coEvery { mockAIProvider.generateText(any()) } returns Result.Success("AI feedback")
 
-        val result = repository.analyzeResume(resumeId, jobDescription)
+        val result = repository.analyzeResume(resumeId, versionId, "job description")
 
         assertTrue(result.isSuccess)
         assertEquals(80, result.getOrNull()?.overallScore)

@@ -10,7 +10,7 @@ import javax.inject.Inject
 
 interface InterviewLocalDataSource {
     fun getSessions(): Flow<List<InterviewSession>>
-    fun getSessionById(id: Long): Flow<InterviewSession?>
+    suspend fun getSessionById(id: Long): InterviewSession?
     suspend fun saveSession(session: InterviewSession): Long
     suspend fun saveMessage(sessionId: Long, message: com.bangersoul.aivance.core.common.model.InterviewMessage): Long
     suspend fun deleteSession(id: Long)
@@ -26,8 +26,8 @@ class InterviewLocalDataSourceImpl @Inject constructor(
         }
     }
 
-    override fun getSessionById(id: Long): Flow<InterviewSession?> {
-        return interviewDao.getInterviewSessionWithMessages(id).map { it?.toDomain() }
+    override suspend fun getSessionById(id: Long): InterviewSession? {
+        return interviewDao.getInterviewSessionWithMessagesById(id)?.toDomain()
     }
 
     override suspend fun saveSession(session: InterviewSession): Long {
@@ -39,6 +39,9 @@ class InterviewLocalDataSourceImpl @Inject constructor(
     }
 
     override suspend fun deleteSession(id: Long) {
-        interviewDao.deleteSessionAndMessages(id)
+        val entity = interviewDao.getInterviewSessionWithMessagesById(id)
+        if (entity != null) {
+            interviewDao.deleteSession(entity.session)
+        }
     }
 }

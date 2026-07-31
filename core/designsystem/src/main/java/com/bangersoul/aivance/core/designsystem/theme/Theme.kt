@@ -3,63 +3,72 @@ package com.bangersoul.aivance.core.designsystem.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    onPrimary = DarkOnPrimary,
-    secondary = DarkSecondary,
-    onSecondary = DarkOnSecondary,
-    tertiary = DarkTertiary,
-    background = DarkBackground,
-    surface = DarkSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkSecondary,
-    error = DarkError,
-    outline = Zinc700,
-    outlineVariant = Zinc800
-)
+/**
+ * Theme mode — how the app resolves light vs dark.
+ */
+enum class ThemeMode {
+    SYSTEM,
+    LIGHT,
+    DARK,
+    AMOLED;
 
-private val LightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    onPrimary = LightOnPrimary,
-    secondary = LightSecondary,
-    onSecondary = LightOnSecondary,
-    tertiary = LightTertiary,
-    background = LightBackground,
-    surface = LightSurface,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightSecondary,
-    error = LightError,
-    outline = LightTertiary
-)
+    val label: String
+        get() = when (this) {
+            SYSTEM -> "System"
+            LIGHT -> "Light"
+            DARK -> "Dark"
+            AMOLED -> "AMOLED"
+        }
+}
 
 @Composable
 fun AivanceTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    accentSeed: AccentSeed = AccentSeed.INDIGO,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val isDark = when (themeMode) {
+        ThemeMode.SYSTEM -> darkTheme
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.AMOLED -> true
     }
+    val isAmoled = themeMode == ThemeMode.AMOLED
+
+    val accent = if (isDark) AccentPalettes.dark(accentSeed) else AccentPalettes.light(accentSeed)
+
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && themeMode != ThemeMode.AMOLED -> {
+            val context = LocalContext.current
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        isDark -> buildAccentDarkScheme(accent, amoled = isAmoled)
+        else -> buildAccentLightScheme(accent)
+    }
+
+    val extendedColors = extendedColorsFor(isDark).copy(
+        accent = accent.primary,
+        onAccent = accent.onPrimary
+    )
 
     CompositionLocalProvider(
         LocalAivanceSpacing provides AivanceSpacing(),
-        LocalAivanceShapes provides AivanceShapes()
+        LocalAivanceShapes provides AivanceShapes(),
+        LocalAivanceMotion provides AivanceMotion(),
+        LocalAivanceElevation provides AivanceElevation(),
+        LocalAivanceExtendedColors provides extendedColors,
+        LocalThemeMode provides themeMode
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -68,6 +77,8 @@ fun AivanceTheme(
         )
     }
 }
+
+val LocalThemeMode = staticCompositionLocalOf { ThemeMode.SYSTEM }
 
 object AivanceTheme {
     val spacing: AivanceSpacing
@@ -79,4 +90,25 @@ object AivanceTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalAivanceShapes.current
+
+    val motion: AivanceMotion
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalAivanceMotion.current
+
+    val elevation: AivanceElevation
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalAivanceElevation.current
+
+    /** Semantic extended colors (success / warning / info / accent). */
+    val colors: AivanceExtendedColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalAivanceExtendedColors.current
+
+    val themeMode: ThemeMode
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalThemeMode.current
 }

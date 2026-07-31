@@ -3,6 +3,7 @@ package com.bangersoul.aivance.sdk.infrastructure
 import com.bangersoul.aivance.sdk.core.BaseProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -15,7 +16,7 @@ class ProviderRegistryTest {
 
     @Before
     fun setUp() {
-        registry = ProviderRegistry(emptySet(), emptySet())
+        registry = ProviderRegistry(emptySet(), emptySet(), emptySet())
     }
 
     @Test
@@ -72,6 +73,7 @@ class ProviderRegistryTest {
         metadata = ProviderMetadata(
             id = id,
             name = "Test Provider $id",
+            type = ProviderType.AI,
             version = "1.0.0",
             description = "Test Description",
             author = "Tester"

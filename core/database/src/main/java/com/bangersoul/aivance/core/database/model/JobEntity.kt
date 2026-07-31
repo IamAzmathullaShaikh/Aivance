@@ -25,8 +25,16 @@ data class JobEntity(
     val companyId: Long,
     val title: String,
     val location: String?,
-    val type: String?,
-    val salary: String?,
+    val type: String?, // Normalized EmploymentType
+    val remoteType: String?, // Normalized RemoteType
+    val experienceLevel: String?, // Normalized ExperienceLevel
+    val salaryMin: Double?,
+    val salaryMax: Double?,
+    val currency: String?,
     val description: String?,
-    val postedDate: Long
+    val descriptionHtml: String?,
+    val url: String,
+    val sourceProviderId: String,
+    val postedDate: Long,
+    val expirationDate: Long? = null
 )
