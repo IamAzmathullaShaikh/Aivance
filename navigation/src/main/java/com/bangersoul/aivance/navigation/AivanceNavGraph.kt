@@ -87,6 +87,10 @@ private fun AivanceMainNavGraph(
     LaunchedEffect(authState) {
         if (authState is AuthenticationUiState.Authenticated && currentDestination in Destination.authDestinations && currentDestination != Destination.Dashboard) {
             onNavigate(Destination.Dashboard)
+        } else if (authState is AuthenticationUiState.Unauthenticated && currentDestination !in Destination.authDestinations) {
+            // Logout / first launch: route back to the auth flow instead of leaving the
+            // user stranded on a protected screen (NavigateToOnboarding effect is legacy).
+            onNavigate(Destination.Login)
         }
     }
 
@@ -144,7 +148,12 @@ private fun ScreenContent(
         })
         Destination.Welcome -> WelcomeScreen(onGetStarted = { onNavigate(Destination.Login) }, onSkip = { onNavigate(Destination.Dashboard) })
         Destination.Login -> LoginScreen(onLogin = { authViewModel.onEvent(AuthenticationUiEvent.Login(it)) }, onSkip = { onNavigate(Destination.Onboarding) })
-        Destination.Onboarding -> OnboardingScreen(viewModel = hiltViewModel(), onComplete = { onNavigate(Destination.Dashboard) })
+        Destination.Onboarding -> OnboardingScreen(viewModel = hiltViewModel(), onComplete = {
+            // Re-read prefs so the auth guard sees the freshly persisted
+            // onboardingCompleted flag; the LaunchedEffect(authState) below then
+            // routes to the Dashboard once Authenticated is set.
+            authViewModel.onEvent(AuthenticationUiEvent.CheckAuth)
+        })
 
         Destination.Dashboard -> DashboardScreen(hiltViewModel(), { onNavigate(Destination.Resume) }, { onNavigate(Destination.Tracker) }, { onNavigate(Destination.Profile) }, { onNavigate(Destination.Interview) }, { onNavigate(Destination.AnalyticsDashboard) }, { onNavigate(Destination.Jobs) })
         Destination.Assistant -> AssistantScreen(hiltViewModel<AssistantViewModel>(), { onNavigate(Destination.ProviderManagement) })

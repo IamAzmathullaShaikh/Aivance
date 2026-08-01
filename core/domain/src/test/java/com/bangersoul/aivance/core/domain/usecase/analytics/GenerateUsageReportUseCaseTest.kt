@@ -1,6 +1,6 @@
 package com.bangersoul.aivance.core.domain.usecase.analytics
 
-import com.bangersoul.aivance.core.common.model.AnalyticsEvent
+import com.bangersoul.aivance.core.common.model.AnalyticsSnapshot
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import io.mockk.every
@@ -23,25 +23,30 @@ class GenerateUsageReportUseCaseTest {
     }
 
     @Test
-    fun `should generate report with events`() = runTest {
-        val events = listOf(
-            AnalyticsEvent(id = "1", eventName = "login", category = "AUTH"),
-            AnalyticsEvent(id = "2", eventName = "search", category = "JOBS"),
-            AnalyticsEvent(id = "3", eventName = "apply", category = "JOBS")
+    fun `should generate report with snapshots`() = runTest {
+        val snapshots = listOf(
+            AnalyticsSnapshot(
+                id = 1L,
+                careerScore = 85,
+                kpis = mapOf("applications" to 3.0, "interviews" to 1.0)
+            )
         )
-        every { analyticsRepository.getEvents() } returns flowOf(Result.Success(events))
+        every { analyticsRepository.getSnapshots() } returns flowOf(Result.Success(snapshots))
 
-        val result = useCase()
+        val result = useCase(Unit)
         assertTrue(result.isSuccess)
         val report = (result as Result.Success).data
-        assertTrue(report.totalEvents == 3)
+        assertTrue(report.contains("Career Usage Report"))
+        assertTrue(report.contains("Career Score: 85"))
     }
 
     @Test
-    fun `should handle empty events`() = runTest {
-        every { analyticsRepository.getEvents() } returns flowOf(Result.Success(emptyList()))
+    fun `should handle empty snapshots`() = runTest {
+        every { analyticsRepository.getSnapshots() } returns flowOf(Result.Success(emptyList()))
 
-        val result = useCase()
+        val result = useCase(Unit)
         assertTrue(result.isSuccess)
+        val report = (result as Result.Success).data
+        assertTrue(report.contains("Career Score: 0"))
     }
 }

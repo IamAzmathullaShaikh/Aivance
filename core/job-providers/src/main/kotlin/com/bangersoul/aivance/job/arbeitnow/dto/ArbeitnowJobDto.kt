@@ -2,6 +2,7 @@ package com.bangersoul.aivance.job.arbeitnow.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class ArbeitnowJobDto(
@@ -11,7 +12,8 @@ data class ArbeitnowJobDto(
     val description: String? = null,
     val remote: Boolean? = null,
     val url: String? = null,
-    val tags: List<String>? = null,
+    /** Tolerant of both array and object shapes in the live API. */
+    val tags: JsonElement? = null,
     @SerialName("job_types") val jobTypes: List<String>? = null,
     val location: String? = null,
     @SerialName("created_at") val createdAt: Long? = null

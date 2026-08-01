@@ -21,7 +21,8 @@ import java.util.Locale
 class RemotiveProvider(
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://remotive.com/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "remotive",
@@ -35,10 +36,8 @@ class RemotiveProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://remotive.com/"
-
     private val api: RemotiveApi by lazy { retrofit.create(RemotiveApi::class.java) }
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
 
@@ -55,9 +54,7 @@ class RemotiveProvider(
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
-    }
+
 
     private fun mapToJobListing(dto: RemotiveJobDto): JobListing {
         return JobListing(

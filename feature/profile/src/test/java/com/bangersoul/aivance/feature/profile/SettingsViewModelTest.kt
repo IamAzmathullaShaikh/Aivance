@@ -1,8 +1,8 @@
 package com.bangersoul.aivance.feature.profile
 
 import app.cash.turbine.test
-import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.ExportSettingsUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.LoadSettingsUseCase
@@ -13,12 +13,13 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -32,12 +33,15 @@ class SettingsViewModelTest {
     private val mockResetSettings: ResetSettingsUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
-    private lateinit var viewModel: SettingsViewModel
+    private fun createViewModel() = SettingsViewModel(
+        mockLoadSettings, mockSaveSettings, mockExportSettings,
+        mockResetSettings, mockTrackEvent
+    )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
     }
 
     @After
@@ -46,27 +50,35 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `initial state loads settings`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
-
-        viewModel = SettingsViewModel(
-            mockLoadSettings, mockSaveSettings, mockExportSettings,
-            mockResetSettings, mockTrackEvent
-        )
+    fun `initial state loads with defaults`() = runTest {
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assert(viewModel.uiState.value is SettingsUiState.Success)
+        val state = viewModel.uiState.value
+        assertTrue(state is SettingsUiState.Success)
+        assertEquals("system", (state as SettingsUiState.Success).settings.themeMode)
+        assertEquals(true, state.settings.dynamicColorEnabled)
     }
 
     @Test
-    fun `save settings triggers use case and shows snackbar`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
-        coEvery { mockSaveSettings.invoke(any()) } returns flowOf(Result.Success(Unit))
+    fun `theme change is applied to state after save`() = runTest {
+        coEvery { mockSaveSettings.invoke(any()) } returns Result.Success(Unit)
 
-        viewModel = SettingsViewModel(
-            mockLoadSettings, mockSaveSettings, mockExportSettings,
-            mockResetSettings, mockTrackEvent
-        )
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(SettingsUiEvent.SetThemeMode("dark"))
+        viewModel.onEvent(SettingsUiEvent.SaveSettings)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("dark", (viewModel.uiState.value as SettingsUiState.Success).settings.themeMode)
+    }
+
+    @Test
+    fun `save settings triggers use case and tracks event`() = runTest {
+        coEvery { mockSaveSettings.invoke(any()) } returns Result.Success(Unit)
+
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onEvent(SettingsUiEvent.SetThemeMode("dark"))
@@ -74,51 +86,39 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { mockSaveSettings.invoke(any()) }
-        coVerify { mockTrackEvent("settings_save") }
+        coVerify { mockTrackEvent(TrackEventRequest(eventName = "settings_save")) }
     }
 
     @Test
-    fun `reset settings triggers use case`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
-        coEvery { mockResetSettings.invoke() } returns flowOf(Result.Success(Unit))
+    fun `reset settings triggers use case and restores defaults`() = runTest {
+        coEvery { mockResetSettings.invoke() } returns Result.Success(Unit)
 
-        viewModel = SettingsViewModel(
-            mockLoadSettings, mockSaveSettings, mockExportSettings,
-            mockResetSettings, mockTrackEvent
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
+        viewModel.onEvent(SettingsUiEvent.SetThemeMode("dark"))
         viewModel.onEvent(SettingsUiEvent.ResetSettings)
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { mockResetSettings.invoke() }
+        assertEquals("system", (viewModel.uiState.value as SettingsUiState.Success).settings.themeMode)
     }
 
     @Test
-    fun `theme change updates pending settings`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(Result.Success(AppSettings()))
+    fun `export settings emits export result effect`() = runTest {
+        coEvery { mockExportSettings.invoke() } returns Result.Success("/tmp/settings.json")
 
-        viewModel = SettingsViewModel(
-            mockLoadSettings, mockSaveSettings, mockExportSettings,
-            mockResetSettings, mockTrackEvent
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.onEvent(SettingsUiEvent.SetThemeMode("dark"))
-    }
-
-    @Test
-    fun `settings error shows error state`() = runTest {
-        coEvery { mockLoadSettings.invoke() } returns flowOf(
-            Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError("test", message = "Load failed"))
-        )
-
-        viewModel = SettingsViewModel(
-            mockLoadSettings, mockSaveSettings, mockExportSettings,
-            mockResetSettings, mockTrackEvent
-        )
+        viewModel.onEvent(SettingsUiEvent.ExportSettings)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assert(viewModel.uiState.value is SettingsUiState.Error)
+        viewModel.effects.test {
+            val effect = awaitItem()
+            assertTrue(effect is SettingsUiEffect.ExportResult)
+            assertEquals("/tmp/settings.json", (effect as SettingsUiEffect.ExportResult).path)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

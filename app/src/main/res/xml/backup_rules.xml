@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?><!--
    Backup rules for Aivance.
-   Excludes sensitive data and cached content from cloud backup.
+   Excludes sensitive data from cloud backup.
+   Note: the system automatically excludes the cache/ and no_backup/ directories,
+   so no explicit excludes are needed for them.
 -->
 <full-backup-content>
     <!-- App data to backup -->
     <include domain="sharedpref" path="." />
 
-    <!-- Database (excluding sync state that will rehydrate) -->
+    <!-- Database (excluding analytics that stays local) -->
     <include domain="database" path="." />
 
-    <!-- Exclude cached or sensitive data -->
+    <!-- Exclude sensitive data -->
     <exclude domain="sharedpref" path="auth_preferences.xml" />
     <exclude domain="sharedpref" path="crypto_key_store.xml" />
-    <exclude domain="file" path="cache/" />
-    <exclude domain="file" path="no_backup/" />
     <exclude domain="database" path="analytics.db" />
+    <exclude domain="database" path="analytics.db-wal" />
+    <exclude domain="database" path="analytics.db-shm" />
 </full-backup-content>

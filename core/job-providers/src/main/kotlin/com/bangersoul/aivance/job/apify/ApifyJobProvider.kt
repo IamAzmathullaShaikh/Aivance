@@ -10,6 +10,7 @@ import com.bangersoul.aivance.job.cache.JobCache
 import com.bangersoul.aivance.job.mapper.JobMapper
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.core.ProviderType
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonPrimitive
@@ -25,21 +26,30 @@ import timber.log.Timber
  */
 open class ApifyJobProvider(
     metadata: ProviderMetadata,
-    protected val apiKey: String,
+    protected var apiKey: String,
     protected val actorId: String,
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://api.apify.com/v2/"
 ) : RestJobProvider(
     metadata = metadata,
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://api.apify.com/v2/"
-
     private val api: ApifyApi by lazy { retrofit.create(ApifyApi::class.java) }
+
+    override val isConfigured: Boolean
+        get() = apiKey.isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: com.bangersoul.aivance.sdk.config.ProviderConfiguration) {
+        apiKey = config.secrets["apiKey"] ?: apiKey
+    }
 
     private val maxPollAttempts = 30
     private val pollIntervalMs = 2_000L
@@ -102,8 +112,16 @@ open class ApifyJobProvider(
         return itemsResponse.body()?.map { JobMapper.mapToJobListing(it, metadata.id) } ?: emptyList()
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Fetching job details not yet implemented for Apify"))
+
+
+    override suspend fun onInitialize() {
+        super.onInitialize()
+        // Stay out of Active/Ready until the user provides real Apify credentials,
+        // so search aggregation filters this provider (and its Indeed/LinkedIn
+        // subclasses) out until configured.
+        if (apiKey.isBlank() || actorId.isBlank()) {
+            updateStatus(ProviderStatus.InvalidConfiguration)
+        }
     }
 
     override suspend fun performHealthCheck() {

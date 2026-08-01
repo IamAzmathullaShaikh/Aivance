@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.WorkManager
 import com.bangersoul.aivance.core.data.telemetry.StructuredTimberTree
+import com.bangersoul.aivance.core.domain.repository.ProviderRepository
 import com.bangersoul.aivance.core.domain.telemetry.TelemetryEngine
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import com.bangersoul.aivance.worker.AnalyticsUploadWorker
@@ -18,6 +19,7 @@ import com.bangersoul.aivance.worker.SyncWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -43,6 +45,9 @@ class AivanceApp : Application(), Configuration.Provider {
     @Inject
     lateinit var providerManager: ProviderManager
 
+    @Inject
+    lateinit var providerRepository: ProviderRepository
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -55,10 +60,35 @@ class AivanceApp : Application(), Configuration.Provider {
         checkEnvironmentIntegrity()
         scheduleAllPeriodicWorkers()
 
-        // Initialize AI/Job providers in background
+        // Initialize AI/Job providers in background and re-apply any credentials
+        // the user saved via onboarding/settings. DI constructs fresh provider
+        // singletons with empty credentials on every launch, so hydration is what
+        // makes a configured Groq/Indeed key survive app restarts.
         val scope = kotlinx.coroutines.MainScope()
         scope.launch(Dispatchers.IO + SupervisorJob()) {
             providerManager.initializeAll()
+            hydrateSavedProviderConfigs()
+        }
+    }
+
+    /**
+     * Re-applies persisted provider configurations (including secrets) to the
+     * live DI-singleton provider instances after startup initialization.
+     */
+    private suspend fun hydrateSavedProviderConfigs() {
+        try {
+            val savedConfigs = providerRepository.getProviderConfigs().firstOrNull() ?: emptyList()
+            savedConfigs.forEach { saved ->
+                // getProviderConfigs() intentionally omits secrets; fetch the full
+                // config (which loads the API key from the encrypted DataStore).
+                val fullConfig = providerRepository.getProviderConfig(saved.providerId) ?: return@forEach
+                providerManager.reconfigure(saved.providerId, fullConfig)
+            }
+            if (savedConfigs.isNotEmpty()) {
+                Timber.i("Hydrated ${savedConfigs.size} saved provider config(s)")
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Provider config hydration failed")
         }
     }
 

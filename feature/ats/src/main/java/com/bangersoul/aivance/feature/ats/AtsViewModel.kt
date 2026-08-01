@@ -75,8 +75,9 @@ class AtsViewModel @Inject constructor(
     private fun loadResumes() {
         viewModelScope.launch {
             resumeRepository.getResumes().collect { result ->
-                if (result is Result.Success) {
-                    _resumes.value = result.data
+                when (result) {
+                    is Result.Success -> _resumes.value = result.data
+                    is Result.Failure -> _uiState.value = AtsUiState.Error("Failed to load resumes: ${result.error.message}")
                 }
             }
         }

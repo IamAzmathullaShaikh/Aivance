@@ -100,7 +100,7 @@ class ApifyJobProviderTest {
         val provider = TestApifyProvider(
             jobCache = mockk(relaxed = true),
             okHttpClient = OkHttpClient(),
-            retrofit = buildRetrofit(mockWebServer)
+            baseRetrofit = buildRetrofit(mockWebServer)
         )
         assertEquals("test-actor", provider.metadata.id)
         assertEquals(ProviderType.JOB, provider.metadata.type)
@@ -130,7 +130,7 @@ class ApifyJobProviderTest {
     private class TestApifyProvider(
         jobCache: JobCache,
         okHttpClient: OkHttpClient,
-        retrofit: Retrofit
+        baseRetrofit: Retrofit
     ) : ApifyJobProvider(
         metadata = ProviderMetadata(
             id = "test-actor",
@@ -144,6 +144,6 @@ class ApifyJobProviderTest {
         actorId = "test-actor",
         jobCache = jobCache,
         okHttpClient = okHttpClient,
-        retrofit = retrofit
+        baseRetrofit = baseRetrofit
     )
 }

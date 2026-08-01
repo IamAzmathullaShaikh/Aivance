@@ -11,6 +11,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bangersoul.aivance.MainActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.Manifest
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -102,7 +105,10 @@ class DownloadManager @Inject constructor(
                                 progress = progress,
                                 pendingIntent = pendingIntent
                             )
-                            notificationManager.notify(notifId, notification)
+                            // Safely notify if POST_NOTIFICATIONS permission is granted
+if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+    notificationManager.notify(notifId, notification)
+}
                         }
                     }
                 }
@@ -120,7 +126,10 @@ class DownloadManager @Inject constructor(
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .build()
-            notificationManager.notify(notifId, successNotification)
+            // Notify success safely
+if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+    notificationManager.notify(notifId, successNotification)
+}
 
             Timber.d("Downloaded: %s (%d bytes)", safeFileName, outputFile.length())
             outputFile
@@ -134,7 +143,10 @@ class DownloadManager @Inject constructor(
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .build()
-            notificationManager.notify(notifId, errorNotification)
+            // Notify error safely
+if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+    notificationManager.notify(notifId, errorNotification)
+}
             null
         }
     }

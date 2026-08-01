@@ -21,7 +21,8 @@ import java.util.Locale
 class RemoteOKProvider(
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://remoteok.com/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "remoteok",
@@ -35,10 +36,8 @@ class RemoteOKProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://remoteok.com/"
-
     private val api: RemoteOKApi by lazy { retrofit.create(RemoteOKApi::class.java) }
 
     override suspend fun executeSearch(
@@ -54,7 +53,5 @@ class RemoteOKProvider(
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
-    }
+
 }

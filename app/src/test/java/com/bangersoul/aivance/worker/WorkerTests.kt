@@ -2,31 +2,26 @@ package com.bangersoul.aivance.worker
 
 import android.content.Context
 import androidx.work.ListenableWorker
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import androidx.work.testing.TestListenableWorkerBuilder
-import com.bangersoul.aivance.core.database.AivanceDatabase
-import com.bangersoul.aivance.core.database.dao.AiDao
-import com.bangersoul.aivance.core.database.dao.AnalyticsDao
+import com.bangersoul.aivance.core.database.dao.AiAnalyticsDao
 import com.bangersoul.aivance.core.database.dao.JobDao
-import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
-import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsUseCase
-import com.bangersoul.aivance.core.domain.usecase.provider.GetAvailableModelsUseCase
-import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseCase
-import com.bangersoul.aivance.core.domain.usecase.resume.AnalyseResumeUseCase
-import com.bangersoul.aivance.core.domain.usecase.resume.CalculateATSScoreUseCase
-import com.bangersoul.aivance.core.util.NotificationHelper
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkAll
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import java.util.UUID
 
 /**
  * Unit tests for background workers and sync infrastructure.
@@ -36,42 +31,62 @@ class WorkerTests {
     private lateinit var mockContext: Context
     private lateinit var mockParams: WorkerParameters
     private lateinit var mockConnectivityMonitor: ConnectivityMonitor
-    private lateinit var mockJobDao: JobDao
-    private lateinit var mockAnalyticsDao: AnalyticsDao
-    private lateinit var mockAiDao: AiDao
-    private lateinit var mockDatabase: AivanceDatabase
 
     @Before
     fun setup() {
-        mockContext = mockk()
+        // `SyncManager`'s constructor calls `WorkManager.getInstance(context)`, which throws
+        // in a JVM unit test unless the companion singleton is mocked. Note: `WorkManager.Companion`
+        // (not mockkStatic) because Kotlin callers resolve @JvmStatic functions through the
+        // companion's instance method.
+        val mockWorkManager = mockk<WorkManager>()
+        mockkObject(WorkManager.Companion)
+        every { WorkManager.getInstance(any()) } returns mockWorkManager
+
+        // Relaxed mock: `ConnectivityMonitor(context)` calls `context.getSystemService(...)`
+        // in its constructor. Stub the service accessors to return null so the monitor
+        // degrades to NetworkState.UNAVAILABLE instead of throwing a ClassCastException
+        // (the androidx KTX extension otherwise gets a bare Object back from the mock).
+        mockContext = mockk(relaxed = true) {
+            every { getSystemService(any<Class<*>>()) } returns null
+            every { getSystemService(any<String>()) } returns null
+        }
         mockParams = mockk()
-        mockJobDao = mockk()
-        mockAnalyticsDao = mockk()
-        mockAiDao = mockk()
-        mockDatabase = mockk()
         mockConnectivityMonitor = mockk {
-            every { isOnline } returns true
+            // isOnline defaults to false so `SyncManager.enqueue` does NOT launch an
+            // asynchronous auto-drain (keeps the queue-count assertions deterministic).
+            every { isOnline } returns false
             every { isUnmetered } returns true
             every { networkState } returns MutableStateFlow(NetworkState.UNMETERED)
             every { powerState } returns MutableStateFlow(PowerState.NORMAL)
             every { isFavourableForSync() } returns true
             coEvery { isInternetReachable() } returns true
-            every { observeNetworkState() } returns MutableStateFlow(NetworkState.UNMETERED)
+            // emptyFlow: `SyncManager.init` collects this and auto-drains when the queue is
+            // non-empty. No emissions means the init-collect can never trigger a drain.
+            every { observeNetworkState() } returns emptyFlow()
         }
+    }
+
+    @After
+    fun tearDown() {
+        // mockkObject/mockkStatic are JVM-global; release so other test classes in the same
+        // JVM never silently receive a mocked WorkManager.
+        unmockkAll()
     }
 
     // ── ConnectivityMonitor Tests ───────────────────
 
     @Test
-    fun connectivityMonitor_initialStateIsOnlineOrOffline() {
+    fun connectivityMonitor_initialStateIsAlwaysPopulated() {
+        // With no system services available (mocked context), the monitor must still
+        // expose a well-defined state instead of throwing or being null.
         val monitor = ConnectivityMonitor(mockContext)
         assertNotNull(monitor.networkState.value)
+        assertFalse(monitor.isOnline)
     }
 
     @Test
-    fun connectivityMonitor_isOnlineReflectsState() {
-        val monitor = mockConnectivityMonitor
-        assertTrue(monitor.isOnline)
+    fun connectivityMonitor_isOnlineReflectsConfiguredState() {
+        assertFalse(mockConnectivityMonitor.isOnline)
     }
 
     @Test
@@ -106,6 +121,8 @@ class WorkerTests {
     fun syncManager_drainQueue_whenOnline_processesOperations() = runBlocking {
         val syncManager = SyncManager(mockContext, mockConnectivityMonitor)
 
+        // Enqueue while offline so no async auto-drain is launched, then enable
+        // connectivity so the explicit drain below is the only drainer (deterministic).
         syncManager.enqueue(
             PendingOperation(type = OperationType.SAVE_JOB, entityId = "job_1")
         )
@@ -113,9 +130,30 @@ class WorkerTests {
             PendingOperation(type = OperationType.LOG_EVENT, entityId = "evt_1")
         )
 
+        every { mockConnectivityMonitor.isOnline } returns true
         syncManager.drainQueue()
 
         assertEquals(SyncState.SUCCESS, syncManager.syncState.value)
+    }
+
+    @Test
+    fun syncManager_drainQueue_whenOffline_setsOfflineState() = runBlocking {
+        val offlineMonitor = mockk<ConnectivityMonitor> {
+            every { isOnline } returns false
+            every { isUnmetered } returns false
+            every { networkState } returns MutableStateFlow(NetworkState.UNAVAILABLE)
+            every { powerState } returns MutableStateFlow(PowerState.NORMAL)
+            every { isFavourableForSync() } returns false
+            every { observeNetworkState() } returns MutableStateFlow(NetworkState.UNAVAILABLE)
+        }
+        val syncManager = SyncManager(mockContext, offlineMonitor)
+
+        syncManager.enqueue(
+            PendingOperation(type = OperationType.SAVE_JOB, entityId = "job_1")
+        )
+        syncManager.drainQueue()
+
+        assertEquals(SyncState.OFFLINE, syncManager.syncState.value)
     }
 
     @Test
@@ -152,6 +190,7 @@ class WorkerTests {
         assertNotNull(op2.id)
         assertTrue(op1.id.isNotBlank())
         assertTrue(op2.id.isNotBlank())
+        assertTrue(op1.id != op2.id)
     }
 
     @Test
@@ -170,16 +209,21 @@ class WorkerTests {
 
     @Test
     fun cacheCleanupWorker_deletesStaleData() = runBlocking {
+        val jobDao = mockk<JobDao>()
+        val analyticsDao = mockk<AiAnalyticsDao>()
         coEvery { jobDao.deleteJobsOlderThan(any()) } returns 5
-        coEvery { analyticsDao.deleteOldEvents(any()) } returns 10
-        coEvery { aiDao.deleteOldConversations(any()) } returns 3
+        coEvery { analyticsDao.deleteEventsBefore(any()) } returns 10
+        coEvery { analyticsDao.deleteOldConversations(any()) } returns 3
 
-        val worker = TestListenableWorkerBuilder<CacheCleanupWorker>(mockContext)
-            .build()
+        val worker = CacheCleanupWorker(mockContext, mockParams, jobDao, analyticsDao)
+        val result = worker.doWork()
 
-        // We can't easily construct a @HiltWorker here without Hilt test setup,
-        // but we can verify the worker class exists and has correct structure
-        assertTrue(CacheCleanupWorker::class.java.declaredConstructors.isNotEmpty())
+        // WorkManager 2.11 refactored Result into Success/Failure/Retry subclasses
+        // that override equals; there is no succeeded() accessor anymore.
+        assertEquals(ListenableWorker.Result.success(), result)
+        coVerify { jobDao.deleteJobsOlderThan(any()) }
+        coVerify { analyticsDao.deleteEventsBefore(any()) }
+        coVerify { analyticsDao.deleteOldConversations(any()) }
     }
 
     // ── SyncWorker Tests ────────────────────────────
@@ -190,13 +234,6 @@ class WorkerTests {
         assertEquals("SyncWorker", workerClass.simpleName)
     }
 
-    // ── JobSyncWorker Tests ─────────────────────────
-
-    @Test
-    fun jobSyncWorker_requiresConnectivity() {
-        assertTrue(mockConnectivityMonitor.isUnmetered)
-    }
-
     // ── ProviderRefreshWorker Tests ─────────────────
 
     @Test
@@ -204,6 +241,9 @@ class WorkerTests {
         assertEquals(5, ProviderRefreshWorker.knownProviders.size)
         assertTrue(ProviderRefreshWorker.knownProviders.contains("gemini"))
         assertTrue(ProviderRefreshWorker.knownProviders.contains("openai"))
+        assertTrue(ProviderRefreshWorker.knownProviders.contains("groq"))
+        assertTrue(ProviderRefreshWorker.knownProviders.contains("openrouter"))
+        assertTrue(ProviderRefreshWorker.knownProviders.contains("ollama"))
     }
 
     // ── DownloadManager Tests ───────────────────────

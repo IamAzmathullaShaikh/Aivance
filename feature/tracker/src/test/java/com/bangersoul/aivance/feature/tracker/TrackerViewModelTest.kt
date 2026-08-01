@@ -1,50 +1,55 @@
 package com.bangersoul.aivance.feature.tracker
 
 import app.cash.turbine.test
-import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.model.Application
+import com.bangersoul.aivance.core.common.model.ApplicationStage
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
-import com.bangersoul.aivance.feature.tracker.domain.ApplicationStatus
-import com.bangersoul.aivance.feature.tracker.domain.JobApplication
-import com.bangersoul.aivance.feature.tracker.domain.JobTrackerRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TrackerViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val mockRepository: JobTrackerRepository = mockk()
+    private val mockRepository: ApplicationWorkflowRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: TrackerViewModel
 
-    private val sampleApp = JobApplication(
-        company = "Google",
-        role = "Android Dev",
-        status = ApplicationStatus.APPLIED,
-        dateApplied = Instant.now(),
-        notes = "Applied via website",
-        lastModified = Instant.now()
+    private val stages = listOf(
+        ApplicationStage(id = "SAVED", label = "Saved", order = 1),
+        ApplicationStage(id = "APPLIED", label = "Applied", order = 2),
+        ApplicationStage(id = "INTERVIEWING", label = "Interviewing", order = 3)
+    )
+
+    private fun sampleApp(stageId: String = "SAVED") = Application(
+        id = 1L,
+        jobId = 10L,
+        currentStageId = stageId,
+        status = "ACTIVE"
     )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
+        coEvery { mockRepository.getStages() } returns flowOf(Result.Success(stages))
     }
 
     @After
@@ -54,138 +59,93 @@ class TrackerViewModelTest {
 
     @Test
     fun `initial state is Loading`() = runTest {
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(emptyList())
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
 
         viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
 
-        viewModel.uiState.test {
-            assert(awaitItem() is TrackerUiState.Loading)
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertEquals(TrackerUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
-    fun `empty applications show Empty state`() = runTest {
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(emptyList())
+    fun `empty applications show Success with empty list`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
 
         viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.uiState.test {
-            skipItems(1)
-            assert(awaitItem() is TrackerUiState.Empty)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val state = viewModel.uiState.value
+        assertTrue(state is TrackerUiState.Success)
+        assertEquals(0, (state as TrackerUiState.Success).applications.size)
     }
 
     @Test
     fun `applications show in Success state`() = runTest {
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(listOf(sampleApp))
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
 
         viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.uiState.test {
-            skipItems(1)
-            val state = awaitItem()
-            assert(state is TrackerUiState.Success)
-            assert((state as TrackerUiState.Success).applications.size == 1)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `filter by status works correctly`() = runTest {
-        val apps = listOf(
-            sampleApp.copy(company = "Google", status = ApplicationStatus.APPLIED),
-            sampleApp.copy(company = "Apple", status = ApplicationStatus.INTERVIEWING)
-        )
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(apps)
-
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.onEvent(TrackerUiEvent.FilterByStatus(ApplicationStatus.INTERVIEWING))
-
-        viewModel.uiState.test {
-            skipItems(1)
-            val state = awaitItem()
-            assert(state is TrackerUiState.Success)
-            val success = state as TrackerUiState.Success
-            assert(success.activeFilter == ApplicationStatus.INTERVIEWING)
-            assert(success.applications.all { it.status == ApplicationStatus.INTERVIEWING })
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `clear filter shows all applications`() = runTest {
-        val apps = listOf(
-            sampleApp.copy(company = "Google", status = ApplicationStatus.APPLIED),
-            sampleApp.copy(company = "Apple", status = ApplicationStatus.INTERVIEWING)
-        )
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(apps)
-
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.onEvent(TrackerUiEvent.FilterByStatus(null))
-
-        viewModel.uiState.test {
-            skipItems(1)
-            val state = awaitItem()
-            assert(state is TrackerUiState.Success)
-            assert((state as TrackerUiState.Success).applications.size == 2)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `add application with blank company shows error`() = runTest {
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(emptyList())
-
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.onEvent(TrackerUiEvent.AddApplication("", "Role", ApplicationStatus.APPLIED))
-
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assert(effect is TrackerUiEffect.ShowSnackbar)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `add valid application inserts into repository`() = runTest {
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(emptyList())
-        coEvery { mockRepository.addApplication(any()) } returns Unit
-
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.onEvent(TrackerUiEvent.AddApplication("Google", "Android Dev", ApplicationStatus.APPLIED))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { mockRepository.addApplication(any()) }
-        coVerify { mockTrackEvent("tracker_add_application") }
+        val state = viewModel.uiState.value
+        assertTrue(state is TrackerUiState.Success)
+        assertEquals(1, (state as TrackerUiState.Success).applications.size)
+        assertEquals(stages.size, (state as TrackerUiState.Success).stages.size)
     }
 
     @Test
-    fun `delete application shows snackbar`() = runTest {
-        val appWithId = JobApplication(
-            company = "Google", role = "Dev",
-            status = ApplicationStatus.APPLIED,
-            dateApplied = Instant.now(),
-            lastModified = Instant.now()
+    fun `error when repository fails to load`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(
+            Result.Failure(com.bangersoul.aivance.core.common.result.DomainError("Failed"))
         )
-        coEvery { mockRepository.getApplications() } returns MutableStateFlow(listOf(appWithId))
-        coEvery { mockRepository.getApplicationById(any()) } returns appWithId
-        coEvery { mockRepository.deleteApplication(any()) } returns Unit
 
         viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.onEvent(TrackerUiEvent.DeleteApplication(1L))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assert(effect is TrackerUiEffect.ShowSnackbar)
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertTrue(viewModel.uiState.value is TrackerUiState.Error)
+    }
+
+    @Test
+    fun `update stage saves application and tracks event`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
+        coEvery { mockRepository.getApplicationById(1L) } returns flowOf(Result.Success(sampleApp()))
+        coEvery { mockRepository.saveApplication(any()) } returns Result.Success(1L)
+
+        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.UpdateStage(applicationId = 1L, stageId = "INTERVIEWING"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockRepository.saveApplication(any()) }
+        coVerify { mockTrackEvent(TrackEventRequest("tracker_stage_update")) }
+    }
+
+    @Test
+    fun `delete application calls repository`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
+        coEvery { mockRepository.deleteApplication(1L) } returns Result.Success(Unit)
+
+        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.DeleteApplication(id = 1L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockRepository.deleteApplication(1L) }
+    }
+
+    @Test
+    fun `refresh reloads applications`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
+
+        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
+        viewModel.onEvent(TrackerUiEvent.Refresh)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is TrackerUiState.Success)
+        assertEquals(0, (state as TrackerUiState.Success).applications.size)
     }
 }

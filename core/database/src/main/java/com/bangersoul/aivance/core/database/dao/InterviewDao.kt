@@ -25,12 +25,18 @@ interface InterviewDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: InterviewMessageEntity): Long
 
+    @Query("SELECT * FROM interview_messages WHERE id = :id")
+    suspend fun getMessageById(id: Long): InterviewMessageEntity?
+
     @Delete
     suspend fun deleteSession(session: InterviewSessionEntity)
 
     // Questions
     @Query("SELECT * FROM interview_questions WHERE sessionId = :sessionId")
     fun getQuestionsForSession(sessionId: Long): Flow<List<InterviewQuestionEntity>>
+
+    @Query("SELECT * FROM interview_questions WHERE id = :id")
+    suspend fun getQuestionById(id: Long): InterviewQuestionEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertQuestion(question: InterviewQuestionEntity): Long

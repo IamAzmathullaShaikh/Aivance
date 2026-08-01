@@ -1,0 +1,36 @@
+AiVance – Proprietary License
+
+Copyright (c) 2026 AiVance. All rights reserved.
+
+This software and its source code ("AiVance") are the exclusive property of the
+AiVance project and its contributors. This is a commercial product intended for
+distribution through the Google Play Store.
+
+TERMS OF USE
+
+1. **No Redistribution.** You may not copy, modify, distribute, sublicense, or
+   otherwise make available the source code or compiled binaries of AiVance,
+   in whole or in part, without prior written permission.
+
+2. **No Reverse Engineering.** You may not decompile, disassemble, or reverse
+   engineer the compiled application, except to the extent permitted by
+   applicable law.
+
+3. **Private Repository.** The source code in this repository is provided for
+   the project's own development, operations, and maintenance. Access does not
+   constitute a license to use AiVance in your own products or services.
+
+4. **No Warranty.** AiVance is provided "AS IS" without warranty of any kind,
+   express or implied, including but not limited to the warranties of
+   merchantability, fitness for a particular purpose, and non-infringement.
+   In no event shall the authors or copyright holders be liable for any claim,
+   damages, or other liability arising from, out of, or in connection with the
+   software or its use.
+
+5. **Third-Party Components.** AiVance incorporates third-party open-source
+   libraries (e.g., AndroidX, Jetpack Compose, Hilt, Room, WorkManager,
+   Retrofit, OkHttp, Kotlinx libraries, Google Tink, Timber, Coil, MockK, and
+   others). Each third-party component remains licensed under its own terms,
+   as documented in the respective project notices.
+
+For licensing inquiries, please contact the project maintainers.

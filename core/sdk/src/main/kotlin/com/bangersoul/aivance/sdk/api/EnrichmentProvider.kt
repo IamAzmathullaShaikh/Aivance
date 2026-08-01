@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.sdk.api
 
+import com.bangersoul.aivance.core.common.model.Company
 import com.bangersoul.aivance.core.common.model.Recruiter
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.sdk.core.BaseProvider
@@ -29,4 +30,12 @@ abstract class EnrichmentProvider(
      * @return Result containing a boolean (true if valid) or a confidence score.
      */
     abstract suspend fun verifyEmail(email: String): Result<Boolean>
+
+    /**
+     * Enriches a company with additional data.
+     *
+     * @param company The company to enrich.
+     * @return Result containing the enriched company.
+     */
+    abstract suspend fun enrichCompany(company: Company): Result<Company>
 }

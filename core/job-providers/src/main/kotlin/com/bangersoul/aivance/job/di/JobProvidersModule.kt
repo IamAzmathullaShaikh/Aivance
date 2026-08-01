@@ -62,7 +62,7 @@ abstract class JobProvidersModule {
             okHttpClient: OkHttpClient,
             retrofit: Retrofit
         ): JobProvider {
-            return LinkedInProvider("LINKEDIN_API_KEY", jobCache, okHttpClient, retrofit)
+            return LinkedInProvider("", jobCache, okHttpClient, retrofit)
         }
 
         @Provides
@@ -73,7 +73,7 @@ abstract class JobProvidersModule {
             okHttpClient: OkHttpClient,
             retrofit: Retrofit
         ): JobProvider {
-            return IndeedProvider("INDEED_API_KEY", jobCache, okHttpClient, retrofit)
+            return IndeedProvider("", jobCache, okHttpClient, retrofit)
         }
 
         @Provides
@@ -84,7 +84,7 @@ abstract class JobProvidersModule {
             okHttpClient: OkHttpClient,
             retrofit: Retrofit
         ): JobProvider {
-            return GreenhouseProvider("GREENHOUSE_TOKEN", jobCache, okHttpClient, retrofit)
+            return GreenhouseProvider("", jobCache, okHttpClient, retrofit)
         }
 
         @Provides
@@ -95,7 +95,7 @@ abstract class JobProvidersModule {
             okHttpClient: OkHttpClient,
             retrofit: Retrofit
         ): JobProvider {
-            return LeverProvider("LEVER_COMPANY_ID", jobCache, okHttpClient, retrofit)
+            return LeverProvider("", jobCache, okHttpClient, retrofit)
         }
 
         /**
@@ -151,7 +151,7 @@ abstract class JobProvidersModule {
             okHttpClient: OkHttpClient,
             retrofit: Retrofit
         ): JobProvider {
-            return USAJobsProvider("", jobCache = jobCache, okHttpClient = okHttpClient, retrofit = retrofit)
+            return USAJobsProvider("", jobCache = jobCache, okHttpClient = okHttpClient, baseRetrofit = retrofit)
         }
     }
 }

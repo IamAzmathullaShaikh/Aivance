@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Streaming
@@ -13,6 +14,16 @@ import retrofit2.http.Streaming
  * Retrofit interface for OpenAI-compatible Chat Completions API.
  */
 interface OpenAiApi {
+    /**
+     * Lightweight authenticated endpoint used for real credential validation.
+     * All OpenAI-compatible providers (OpenAI, Groq, OpenRouter, Ollama) expose
+     * GET /models with a Bearer token, so a 200 proves the key is usable.
+     */
+    @GET("models")
+    suspend fun listModels(
+        @Header("Authorization") authorization: String
+    ): Response<ResponseBody>
+
     @POST("chat/completions")
     suspend fun createChatCompletion(
         @Header("Authorization") authorization: String,

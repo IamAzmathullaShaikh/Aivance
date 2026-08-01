@@ -66,8 +66,12 @@ class AuthenticationViewModel @Inject constructor(
     private fun checkAuthentication() {
         viewModelScope.launch {
             val prefs = userPreferencesRepository.userPreferences.firstOrNull()
+            // A completed onboarding (with any AI provider) is equivalent to being
+            // authenticated; the legacy Gemini key check alone locked users out of the
+            // app after onboarding with Ollama or other non-Gemini providers.
+            val isOnboarded = prefs?.onboardingCompleted == true
             val hasKey = !prefs?.geminiApiKey.isNullOrBlank()
-            _uiState.value = if (hasKey) AuthenticationUiState.Authenticated
+            _uiState.value = if (isOnboarded || hasKey) AuthenticationUiState.Authenticated
             else AuthenticationUiState.Unauthenticated
         }
     }

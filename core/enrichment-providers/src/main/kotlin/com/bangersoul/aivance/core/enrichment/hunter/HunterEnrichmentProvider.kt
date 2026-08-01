@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.core.enrichment.hunter
 
+import com.bangersoul.aivance.core.common.model.Company
 import com.bangersoul.aivance.core.common.model.Recruiter
 import com.bangersoul.aivance.core.common.model.RecruiterContact
 import com.bangersoul.aivance.core.common.result.ProviderError
@@ -19,7 +20,7 @@ import retrofit2.Retrofit
 import timber.log.Timber
 
 class HunterEnrichmentProvider(
-    private val config: ProviderConfiguration,
+    private var config: ProviderConfiguration,
     baseOkHttpClient: OkHttpClient,
     baseRetrofit: Retrofit
 ) : EnrichmentProvider(
@@ -45,6 +46,16 @@ class HunterEnrichmentProvider(
         ProviderCapability.EmailVerification
     )
 ) {
+    override val isConfigured: Boolean
+        get() = (config.secrets["apiKey"] ?: "").isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: ProviderConfiguration) {
+        this.config = config
+    }
+
     private val apiKey: String
         get() = config.secrets["apiKey"] ?: ""
 
@@ -119,6 +130,28 @@ class HunterEnrichmentProvider(
         } catch (e: Exception) {
             Timber.w(e, "Hunter email verification failed for $email")
             Result.Failure(ProviderError(metadata.id, message = e.message ?: "Hunter verification failed", cause = e))
+        }
+    }
+
+    override suspend fun enrichCompany(company: Company): Result<Company> {
+        if (apiKey.isBlank()) {
+            return Result.Failure(ProviderError(metadata.id, message = "Hunter API Key not configured"))
+        }
+        val domain = company.domain ?: company.websiteUrl?.substringAfter("://")?.substringBefore("/") ?: return Result.Success(company)
+        return try {
+            val response = api.domainSearch(domain, apiKey, limit = 1)
+            if (!response.isSuccessful) {
+                throw Exception("Hunter API failed: ${response.code()}")
+            }
+            val data = response.body()?.data ?: throw Exception("Hunter returned empty data")
+            
+            val enrichedCompany = company.copy(
+                name = data.organization?.takeIf { it.isNotBlank() } ?: company.name
+            )
+            Result.Success(enrichedCompany)
+        } catch (e: Exception) {
+            Timber.w(e, "Hunter company enrichment failed for ${company.name}")
+            Result.Failure(ProviderError(metadata.id, message = e.message ?: "Hunter enrichment failed", cause = e))
         }
     }
 

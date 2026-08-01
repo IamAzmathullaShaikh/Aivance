@@ -30,5 +30,6 @@ class OpenRouterProvider(
         supportedModels = listOf("anthropic/claude-3.5-sonnet", "google/gemini-pro-1.5", "meta-llama/llama-3.1-405b-instruct")
     ),
     config = config,
-    defaultBaseUrl = "https://openrouter.ai/api/v1/"
+    defaultBaseUrl = "https://openrouter.ai/api/v1/",
+    defaultModel = "openrouter/auto"
 )

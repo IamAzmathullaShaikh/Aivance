@@ -1,0 +1,226 @@
+name: Module-Triggered Tests
+
+# Runs unit tests ONLY for modules whose source files changed in the
+# push/PR. When shared build files change (gradle config, version catalog,
+# workflow files) or on manual dispatch, the full test matrix runs as a
+# fallback so nothing silently escapes CI.
+#
+# Trigger semantics:
+#   - push/PR touching core/domain/**        -> runs :core:domain tests only
+#   - push/PR touching many modules          -> runs each affected module's tests
+#   - push/PR touching gradle/settings       -> runs ALL modules' tests
+#   - workflow_dispatch                      -> runs ALL modules' tests
+#
+# The heavyweight jobs (release build, emulator tests, Play upload) live in
+# ci.yml; this workflow is the fast, path-filtered feedback loop.
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: module-tests-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: "17"
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8"
+
+jobs:
+  # ── Detect which modules actually changed ───────────────────────
+  detect:
+    name: 🧭 Detect Changed Modules
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.prepare.outputs.modules }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed paths per module
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            core-common: core/common/**
+            core-data: core/data/**
+            core-database: core/database/**
+            core-datastore: core/datastore/**
+            core-domain: core/domain/**
+            core-enrichment-providers: core/enrichment-providers/**
+            core-job-providers: core/job-providers/**
+            core-sdk: core/sdk/**
+            core-util: core/util/**
+            feature-ats: feature/ats/**
+            feature-coverletter: feature/coverletter/**
+            feature-dashboard: feature/dashboard/**
+            feature-interview: feature/interview/**
+            feature-jobs: feature/jobs/**
+            feature-profile: feature/profile/**
+            feature-resume: feature/resume/**
+            feature-tracker: feature/tracker/**
+            app: app/**
+            shared:
+              - '**/*.gradle.kts'
+              - 'gradle/**'
+              - 'gradle.properties'
+              - 'settings.gradle.kts'
+              - 'libs.versions.toml'
+              - '.github/workflows/**'
+
+      - name: Prepare module matrix
+        id: prepare
+        shell: bash
+        run: |
+          # Matrix values are filesystem paths (core/common) so the
+          # upload-artifact `path:` works directly. The test job converts
+          # them to Gradle task paths (:core:common) via tr '/' ':'.
+          ALL_MODULES='["core/common","core/data","core/database","core/datastore","core/domain","core/enrichment-providers","core/job-providers","core/sdk","core/util","feature/ats","feature/coverletter","feature/dashboard","feature/interview","feature/jobs","feature/profile","feature/resume","feature/tracker","app"]'
+
+          # Manual dispatch always runs the full matrix (no diff to compare).
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual dispatch — running the FULL matrix."
+            echo "modules=${ALL_MODULES}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "${{ steps.filter.outputs.shared }}" == "true" ]; then
+            echo "Shared build files changed — running the FULL matrix."
+            echo "modules=${ALL_MODULES}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Statically expanded JSON of all filter outputs. GitHub Actions
+          # outputs are STRINGS ("true"/"false"), so compare with == "true".
+          MODULES=$(echo '${{ toJSON(steps.filter.outputs) }}' | jq -c '
+            {
+              "core-common": "core/common",
+              "core-data": "core/data",
+              "core-database": "core/database",
+              "core-datastore": "core/datastore",
+              "core-domain": "core/domain",
+              "core-enrichment-providers": "core/enrichment-providers",
+              "core-job-providers": "core/job-providers",
+              "core-sdk": "core/sdk",
+              "core-util": "core/util",
+              "feature-ats": "feature/ats",
+              "feature-coverletter": "feature/coverletter",
+              "feature-dashboard": "feature/dashboard",
+              "feature-interview": "feature/interview",
+              "feature-jobs": "feature/jobs",
+              "feature-profile": "feature/profile",
+              "feature-resume": "feature/resume",
+              "feature-tracker": "feature/tracker",
+              "app": "app"
+            } as $map
+            | to_entries
+            | map(select(.key != "shared" and .value == "true"))
+            | map($map[.key])
+            | map(select(. != null))
+          ')
+
+          if [ "$MODULES" == "[]" ] || [ -z "$MODULES" ]; then
+            echo "No module sources changed — skipping unit tests."
+            echo "modules=[]" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changed modules: ${MODULES}"
+            echo "modules=${MODULES}" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── Test each changed module ────────────────────────────────────
+  test:
+    name: 🧪 ${{ matrix.module }}
+    needs: detect
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: needs.detect.outputs.matrix != '[]'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.detect.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Set up Android SDK
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          SDKMANAGER=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
+          if [ -x "$SDKMANAGER" ]; then
+            echo "y" | "$SDKMANAGER" "platforms;android-37" 2>&1 || echo "SDK install skipped — AGP may auto-install"
+          else
+            echo "sdkmanager not found — using pre-installed SDK"
+          fi
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ matrix.module }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      - name: Run unit tests for ${{ matrix.module }}
+        run: |
+          MODULE_GRADLE=$(echo "${{ matrix.module }}" | tr '/' ':')
+          ./gradlew :${MODULE_GRADLE}:testDebugUnitTest --no-daemon --continue
+
+      - name: Sanitize module name for artifact
+        id: sanitize
+        run: echo "name=${{ matrix.module }}" | sed 's/[^a-zA-Z0-9._-]//g' >> "$GITHUB_OUTPUT"
+
+      - name: Upload test results for ${{ matrix.module }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-test-results-${{ steps.sanitize.outputs.name }}
+          path: |
+            ${{ matrix.module }}/build/reports/tests/
+            ${{ matrix.module }}/build/test-results/
+          retention-days: 14
+
+  # ── Aggregator: always-green check for PR branch protection ──────
+  # Gives PRs a visible status even when no module sources changed
+  # (docs-only PRs), and summarizes the run on skip.
+  results:
+    name: 📋 Module Test Summary
+    needs: [detect, test]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Report module test outcome
+        run: |
+          MATRIX="${{ needs.detect.outputs.matrix }}"
+          if [ "${{ needs.detect.result }}" != "success" ]; then
+            echo "## Module Tests: detect job ${{ needs.detect.result }} ⚠️" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$MATRIX" == "[]" ] || [ -z "$MATRIX" ]; then
+            echo "## Module Tests: No module sources changed — nothing to run 🎉" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Module Tests: ${{ needs.test.result }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "Modules tested: $MATRIX" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        continue-on-error: true

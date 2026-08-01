@@ -8,6 +8,7 @@ import javax.inject.Singleton
 interface UserPreferencesRepository {
     val userPreferences: Flow<UserPreferences>
     suspend fun updateGeminiApiKey(apiKey: String)
+    suspend fun updateOnboardingCompleted(completed: Boolean)
     suspend fun updateThemeConfig(themeConfig: ThemeConfig)
     suspend fun updateAccentSeed(accentSeed: String)
     suspend fun updateDynamicColor(enabled: Boolean)
@@ -23,6 +24,12 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override suspend fun updateGeminiApiKey(apiKey: String) {
         dataStore.updateData {
             it.copy(geminiApiKey = apiKey)
+        }
+    }
+
+    override suspend fun updateOnboardingCompleted(completed: Boolean) {
+        dataStore.updateData {
+            it.copy(onboardingCompleted = completed)
         }
     }
 

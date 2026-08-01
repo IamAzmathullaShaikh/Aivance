@@ -1,12 +1,11 @@
 package com.bangersoul.aivance.core.domain.usecase.coverletter
 
-import com.bangersoul.aivance.core.common.enums.LetterTone
-import com.bangersoul.aivance.core.common.model.CoverLetter
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.CoverLetterRepository
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -24,23 +23,37 @@ class GenerateCoverLetterUseCaseTest {
 
     @Test
     fun `should generate cover letter successfully`() = runTest {
-        val letter = CoverLetter(company = "Tech Corp", role = "Engineer", content = "Dear Hiring Manager...", tone = LetterTone.PROFESSIONAL)
-        coEvery { coverLetterRepository.generateCoverLetter(any(), any(), any()) } returns Result.Success(letter)
+        coEvery {
+            coverLetterRepository.generateCoverLetter(
+                resumeId = 1L,
+                resumeVersionId = 1L,
+                jobId = 2L,
+                recruiterId = null,
+                writingStyle = "PROFESSIONAL"
+            )
+        } returns Result.Success(42L)
 
-        val result = useCase(GenerateCoverLetterRequest(companyName = "Tech Corp", role = "Engineer", jobDescription = "Job desc for experienced engineer"))
+        val result = useCase(
+            GenerateCoverLetterRequest(resumeId = 1L, resumeVersionId = 1L, jobId = 2L)
+        )
 
         assertTrue(result.isSuccess)
+        assertEquals(42L, (result as Result.Success).data)
     }
 
     @Test
-    fun `should fail for blank company name`() = runTest {
-        val result = useCase(GenerateCoverLetterRequest(companyName = "", role = "Engineer", jobDescription = "test"))
+    fun `should fail for invalid resume id`() = runTest {
+        val result = useCase(
+            GenerateCoverLetterRequest(resumeId = 0L, resumeVersionId = 1L, jobId = 2L)
+        )
         assertTrue(result.isFailure)
     }
 
     @Test
-    fun `should fail for blank role`() = runTest {
-        val result = useCase(GenerateCoverLetterRequest(companyName = "Tech Corp", role = "", jobDescription = "test"))
+    fun `should fail for invalid job id`() = runTest {
+        val result = useCase(
+            GenerateCoverLetterRequest(resumeId = 1L, resumeVersionId = 1L, jobId = 0L)
+        )
         assertTrue(result.isFailure)
     }
 }

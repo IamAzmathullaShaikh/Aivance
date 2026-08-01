@@ -65,14 +65,18 @@ class CoverLetterViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = CoverLetterUiState.Loading
             coverLetterRepository.getCoverLetters().collect { result ->
-                if (result is Result.Success) {
-                    val list = result.data
-                    if (list.isNotEmpty()) {
-                        // For simplicity, select first one
-                        val first = list.first()
-                        _uiState.value = CoverLetterUiState.Success(coverLetter = first)
-                    } else {
-                        _uiState.value = CoverLetterUiState.Idle
+                when (result) {
+                    is Result.Success -> {
+                        val list = result.data
+                        if (list.isNotEmpty()) {
+                            val first = list.first()
+                            _uiState.value = CoverLetterUiState.Success(coverLetter = first)
+                        } else {
+                            _uiState.value = CoverLetterUiState.Idle
+                        }
+                    }
+                    is Result.Failure -> {
+                        _uiState.value = CoverLetterUiState.Error("Failed to load cover letters: ${result.error.message}")
                     }
                 }
             }

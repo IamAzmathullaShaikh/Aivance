@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.core.data.repository
 
 import com.bangersoul.aivance.core.common.enums.JobSortOrder
+import com.bangersoul.aivance.core.common.model.Company
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
 import com.bangersoul.aivance.core.common.result.CoreResult
@@ -15,6 +16,7 @@ import com.bangersoul.aivance.core.database.model.CompanyEntity
 import com.bangersoul.aivance.core.database.model.SavedJobEntity
 import com.bangersoul.aivance.core.database.model.ViewedJobEntity
 import com.bangersoul.aivance.core.domain.repository.JobRepository
+import com.bangersoul.aivance.sdk.api.EnrichmentProvider
 import com.bangersoul.aivance.sdk.api.JobProvider
 import com.bangersoul.aivance.sdk.infrastructure.ProviderRegistry
 import kotlinx.coroutines.async
@@ -82,8 +84,58 @@ class JobRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getJobById(id: String): CoreResult<JobListing> = runCatchingCore {
-        val longId = id.toLongOrNull() ?: throw Exception("Invalid ID")
-        jobDao.getJobWithDetailsById(longId)?.toDomain() ?: throw Exception("Job not found")
+        // 1. Try DB first (internal ID or previously cached external ID mapped to internal)
+        val longId = id.toLongOrNull()
+        if (longId != null) {
+            val dbJob = jobDao.getJobWithDetailsById(longId)?.toDomain()
+            if (dbJob != null) return@runCatchingCore dbJob
+        }
+
+        // 2. Try all Job Providers (some might have it in their instance cache)
+        val providers = providerRegistry.getAllProviders().filterIsInstance<JobProvider>()
+        for (provider in providers) {
+            val result = provider.getJobDetails(id)
+            if (result is Result.Success) {
+                // Found it! Enrich it before returning.
+                val enriched = enrichJobListing(result.data)
+
+                // Cache it in DB for future use
+                val companyId = companyDao.insertCompany(Company(
+                    id = "0",
+                    name = enriched.company,
+                    logoUrl = enriched.companyLogoUrl
+                ).toEntity())
+                jobDao.insertJob(enriched.toEntity(companyId))
+
+                return@runCatchingCore enriched
+            }
+        }
+
+        throw Exception("Job not found: $id")
+    }
+
+    private suspend fun enrichJobListing(job: JobListing): JobListing {
+        val enrichmentProvider = providerRegistry.getProvidersByCapability(com.bangersoul.aivance.sdk.core.ProviderCapability.RecruiterDiscovery)
+            .filterIsInstance<com.bangersoul.aivance.sdk.api.EnrichmentProvider>()
+            .firstOrNull { it.status == com.bangersoul.aivance.sdk.core.ProviderStatus.Active ||
+                           it.status == com.bangersoul.aivance.sdk.core.ProviderStatus.Ready }
+            ?: return job
+
+        val company = com.bangersoul.aivance.core.common.model.Company(
+            id = "0",
+            name = job.company,
+            logoUrl = job.companyLogoUrl
+        )
+
+        return when (val result = enrichmentProvider.enrichCompany(company)) {
+            is Result.Success -> {
+                job.copy(
+                    company = result.data.name,
+                    companyLogoUrl = result.data.logoUrl ?: job.companyLogoUrl
+                )
+            }
+            is Result.Failure -> job
+        }
     }
 
     override fun getSavedJobs(): Flow<CoreResult<List<JobListing>>> {

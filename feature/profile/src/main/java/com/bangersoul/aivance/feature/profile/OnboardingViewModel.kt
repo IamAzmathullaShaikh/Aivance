@@ -3,21 +3,21 @@ package com.bangersoul.aivance.feature.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
 import com.bangersoul.aivance.core.domain.repository.ProviderRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import com.bangersoul.aivance.sdk.infrastructure.ProviderRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -85,24 +85,18 @@ sealed interface OnboardingUiEvent {
     data object Back : OnboardingUiEvent
 }
 
-sealed interface OnboardingUiEffect {
-    data class ShowSnackbar(val message: String) : OnboardingUiEffect
-    data object NavigateToHome : OnboardingUiEffect
-}
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val providerRegistry: ProviderRegistry,
     private val providerManager: ProviderManager,
     private val providerRepository: ProviderRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<OnboardingUiState>(OnboardingUiState.Welcome)
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
-
-    private val _effects = Channel<OnboardingUiEffect>(Channel.BUFFERED)
-    val effects: Flow<OnboardingUiEffect> = _effects.receiveAsFlow()
 
     private var selectedAiProviderId: String? = null
     private var selectedJobProviderId: String? = null
@@ -163,8 +157,22 @@ class OnboardingViewModel @Inject constructor(
 
             OnboardingUiEvent.Finish -> {
                 viewModelScope.launch {
-                    trackEventUseCase(TrackEventRequest(eventName = "onboarding_finish"))
-                    _effects.send(OnboardingUiEffect.NavigateToHome)
+                    try {
+                        trackEventUseCase(TrackEventRequest(eventName = "onboarding_finish"))
+                        // Persist completion so a restart doesn't re-show onboarding, and the
+                        // auth guard treats the user as onboarded.
+                        userPreferencesRepository.updateOnboardingCompleted(true)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // Non-blocking: onboarding must complete even if tracking or the
+                        // persistence write hiccups.
+                        android.util.Log.w("Onboarding", "Completion tracking/persistence failed", e)
+                    } finally {
+                        // The terminal state transition must always run so the
+                        // "Go to Dashboard" button can never dead-end.
+                        _uiState.value = OnboardingUiState.Complete
+                    }
                 }
             }
             OnboardingUiEvent.Back -> handleBack()
@@ -177,10 +185,11 @@ class OnboardingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = current.copy(isValidating = true, error = null)
-            val config = ProviderConfiguration(
+            val config = buildProviderConfig(
                 providerId = providerId,
-                secrets = mapOf("apiKey" to (current.config["apiKey"] ?: "")),
-                settings = current.config - "apiKey" + ("type" to "AI")
+                type = "AI",
+                config = current.config,
+                metadata = current.provider
             )
             val result = providerManager.validateProvider(providerId, config)
             if (result is Result.Success) {
@@ -202,10 +211,11 @@ class OnboardingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = current.copy(isValidating = true, error = null)
-            val config = ProviderConfiguration(
+            val config = buildProviderConfig(
                 providerId = providerId,
-                secrets = mapOf("apiKey" to (current.config["apiKey"] ?: "")),
-                settings = current.config - "apiKey" + ("type" to "JOB")
+                type = "JOB",
+                config = current.config,
+                metadata = current.provider
             )
             val result = providerManager.validateProvider(providerId, config)
             if (result is Result.Success) {
@@ -227,10 +237,11 @@ class OnboardingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = current.copy(isValidating = true, error = null)
-            val config = ProviderConfiguration(
+            val config = buildProviderConfig(
                 providerId = providerId,
-                secrets = mapOf("apiKey" to (current.config["apiKey"] ?: "")),
-                settings = current.config - "apiKey" + ("type" to "ENRICHMENT")
+                type = "ENRICHMENT",
+                config = current.config,
+                metadata = current.provider
             )
             val result = providerManager.validateProvider(providerId, config)
             if (result is Result.Success) {
@@ -244,6 +255,36 @@ class OnboardingViewModel @Inject constructor(
                 _uiState.value = current.copy(isValidating = false, error = (result as? Result.Failure)?.error?.message ?: "Validation failed")
             }
         }
+    }
+
+    /**
+     * Builds a [ProviderConfiguration] from the entered form fields, splitting
+     * credentials correctly:
+     *  - PASSWORD/sensitive fields from the provider's own metadata go into
+     *    [ProviderConfiguration.secrets] (encrypted at rest),
+     *  - everything else (model names, base URLs, non-sensitive IDs) goes into
+     *    [ProviderConfiguration.settings] (plaintext preferences).
+     *
+     * Previously only a hardcoded "apiKey" key was treated as a secret, which
+     * meant multi-credential providers (e.g. Adzuna's `appKey`) had their
+     * primary credential stored in plaintext settings and never applied to the
+     * live provider instance.
+     */
+    private fun buildProviderConfig(
+        providerId: String,
+        type: String,
+        config: Map<String, String>,
+        metadata: ProviderMetadata
+    ): ProviderConfiguration {
+        val secretKeys = metadata.configFields
+            .filter { it.fieldType == FieldType.PASSWORD || it.isSensitive }
+            .map { it.key }
+            .toSet()
+        return ProviderConfiguration(
+            providerId = providerId,
+            secrets = config.filterKeys { it in secretKeys },
+            settings = config.filterKeys { it !in secretKeys } + ("type" to type)
+        )
     }
 
     private fun handleBack() {

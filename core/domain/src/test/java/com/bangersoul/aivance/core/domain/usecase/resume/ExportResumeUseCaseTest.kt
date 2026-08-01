@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.core.domain.usecase.resume
 
-import com.bangersoul.aivance.core.common.model.Resume
+import com.bangersoul.aivance.core.common.model.ResumeSection
+import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import io.mockk.coEvery
@@ -22,46 +23,61 @@ class ExportResumeUseCaseTest {
         useCase = ExportResumeUseCase(resumeRepository)
     }
 
+    private fun sampleVersion(): ResumeVersion = ResumeVersion(
+        id = 5L,
+        resumeId = 1L,
+        versionName = "v1",
+        sections = listOf(
+            ResumeSection(
+                sectionType = "EXPERIENCE",
+                title = "Experience",
+                content = "Kotlin developer with 5 years"
+            )
+        )
+    )
+
     @Test
     fun `should export resume as text`() = runTest {
-        val resume = Resume(id = 1L, fileName = "resume.pdf", fileUri = "content://", rawText = "Experience:\n- Kotlin\n- Android")
-        coEvery { resumeRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
+        coEvery { resumeRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(sampleVersion())))
 
-        val result = useCase(ExportResumeRequest(resumeId = 1L, format = ExportFormat.TXT))
+        val result = useCase(ExportResumeRequest(resumeId = 1L, versionId = 5L, format = ExportFormat.TXT))
 
         assertTrue(result.isSuccess)
         val text = (result as Result.Success).data
-        assertTrue(text.contains("resume.pdf"))
-        assertTrue(text.contains("Kotlin"))
+        assertTrue(text.contains("v1"))
+        assertTrue(text.contains("Kotlin developer with 5 years"))
     }
 
     @Test
     fun `should export resume as markdown`() = runTest {
-        val resume = Resume(id = 1L, fileName = "resume.pdf", fileUri = "content://", rawText = "Experience:\n- Kotlin")
-        coEvery { resumeRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
+        coEvery { resumeRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(sampleVersion())))
 
-        val result = useCase(ExportResumeRequest(resumeId = 1L, format = ExportFormat.MARKDOWN))
+        val result = useCase(ExportResumeRequest(resumeId = 1L, versionId = 5L, format = ExportFormat.MARKDOWN))
 
         assertTrue(result.isSuccess)
         val text = (result as Result.Success).data
         assertTrue(text.startsWith("#"))
+        assertTrue(text.contains("## Experience"))
     }
 
     @Test
     fun `should export resume as JSON`() = runTest {
-        val resume = Resume(id = 1L, fileName = "resume.pdf", fileUri = "content://", rawText = "Kotlin experience")
-        coEvery { resumeRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
+        coEvery { resumeRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(sampleVersion())))
 
-        val result = useCase(ExportResumeRequest(resumeId = 1L, format = ExportFormat.JSON))
+        val result = useCase(ExportResumeRequest(resumeId = 1L, versionId = 5L, format = ExportFormat.JSON))
 
         assertTrue(result.isSuccess)
         val text = (result as Result.Success).data
-        assertTrue(text.contains("\"fileName\""))
+        assertTrue(text.contains("\"versionName\""))
+        assertTrue(text.contains("\"title\""))
     }
 
     @Test
-    fun `should fail for invalid resume ID`() = runTest {
-        val result = useCase(ExportResumeRequest(resumeId = 0L))
+    fun `should fail when version is not found`() = runTest {
+        coEvery { resumeRepository.getVersions(1L) } returns flowOf(Result.Success(emptyList()))
+
+        val result = useCase(ExportResumeRequest(resumeId = 1L, versionId = 99L, format = ExportFormat.TXT))
+
         assertTrue(result.isFailure)
     }
 }

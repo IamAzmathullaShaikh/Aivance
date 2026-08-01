@@ -83,6 +83,9 @@ class ProviderManager @Inject constructor(
     /**
      * Validates a provider configuration without persisting it.
      * Useful during onboarding or settings updates.
+     *
+     * The candidate [config] is applied to the live provider before initialization
+     * and health checking, so validation genuinely exercises the entered credentials.
      */
     suspend fun validateProvider(id: String, config: ProviderConfiguration): Result<Unit> {
         val provider = registry.getProvider(id) ?: return Result.Failure(
@@ -92,8 +95,9 @@ class ProviderManager @Inject constructor(
         return try {
             updateInternalStatus(id, ProviderStatus.Initializing)
 
-            // In a real implementation, we would apply the config to the provider instance
-            // and perform a 'ping' test.
+            // Apply the candidate config so onInitialize/checkHealth run against the
+            // entered credentials (previously the config was silently ignored).
+            provider.applyConfiguration(config)
             provider.onInitialize()
             val health = provider.checkHealth()
 
@@ -103,13 +107,68 @@ class ProviderManager @Inject constructor(
                 Result.Success(Unit)
             } else {
                 Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError(
-                    providerId = id, message = "Validation failed with status: $health"
+                    providerId = id, message = friendlyValidationMessage(health)
                 ))
             }
         } catch (e: Exception) {
             updateInternalStatus(id, ProviderStatus.Error)
             Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError(
                 providerId = id, message = e.message ?: "Validation failed", cause = e
+            ))
+        }
+    }
+
+    /**
+     * Maps a rejected provider status to a message an end user can actually
+     * act on, instead of leaking the raw lifecycle status name.
+     */
+    private fun friendlyValidationMessage(status: ProviderStatus): String {
+        return when (status) {
+            ProviderStatus.InvalidConfiguration ->
+                "Configuration is incomplete — please fill in every required field."
+            ProviderStatus.Error ->
+                "Invalid API key or provider unreachable — please check and retry."
+            ProviderStatus.Degraded ->
+                "Provider is temporarily unavailable — please check your credentials and retry."
+            else -> "Validation failed with status: $status"
+        }
+    }
+
+    /**
+     * Reconfigures a live provider with new credentials and re-initializes it.
+     *
+     * Closes the gap where [com.bangersoul.aivance.core.data.repository.ProviderRepositoryImpl.saveProviderConfig]
+     * persisted credentials but never re-applied them to the DI-singleton provider
+     * instance, so configured providers stayed unconfigured until app restart.
+     *
+     * @param id The provider identifier.
+     * @param config The new configuration (secrets included).
+     * @return Success if the provider reached Ready/Active after re-init.
+     */
+    suspend fun reconfigure(id: String, config: ProviderConfiguration): Result<Unit> {
+        val provider = registry.getProvider(id) ?: return Result.Failure(
+            com.bangersoul.aivance.core.common.result.DomainError("Provider $id not found")
+        )
+
+        return try {
+            provider.applyConfiguration(config)
+            // Force re-initialization so the new credentials take effect.
+            provider.updateStatus(ProviderStatus.Uninitialized)
+            orchestrator.transitionTo(provider, ProviderStatus.Ready)
+            updateInternalStatus(id, provider.status)
+
+            if (provider.status == ProviderStatus.Ready || provider.status == ProviderStatus.Active) {
+                Result.Success(Unit)
+            } else {
+                Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError(
+                    providerId = id,
+                    message = "Reconfiguration resulted in status ${provider.status}",
+                ))
+            }
+        } catch (e: Exception) {
+            updateInternalStatus(id, ProviderStatus.Error)
+            Result.Failure(com.bangersoul.aivance.core.common.result.ProviderError(
+                providerId = id, message = e.message ?: "Reconfiguration failed", cause = e
             ))
         }
     }
@@ -123,8 +182,20 @@ class ProviderManager @Inject constructor(
     fun getBestProviderFor(capability: ProviderCapability): BaseProvider? {
         val candidates = registry.getProvidersByCapability(capability)
 
-        // Priority: Active > Ready > Others
-        return candidates.firstOrNull { it.status == ProviderStatus.Active }
+        // Priority tiers, best-first:
+        //   1. Active  && holds real credentials (user-supplied key)
+        //   2. Ready   && holds real credentials
+        //   3. Active  && isConfigured (includes keyless providers like Ollama)
+        //   4. Ready   && isConfigured
+        //   5. Active / Ready / anything
+        // The credentials tiers guarantee a keyed provider (e.g. Groq with a real
+        // key) wins over a keyless one (e.g. Ollama pointing at localhost), instead
+        // of leaving selection to registry iteration order.
+        return candidates.firstOrNull { it.status == ProviderStatus.Active && it.hasCredentials }
+            ?: candidates.firstOrNull { it.status == ProviderStatus.Ready && it.hasCredentials }
+            ?: candidates.firstOrNull { it.status == ProviderStatus.Active && it.isConfigured }
+            ?: candidates.firstOrNull { it.status == ProviderStatus.Ready && it.isConfigured }
+            ?: candidates.firstOrNull { it.status == ProviderStatus.Active }
             ?: candidates.firstOrNull { it.status == ProviderStatus.Ready }
             ?: candidates.firstOrNull()
     }
@@ -134,8 +205,14 @@ class ProviderManager @Inject constructor(
      *
      * @param id The unique identifier of the provider.
      */
-    fun triggerHealthCheck(id: String) {
-        // Placeholder for health check logic
+    suspend fun triggerHealthCheck(id: String) {
+        val provider = registry.getProvider(id) ?: return
+        try {
+            val status = provider.checkHealth()
+            updateInternalStatus(id, status)
+        } catch (e: Exception) {
+            updateInternalStatus(id, ProviderStatus.Error)
+        }
     }
 
     private fun updateInternalStatus(id: String, status: ProviderStatus) {
@@ -196,6 +273,12 @@ class ProviderManager @Inject constructor(
             provider.updateStatus(ProviderStatus.Initializing)
             try {
                 provider.onInitialize()
+                // Respect providers that self-mark as InvalidConfiguration during
+                // onInitialize (e.g. missing credentials), so search aggregation
+                // and startup flows skip them instead of firing doomed requests.
+                if (provider.status == ProviderStatus.InvalidConfiguration) {
+                    return
+                }
                 provider.updateStatus(ProviderStatus.Ready)
             } catch (ignored: Exception) {
                 provider.updateStatus(ProviderStatus.Error)

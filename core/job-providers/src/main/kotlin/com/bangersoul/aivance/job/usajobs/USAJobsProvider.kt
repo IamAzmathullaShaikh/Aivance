@@ -23,11 +23,12 @@ import retrofit2.Retrofit
  * Requires a free API key from developer.usajobs.gov.
  */
 class USAJobsProvider(
-    private val apiKey: String,
+    private var apiKey: String,
     private val userAgent: String = "aivance-android@example.com",
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://data.usajobs.gov/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "usajobs",
@@ -51,11 +52,19 @@ class USAJobsProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://data.usajobs.gov/"
-
     private val api: USAJobsApi by lazy { retrofit.create(USAJobsApi::class.java) }
+
+    override val isConfigured: Boolean
+        get() = apiKey.isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: com.bangersoul.aivance.sdk.config.ProviderConfiguration) {
+        apiKey = config.secrets["apiKey"] ?: apiKey
+    }
 
     override suspend fun executeSearch(
         filter: JobSearchFilter,
@@ -80,9 +89,7 @@ class USAJobsProvider(
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
-    }
+
 
     override suspend fun performHealthCheck() {
         if (apiKey.isBlank()) {

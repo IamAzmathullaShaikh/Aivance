@@ -70,6 +70,14 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions {
+        unitTests {
+            // AGP 9.x JVM unit tests throw "Method ... not mocked" when code touches
+            // android.util.Log / Build.* (e.g. DownloadManager/UploadManager init blocks).
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 room {

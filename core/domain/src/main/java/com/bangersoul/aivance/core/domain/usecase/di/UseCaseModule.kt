@@ -37,7 +37,7 @@ object UseCaseModule {
     fun provideCalculateATSScoreUseCase(repo: ResumeRepository): CalculateATSScoreUseCase = CalculateATSScoreUseCase(repo)
 
     @Provides @Singleton
-    fun provideImproveResumeUseCase(repo: ResumeRepository): ImproveResumeUseCase = ImproveResumeUseCase(repo)
+    fun provideImproveResumeUseCase(repo: ResumeRepository, aiRepo: AiRepository): ImproveResumeUseCase = ImproveResumeUseCase(repo, aiRepo)
 
     @Provides @Singleton
     fun provideGenerateResumeSummaryUseCase(repo: ResumeRepository): GenerateResumeSummaryUseCase = GenerateResumeSummaryUseCase(repo)

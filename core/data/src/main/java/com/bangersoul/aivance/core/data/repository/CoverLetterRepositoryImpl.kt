@@ -115,6 +115,32 @@ class CoverLetterRepositoryImpl @Inject constructor(
     }
 
     override suspend fun regenerateSection(versionId: Long, sectionType: String): CoreResult<Unit> = runCatchingCore {
-        // AI logic for single section regeneration
+        val versionEntity = coverLetterDao.getVersionById(versionId) ?: throw Exception("Version not found")
+        val coverLetter = coverLetterDao.getCoverLetterById(versionEntity.coverLetterId) ?: throw Exception("Cover letter not found")
+
+        val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+            ?: throw Exception("No AI provider available")
+
+        val prompt = "Regenerate the $sectionType section for a cover letter at ${coverLetter.company} for the role ${coverLetter.role}. Keep it ${versionEntity.writingStyle}."
+        val newContent = provider.generateText(prompt).getOrNull() ?: throw Exception("AI regeneration failed")
+
+        val sections = coverLetterDao.getSectionsForVersion(versionId).firstOrNull() ?: emptyList()
+        val updatedSections = if (sections.any { it.sectionType == sectionType }) {
+            sections.map {
+                if (it.sectionType == sectionType) it.copy(content = newContent) else it
+            }
+        } else {
+             sections + com.bangersoul.aivance.core.database.model.CoverLetterSectionEntity(
+                 id = 0,
+                 versionId = versionId,
+                 sectionType = sectionType,
+                 title = sectionType.lowercase().replaceFirstChar { it.uppercase() },
+                 content = newContent,
+                 sectionOrder = sections.size
+             )
+        }
+
+        saveVersion(versionEntity.toDomain(updatedSections))
+        Unit
     }
 }

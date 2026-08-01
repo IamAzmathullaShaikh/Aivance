@@ -2,9 +2,9 @@ package com.bangersoul.aivance.feature.profile
 
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.UserProfile
-import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.user.CreateProfileUseCase
 import com.bangersoul.aivance.core.domain.usecase.user.DeleteProfileUseCase
@@ -15,13 +15,14 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -36,18 +37,25 @@ class ProfileViewModelTest {
     private val mockUserPrefs: UserPreferencesRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
-    private lateinit var viewModel: ProfileViewModel
+    private val sampleProfile = UserProfile(
+        fullName = "John Doe",
+        email = "john@example.com",
+        targetRole = "Android Engineer",
+        skills = listOf("Kotlin", "Compose"),
+        experienceYears = 5
+    )
+
+    private fun createViewModel() = ProfileViewModel(
+        mockLoadProfile, mockCreateProfile, mockUpdateProfile,
+        mockDeleteProfile, mockUserPrefs, mockTrackEvent
+    )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
-        coEvery { mockLoadProfile.invoke() } returns flowOf(Result.Success(null))
-        coEvery { mockUserPrefs.userPreferences } returns MutableStateFlow(
-            com.bangersoul.aivance.core.datastore.UserPreferences(
-                geminiApiKey = "test-key"
-            )
-        )
+        coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
+        coEvery { mockLoadProfile.invoke() } returns flowOf(Result.Success(sampleProfile))
+        coEvery { mockUserPrefs.updateGeminiApiKey(any()) } returns Unit
     }
 
     @After
@@ -56,93 +64,77 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `initial state loads successfully`() = runTest {
-        viewModel = ProfileViewModel(
-            mockLoadProfile, mockCreateProfile, mockUpdateProfile,
-            mockDeleteProfile, mockUserPrefs, mockTrackEvent
-        )
+    fun `initial state loads profile successfully`() = runTest {
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assert(viewModel.uiState.value is ProfileUiState.Success)
+        val state = viewModel.uiState.value
+        assertTrue(state is ProfileUiState.Success)
+        assertEquals("John Doe", (state as ProfileUiState.Success).fullName)
+        assertEquals("john@example.com", state.email)
+        assertEquals(5, state.experienceYears)
     }
 
     @Test
-    fun `update profile name works`() = runTest {
-        viewModel = ProfileViewModel(
-            mockLoadProfile, mockCreateProfile, mockUpdateProfile,
-            mockDeleteProfile, mockUserPrefs, mockTrackEvent
-        )
+    fun `update full name updates state`() = runTest {
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.onEvent(ProfileUiEvent.UpdateName("John Doe"))
+        viewModel.onEvent(ProfileUiEvent.UpdateFullName("Jane Doe"))
 
-        assert((viewModel.uiState.value as ProfileUiState.Success).name == "John Doe")
+        assertEquals("Jane Doe", (viewModel.uiState.value as ProfileUiState.Success).fullName)
     }
 
     @Test
     fun `save profile with blank name shows validation error`() = runTest {
-        viewModel = ProfileViewModel(
-            mockLoadProfile, mockCreateProfile, mockUpdateProfile,
-            mockDeleteProfile, mockUserPrefs, mockTrackEvent
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.onEvent(ProfileUiEvent.UpdateName(""))
+        viewModel.onEvent(ProfileUiEvent.UpdateFullName(""))
         viewModel.onEvent(ProfileUiEvent.SaveProfile)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
             val effect = awaitItem()
-            assert(effect is ProfileUiEffect.ValidationError)
-            assert((effect as ProfileUiEffect.ValidationError).field == "name")
+            assertTrue(effect is ProfileUiEffect.ValidationError)
+            assertEquals("name", (effect as ProfileUiEffect.ValidationError).field)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `save profile triggers use case`() = runTest {
-        coEvery { mockUpdateProfile.invoke(any()) } returns flowOf(Result.Success(Unit))
-        coEvery { mockCreateProfile.invoke(any()) } returns flowOf(Result.Success(Unit))
+    fun `save profile triggers update use case and tracks event`() = runTest {
+        coEvery { mockUpdateProfile.invoke(any()) } returns Result.Success(sampleProfile)
 
-        viewModel = ProfileViewModel(
-            mockLoadProfile, mockCreateProfile, mockUpdateProfile,
-            mockDeleteProfile, mockUserPrefs, mockTrackEvent
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.onEvent(ProfileUiEvent.UpdateName("John Doe"))
+        viewModel.onEvent(ProfileUiEvent.UpdateFullName("John Doe"))
         viewModel.onEvent(ProfileUiEvent.UpdateEmail("john@example.com"))
         viewModel.onEvent(ProfileUiEvent.SaveProfile)
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { mockUpdateProfile.invoke(any()) }
-        coVerify { mockTrackEvent("profile_save") }
+        coVerify { mockTrackEvent(TrackEventRequest(eventName = "profile_save")) }
     }
 
     @Test
-    fun `delete profile triggers use case`() = runTest {
-        coEvery { mockDeleteProfile.invoke() } returns flowOf(Result.Success(Unit))
+    fun `delete profile triggers delete use case and tracks event`() = runTest {
+        coEvery { mockDeleteProfile.invoke() } returns Result.Success(Unit)
 
-        viewModel = ProfileViewModel(
-            mockLoadProfile, mockCreateProfile, mockUpdateProfile,
-            mockDeleteProfile, mockUserPrefs, mockTrackEvent
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onEvent(ProfileUiEvent.DeleteProfile)
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { mockDeleteProfile.invoke() }
-        coVerify { mockTrackEvent("profile_delete") }
+        coVerify { mockTrackEvent(TrackEventRequest(eventName = "profile_delete")) }
     }
 
     @Test
-    fun `API key update persists to preferences`() = runTest {
-        coEvery { mockUserPrefs.updateGeminiApiKey(any()) } returns Unit
-
-        viewModel = ProfileViewModel(
-            mockLoadProfile, mockCreateProfile, mockUpdateProfile,
-            mockDeleteProfile, mockUserPrefs, mockTrackEvent
-        )
+    fun `api key update persists to preferences`() = runTest {
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onEvent(ProfileUiEvent.UpdateApiKey("new-key"))

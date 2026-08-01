@@ -75,7 +75,13 @@ class GreenhouseProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = GreenhouseProvider("testcorp", jobCache, client, retrofit)
+        val provider = GreenhouseProvider(
+            boardToken = "testcorp",
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 
@@ -121,7 +127,13 @@ class GreenhouseProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = GreenhouseProvider("remoteorg", jobCache, client, retrofit)
+        val provider = GreenhouseProvider(
+            boardToken = "remoteorg",
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 

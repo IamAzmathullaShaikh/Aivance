@@ -14,15 +14,17 @@ import com.bangersoul.aivance.sdk.core.ConfigField
 import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.core.ProviderType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 
 class LeverProvider(
-    private val companyId: String,
+    private var companyId: String,
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://api.lever.co/v0/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "lever",
@@ -43,11 +45,20 @@ class LeverProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://api.lever.co/v0/"
-
     private val api: LeverApi by lazy { retrofit.create(LeverApi::class.java) }
+
+    override val isConfigured: Boolean
+        get() = companyId.isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: com.bangersoul.aivance.sdk.config.ProviderConfiguration) {
+        // companyId is a non-sensitive TEXT field, stored in settings.
+        companyId = config.settings["companyId"] ?: companyId
+    }
 
     override suspend fun executeSearch(
         filter: JobSearchFilter,
@@ -65,8 +76,15 @@ class LeverProvider(
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
+
+
+    override suspend fun onInitialize() {
+        super.onInitialize()
+        // Stay out of Active/Ready until the user provides a real company ID,
+        // so search aggregation filters this provider out.
+        if (companyId.isBlank()) {
+            updateStatus(ProviderStatus.InvalidConfiguration)
+        }
     }
 
     private fun mapToJobListing(dto: LeverJobDto): JobListing {

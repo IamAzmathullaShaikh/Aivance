@@ -13,6 +13,9 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bangersoul.aivance.MainActivity
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,14 +59,12 @@ class UploadManager @Inject constructor(
     }
 
     init {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID, CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply { description = "Upload progress notifications" }
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
-        }
+        val channel = NotificationChannel(
+            CHANNEL_ID, CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_LOW
+        ).apply { description = "Upload progress notifications" }
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(channel)
     }
 
     /**
@@ -129,7 +130,18 @@ class UploadManager @Inject constructor(
                                 .setContentIntent(pendingIntent)
                                 .setPriority(NotificationCompat.PRIORITY_LOW)
                                 .build()
-                            notificationManager.notify(notifId, notification)
+                            val canNotify = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                            } else {
+                                true
+                            }
+                            if (canNotify) {
+                                try {
+                                    notificationManager.notify(notifId, notification)
+                                } catch (e: Exception) {
+                                    Timber.w(e, "Failed to post notification")
+                                }
+                            }
                         }
                     }
                 }
@@ -154,7 +166,18 @@ class UploadManager @Inject constructor(
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .build()
-                notificationManager.notify(notifId, successNotif)
+                val canNotify = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    true
+                }
+                if (canNotify) {
+                    try {
+                        notificationManager.notify(notifId, successNotif)
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to post success notification")
+                    }
+                }
                 UploadResult.Success(response.body?.string() ?: serverUrl)
             } else {
                 val errorNotif = NotificationCompat.Builder(context, CHANNEL_ID)
@@ -164,7 +187,18 @@ class UploadManager @Inject constructor(
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .build()
-                notificationManager.notify(notifId, errorNotif)
+                val canNotify = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    true
+                }
+                if (canNotify) {
+                    try {
+                        notificationManager.notify(notifId, errorNotif)
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to post failure notification")
+                    }
+                }
                 UploadResult.Failure("HTTP ${response.code}: ${response.message}")
             }
 
@@ -177,7 +211,18 @@ class UploadManager @Inject constructor(
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .build()
-            notificationManager.notify(notifId, errorNotif)
+            val canNotify = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+            if (canNotify) {
+                try {
+                    notificationManager.notify(notifId, errorNotif)
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to post exception notification")
+                }
+            }
             UploadResult.Failure(e.message ?: "Upload failed")
         }
     }

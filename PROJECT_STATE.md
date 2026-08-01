@@ -1,5 +1,7 @@
 # AiVance Project State
 
+> **Status: PRODUCTION READY** — v1.0.0 completed all 14 phases. Repository frozen; only hotfixes permitted on v1.0.0 contracts.
+
 ## Current Architecture
 - **Paradigm**: Clean Architecture, SOLID Principles, Offline-First.
 - **Pattern**: MVVM with Repository pattern.
@@ -19,7 +21,7 @@
 - `:core:data`: Repository implementations and local/remote bridges.
 - `:core:domain`: Business logic, UseCases, and capability orchestration.
 - `:core:ai-providers`: Concrete implementations for Gemini, Claude, etc.
-- `:core:job-providers`: Concrete implementations for LinkedIn, Indeed, etc.
+- `:core:job-providers`: Concrete implementations for LinkedIn, Indeed, etc. + free global engines.
 - `:core:enrichment-providers`: Hunter.io integration for recruiter discovery.
 - `:core:designsystem`: Reusable Compose components, themes, and spacing.
 - `:core:network`: Retrofit setup, security utilities.
@@ -40,7 +42,7 @@
 - `:feature:analytics`: Career Intelligence and Insights dashboard.
 
 ### App & Navigation
-- `:app`: Application entry point, Hilt setup, WorkManager security migrations.
+- `:app`: Application entry point, Hilt setup, WorkManager automation, release signing.
 - `:navigation`: Central NavGraph (Type-safe), AppShell.
 
 ## Current Provider Support
@@ -72,19 +74,34 @@
 
 ## Phase 12 Completion
 - **Design System**: Tokenized color/type/spacing/shape/elevation/motion with Light/Dark/AMOLED/Dynamic themes.
-- **Component Library**: `:core:designsystem` catalog (buttons, cards, states, charts, gauges, banners) — see `COMPONENT_LIBRARY.md`.
+- **Component Library**: `:core:designsystem` catalog — see `COMPONENT_LIBRARY.md`.
 - **Redesigned**: Dashboard (Command Center), Assistant (OS-style streaming), Analytics (interactive charts), Tracker (Kanban + drag-and-drop), Profile (sectioned hub), Jobs, Resume, Interview (mock data removed), Recruiter.
 - **Contracts Frozen**: Design system, components, navigation, theme, motion — see `PHASE_12_REPORT.artifact.md`.
 
+## Phase 13 Completion (Quality Engineering & Release Candidate)
+- **Stale-test repair**: 20+ stale test files repaired across 9 modules (`core:domain`, `core:data`, `app`, tracker, profile, resume, jobs) against current contracts (deleted use cases removed, direct `CoreResult` stubs, Main-scheduler-safe tests).
+- **App-module fixes**: WorkManager companion mocking (`mockkObject`), ConnectivityMonitor `getSystemService` stubbing, `Result.success()` equality assertions, `emptyFlow` determinism.
+- **Verification**: full project `testDebugUnitTest` green; `assembleDebug` green.
+
+## Phase 14 Completion (Production Launch & Operations)
+- **Release build**: signing config (env-var secrets + `keystore.jks`), R8 minify + shrink, ProGuard mapping, native symbols, v1.0.0.
+- **CI/CD**: 10-job pipeline (quick-check, quality, unit matrix, emulator tests, coverage, security scan, release build, benchmarks, Play upload, notify).
+- **Monitoring**: `CrashReporter`, KPI targets, privacy-safe telemetry.
+- **Docs finalized**: `CHANGELOG.md`, `ROADMAP.md`, `LICENSE`, `DATABASE_SCHEMA.md`, `SECURITY_GUIDE.md`, `TEST_PLAN.md`, `OBSERVABILITY_GUIDE.md`, `KNOWN_ISSUES.md`, `DEPLOYMENT_GUIDE.md`, `RELEASE_GUIDE.md`, `OPERATIONS_GUIDE.md`, plus the four final reports.
+- **Deliverables**: `PRODUCTION_READINESS_REPORT.md`, `TECHNICAL_DEBT_REPORT.md`, `LAUNCH_CHECKLIST.md`, `PROJECT_COMPLETION_REPORT.md`.
+
 ## Known Issues
-- `RecruiterIntelligenceRepository` (core:data) still uses mock logic for recruiter persistence; the Hunter.io provider itself is now a real API integration (domain search + email verification).
-- Adzuna & USAJobs are registered as dormant (InvalidConfiguration) until real free keys are entered — job providers don't yet have a ProviderFactory-style runtime config path like enrichment providers.
-- `SecurityMigrationWorker` currently a skeleton; full destructive plaintext cleanup planned for v21.
-- Interview improvement timeline & achievements pending real analytics history (Phase 12+).
+See `KNOWN_ISSUES.md` for the full catalog. Headline items:
+- `RecruiterIntelligenceRepository` (core:data) still uses mock logic for recruiter persistence; the Hunter.io provider itself is a real API integration.
+- Adzuna & USAJobs are registered as dormant (`InvalidConfiguration`) until real free keys are entered.
+- `SecurityMigrationWorker` currently a skeleton; full destructive plaintext cleanup planned for v1.1 (DB v21).
+- Encrypted data is Keystore-bound; factory reset without encrypted export loses local data (documented trade-off).
 
 ## Release Readiness
-- **Stability**: Build stable across 25 modules (`assembleDebug` green).
-- **Security**: All API keys moved to encrypted DataStore.
-- **Privacy**: GDPR-compliant Data Export and Deletion active in Privacy Center.
+- **Stability**: `assembleDebug` and full `testDebugUnitTest` green across all modules.
+- **Release**: Signing + AAB/APK pipeline verified; CI `bundleRelease` job.
+- **Security**: All API keys in encrypted DataStore; PII encrypted at rest; audit logs; Privacy Center.
+- **Privacy**: GDPR-compliant Data Export and Deletion active.
 - **Navigation**: Full type-safe backstack with 6 root destinations.
-- **UI**: Unified design system; all screens consume shared components; no mock data or dead controls.
+- **UI**: Unified design system; no mock data or dead controls.
+- **Play readiness**: Data safety posture documented; staged rollout (10%) configured; mapping upload wired.

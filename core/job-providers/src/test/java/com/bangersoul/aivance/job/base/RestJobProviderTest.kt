@@ -183,9 +183,7 @@ class RestJobProviderTest {
             return searchJobsResult ?: emptyList()
         }
 
-        override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-            return Result.Failure(ProviderError(metadata.id, message = "Not supported"))
-        }
+
 
         suspend fun triggerInitialize() = onInitialize()
         suspend fun triggerStart() = onStart()

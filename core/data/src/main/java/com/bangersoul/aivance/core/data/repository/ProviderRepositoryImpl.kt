@@ -15,7 +15,8 @@ import javax.inject.Singleton
 @Singleton
 class ProviderRepositoryImpl @Inject constructor(
     private val aiAnalyticsDao: AiAnalyticsDao,
-    private val secretsManager: SecretsManager
+    private val secretsManager: SecretsManager,
+    private val providerManager: com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 ) : ProviderRepository {
 
     override fun getProviderConfigs(): Flow<List<ProviderConfiguration>> {
@@ -31,26 +32,46 @@ class ProviderRepositoryImpl @Inject constructor(
 
     override suspend fun getProviderConfig(id: String): ProviderConfiguration? {
         val entity = aiAnalyticsDao.getProviderConfig(id) ?: return null
-        val apiKey = secretsManager.getSecret("provider_${id}_apiKey") ?: ""
-        return entity.toDomain(mapOf("apiKey" to apiKey))
+        // Legacy fallback: configs saved before the multi-secret change only ever
+        // stored "apiKey"; treat an absent marker as that legacy key so existing
+        // users' credentials keep hydrating after the upgrade.
+        val storedKeys = (entity.settings[SECRET_KEYS_SETTING] ?: "").split(",")
+            .filter { it.isNotBlank() }
+        val secretKeys = storedKeys.ifEmpty { listOf("apiKey") }
+        val secrets = secretKeys.mapNotNull { key ->
+            val value = secretsManager.getSecret("provider_${id}_${key}") ?: return@mapNotNull null
+            if (value.isBlank()) null else key to value
+        }.toMap()
+        return entity.toDomain(secrets)
     }
 
     override suspend fun saveProviderConfig(config: ProviderConfiguration): Result<Unit> = runCatchingCore {
         aiAnalyticsDao.insertProviderConfig(config.toEntity())
-        config.secrets["apiKey"]?.let {
-            secretsManager.saveSecret("provider_${config.providerId}_apiKey", it)
+        // Persist every secret keyed by its own field name (encrypted DataStore).
+        config.secrets.forEach { (key, value) ->
+            if (value.isNotBlank()) {
+                secretsManager.saveSecret("provider_${config.providerId}_${key}", value)
+            }
         }
+        // Reconfigure the live DI-singleton provider so saved credentials take
+        // effect immediately (previously only persisted, never applied).
+        providerManager.reconfigure(config.providerId, config)
     }
 
     override suspend fun deleteProviderConfig(id: String): Result<Unit> = runCatchingCore {
-        // Implementation for delete
-        secretsManager.deleteSecret("provider_${id}_apiKey")
+        // Implementation for delete: remove every secret this provider holds.
+        val entity = aiAnalyticsDao.getProviderConfig(id)
+        val storedKeys = (entity?.settings?.get(SECRET_KEYS_SETTING) ?: "").split(",")
+            .filter { it.isNotBlank() }
+        val secretKeys = storedKeys.ifEmpty { listOf("apiKey") }
+        secretKeys.forEach { key -> secretsManager.deleteSecret("provider_${id}_${key}") }
+        providerManager.reconfigure(id, ProviderConfiguration(id))
     }
 
     private fun ProviderConfigurationEntity.toDomain(secrets: Map<String, String>): ProviderConfiguration {
         return ProviderConfiguration(
             providerId = provider,
-            settings = settings + mapOf(
+            settings = (settings - SECRET_KEYS_SETTING) + mapOf(
                 "type" to type,
                 "selectedModel" to (selectedModel ?: ""),
                 "actorId" to (actorId ?: ""),
@@ -67,8 +88,18 @@ class ProviderRepositoryImpl @Inject constructor(
             baseUrl = settings["baseUrl"],
             selectedModel = settings["selectedModel"],
             actorId = settings["actorId"],
-            settings = settings - setOf("type", "selectedModel", "actorId", "isEnabled"),
+            settings = (settings - setOf("type", "selectedModel", "actorId", "isEnabled")) +
+                (SECRET_KEYS_SETTING to secrets.keys.joinToString(",")),
             isEnabled = settings["isEnabled"]?.toBoolean() ?: true
         )
+    }
+
+    companion object {
+        /**
+         * Reserved settings key that records which credential field keys a provider's
+         * secrets map contains, so [getProviderConfig] can round-trip every secret
+         * (not just a hardcoded "apiKey"). Stripped from the public settings map.
+         */
+        private const val SECRET_KEYS_SETTING = "__secretKeys"
     }
 }

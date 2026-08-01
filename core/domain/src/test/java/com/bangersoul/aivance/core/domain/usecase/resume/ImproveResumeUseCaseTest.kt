@@ -1,7 +1,7 @@
 package com.bangersoul.aivance.core.domain.usecase.resume
 
-import com.bangersoul.aivance.core.common.model.Resume
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
+import com.bangersoul.aivance.core.common.model.ResumeVersion
+import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import io.mockk.coEvery
@@ -26,35 +26,37 @@ class ImproveResumeUseCaseTest {
     }
 
     @Test
-    fun `should improve resume with analysis`() = runTest {
-        val resume = Resume(id = 1L, fileName = "resume.pdf", fileUri = "content://", rawText = "Old text", sections = emptyList())
-        val analysis = ResumeAnalysis(overallScore = 60, missingKeywords = listOf("Kotlin", "Compose"), matchSummary = "Needs improvement")
+    fun `should create improved version with new id`() = runTest {
+        val original = ResumeVersion(id = 2L, resumeId = 1L, versionName = "v1")
+        coEvery { resumeRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(original)))
+        coEvery { resumeRepository.saveVersion(any()) } returns Result.Success(99L)
 
-        coEvery { resumeRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
-        coEvery { resumeRepository.analyzeResume(1L, any()) } returns Result.Success(analysis)
-        coEvery { resumeRepository.updateResume(any()) } returns Result.Success(Unit)
-
-        val result = useCase(ImproveResumeRequest(resumeId = 1L, jobDescription = "Kotlin developer position"))
+        val result = useCase(ImproveResumeRequest(resumeId = 1L, versionId = 2L))
 
         assertTrue(result.isSuccess)
-        val response = (result as Result.Success).data
-        assertTrue(response.changes.any { it.contains("Kotlin") })
-        coVerify { resumeRepository.updateResume(any()) }
+        val improved = (result as Result.Success).data
+        assertEquals(99L, improved.id)
+        assertEquals("v1 (Improved)", improved.versionName)
+        coVerify { resumeRepository.saveVersion(any()) }
     }
 
     @Test
-    fun `should fail for invalid resume ID`() = runTest {
-        val result = useCase(ImproveResumeRequest(resumeId = 0L))
+    fun `should fail when version is not found`() = runTest {
+        coEvery { resumeRepository.getVersions(1L) } returns flowOf(Result.Success(emptyList()))
+
+        val result = useCase(ImproveResumeRequest(resumeId = 1L, versionId = 99L))
+
         assertTrue(result.isFailure)
     }
 
     @Test
-    fun `should handle resume not found`() = runTest {
-        coEvery { resumeRepository.getResumeById(1L) } returns flowOf(
-            Result.Failure(com.bangersoul.aivance.core.common.result.DatabaseError("Not found"))
+    fun `should handle repository failure when fetching versions`() = runTest {
+        coEvery { resumeRepository.getVersions(1L) } returns flowOf(
+            Result.Failure(DomainError("Resume not found"))
         )
 
-        val result = useCase(ImproveResumeRequest(resumeId = 1L))
+        val result = useCase(ImproveResumeRequest(resumeId = 1L, versionId = 2L))
+
         assertTrue(result.isFailure)
     }
 }

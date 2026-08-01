@@ -77,7 +77,12 @@ class RemoteOKProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = RemoteOKProvider(jobCache, client, retrofit)
+        val provider = RemoteOKProvider(
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 
@@ -107,7 +112,12 @@ class RemoteOKProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = RemoteOKProvider(jobCache, client, retrofit)
+        val provider = RemoteOKProvider(
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 
@@ -138,7 +148,12 @@ class RemoteOKProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = RemoteOKProvider(jobCache, client, retrofit)
+        val provider = RemoteOKProvider(
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 

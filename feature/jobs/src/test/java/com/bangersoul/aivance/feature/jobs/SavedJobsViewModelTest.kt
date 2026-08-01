@@ -1,12 +1,11 @@
 package com.bangersoul.aivance.feature.jobs
 
 import com.bangersoul.aivance.core.common.model.JobListing
-import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
-import com.bangersoul.aivance.core.domain.usecase.job.RemoveSavedJobUseCase
-import com.bangersoul.aivance.core.domain.usecase.job.SearchSavedJobsUseCase
+import com.bangersoul.aivance.core.domain.usecase.job.ToggleJobBookmarkUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -14,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -28,30 +26,47 @@ import org.junit.Test
 class SavedJobsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val mockSearchSavedJobs: SearchSavedJobsUseCase = mockk()
-    private val mockRemoveSavedJob: RemoveSavedJobUseCase = mockk()
+    private val mockJobRepository: JobRepository = mockk()
+    private val mockToggleBookmark: ToggleJobBookmarkUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private val sampleJobs = listOf(
-        JobListing("1", "Android Dev", "Google", description = "", url = "", sourceProvider = ""),
-        JobListing("2", "iOS Dev", "Apple", description = "", url = "", sourceProvider = "")
+        JobListing(
+            id = "1",
+            title = "Android Dev",
+            company = "Google",
+            description = "",
+            url = "",
+            sourceProvider = "REMOTE_OK"
+        ),
+        JobListing(
+            id = "2",
+            title = "iOS Dev",
+            company = "Apple",
+            description = "",
+            url = "",
+            sourceProvider = "REMOTE_OK"
+        )
     )
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any<TrackEventRequest>()) } returns Result.Success(Unit)
-        coEvery { mockSearchSavedJobs(any()) } returns flowOf(Result.Success(sampleJobs))
-        coEvery { mockRemoveSavedJob(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
+        coEvery { mockToggleBookmark.invoke(any()) } returns Result.Success(true)
     }
 
     @After
-    fun tearDown() { Dispatchers.resetMain() }
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `initial state is Success with jobs`() = runTest {
-        val vm = SavedJobsViewModel(mockSearchSavedJobs, mockRemoveSavedJob, mockTrackEvent)
-        advanceUntilIdle()
+        coEvery { mockJobRepository.getSavedJobs() } returns flowOf(Result.Success(sampleJobs))
+
+        val vm = SavedJobsViewModel(mockJobRepository, mockToggleBookmark, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.value
         assertTrue(state is SavedJobsUiState.Success)
@@ -59,19 +74,40 @@ class SavedJobsViewModelTest {
     }
 
     @Test
-    fun `removeJob calls remove use case`() = runTest {
-        val vm = SavedJobsViewModel(mockSearchSavedJobs, mockRemoveSavedJob, mockTrackEvent)
-        advanceUntilIdle()
+    fun `removeJob calls toggle bookmark use case and tracks event`() = runTest {
+        coEvery { mockJobRepository.getSavedJobs() } returns flowOf(Result.Success(sampleJobs))
+
+        val vm = SavedJobsViewModel(mockJobRepository, mockToggleBookmark, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
+
         vm.onEvent(SavedJobsUiEvent.RemoveJob("1"))
-        advanceUntilIdle()
-        coVerify { mockRemoveSavedJob("1") }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockToggleBookmark.invoke("1") }
+        coVerify { mockTrackEvent(TrackEventRequest(eventName = "saved_jobs_remove")) }
     }
 
     @Test
     fun `empty state when no jobs`() = runTest {
-        coEvery { mockSearchSavedJobs(any()) } returns flowOf(Result.Success(emptyList()))
-        val vm = SavedJobsViewModel(mockSearchSavedJobs, mockRemoveSavedJob, mockTrackEvent)
-        advanceUntilIdle()
+        coEvery { mockJobRepository.getSavedJobs() } returns flowOf(Result.Success(emptyList()))
+
+        val vm = SavedJobsViewModel(mockJobRepository, mockToggleBookmark, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
+
         assertTrue(vm.uiState.value is SavedJobsUiState.Empty)
+    }
+
+    @Test
+    fun `error state when repository fails`() = runTest {
+        coEvery { mockJobRepository.getSavedJobs() } returns flowOf(
+            Result.Failure(com.bangersoul.aivance.core.common.result.DomainError("Load failed"))
+        )
+
+        val vm = SavedJobsViewModel(mockJobRepository, mockToggleBookmark, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(state is SavedJobsUiState.Error)
+        assertEquals("Load failed", (state as SavedJobsUiState.Error).message)
     }
 }

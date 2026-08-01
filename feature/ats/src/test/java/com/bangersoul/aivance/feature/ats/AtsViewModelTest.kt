@@ -1,23 +1,30 @@
 package com.bangersoul.aivance.feature.ats
 
-import app.cash.turbine.test
-import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.model.AtsReport
+import com.bangersoul.aivance.core.common.model.Resume
+import com.bangersoul.aivance.core.common.model.ResumeVersion
+import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.ResumeRepository
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
-import com.bangersoul.aivance.feature.ats.domain.AtsRepository
-import com.bangersoul.aivance.feature.ats.domain.AtsResult
+import com.bangersoul.aivance.core.domain.usecase.ats.AnalyzeJobDescriptionUseCase
+import com.bangersoul.aivance.core.domain.usecase.ats.PerformAtsAnalysisUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -25,15 +32,21 @@ import org.junit.Test
 class AtsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val mockRepository: AtsRepository = mockk()
+    private val mockResumeRepository: ResumeRepository = mockk()
+    private val mockAnalyzeJd: AnalyzeJobDescriptionUseCase = mockk()
+    private val mockPerformAts: PerformAtsAnalysisUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: AtsViewModel
 
+    private val sampleResume = Resume(id = 1L, name = "resume.pdf", fileName = "resume.pdf", rawText = "text")
+    private val sampleVersion = ResumeVersion(id = 1L, resumeId = 1L, versionName = "Original Import")
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockTrackEvent.invoke(any()) } returns Result.Success(Unit)
+        every { mockResumeRepository.getResumes() } returns flowOf(Result.Success(listOf(sampleResume)))
     }
 
     @After
@@ -41,107 +54,57 @@ class AtsViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun createViewModel() =
+        AtsViewModel(mockResumeRepository, mockAnalyzeJd, mockPerformAts, mockTrackEvent)
+
     @Test
-    fun `initial state is Loading`() = runTest {
-        coEvery { mockRepository.getAtsResults() } returns MutableStateFlow(emptyList())
-
-        viewModel = AtsViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.uiState.test {
-            val item = awaitItem()
-            assert(item is AtsUiState.Loading) { "Expected Loading but got $item" }
-            cancelAndIgnoreRemainingEvents()
-        }
+    fun `initial state is SelectingResume`() {
+        viewModel = createViewModel()
+        assertTrue(viewModel.uiState.value is AtsUiState.SelectingResume)
     }
 
     @Test
-    fun `empty results emit Empty state`() = runTest {
-        coEvery { mockRepository.getAtsResults() } returns MutableStateFlow(emptyList())
-
-        viewModel = AtsViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.uiState.test {
-            skipItems(1) // skip Loading
-            assert(awaitItem() is AtsUiState.Empty)
-            cancelAndIgnoreRemainingEvents()
-        }
+    fun `selecting resume version transitions to InputJobDescription`() {
+        viewModel = createViewModel()
+        viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
+        assertTrue(viewModel.uiState.value is AtsUiState.InputJobDescription)
     }
 
     @Test
-    fun `results emit Success state with latest result and history`() = runTest {
-        val results = listOf(
-            AtsResult(id = 1, score = 85, resumeName = "Resume1", date = 1000L),
-            AtsResult(id = 2, score = 92, resumeName = "Resume2", date = 2000L)
+    fun `analyze success transitions to DisplayReport`() = runTest(testDispatcher) {
+        coEvery { mockAnalyzeJd.invoke(any()) } returns Result.Success(99L)
+        coEvery { mockPerformAts.invoke(any()) } returns Result.Success(
+            AtsReport(resumeVersionId = 1L, jobDescriptionId = 99L, overallScore = 85, matchPercentage = 80)
         )
-        coEvery { mockRepository.getAtsResults() } returns MutableStateFlow(results)
 
-        viewModel = AtsViewModel(mockRepository, mockTrackEvent)
+        viewModel = createViewModel()
+        viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
+        viewModel.onEvent(AtsUiEvent.Analyze("Senior Android Engineer"))
+        advanceUntilIdle()
 
-        viewModel.uiState.test {
-            skipItems(1) // skip Loading
-            val state = awaitItem()
-            assert(state is AtsUiState.Success)
-            val success = state as AtsUiState.Success
-            assert(success.latestResult?.id == 2L) { "Latest should be most recent" }
-            assert(success.history.size == 1)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val state = viewModel.uiState.value
+        assertTrue(state is AtsUiState.DisplayReport)
+        assertEquals(85, (state as AtsUiState.DisplayReport).report.overallScore)
+        coVerify { mockTrackEvent.invoke(match { it.eventName == "ats_analyze_success" }) }
     }
 
     @Test
-    fun `search filters results correctly`() = runTest {
-        val results = listOf(
-            AtsResult(id = 1, score = 85, resumeName = "Android Dev", missingKeywords = listOf("Kotlin")),
-            AtsResult(id = 2, score = 70, resumeName = "iOS Dev", missingKeywords = listOf("Swift"))
-        )
-        coEvery { mockRepository.getAtsResults() } returns MutableStateFlow(results)
+    fun `analyze failure transitions to Error`() = runTest(testDispatcher) {
+        coEvery { mockAnalyzeJd.invoke(any()) } returns Result.Failure(DomainError("AI parsing failed"))
 
-        viewModel = AtsViewModel(mockRepository, mockTrackEvent)
+        viewModel = createViewModel()
+        viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
+        viewModel.onEvent(AtsUiEvent.Analyze("Senior Android Engineer"))
+        advanceUntilIdle()
 
-        viewModel.onEvent(AtsUiEvent.Search("Android"))
-
-        viewModel.uiState.test {
-            skipItems(1) // skip Loading
-            val state = awaitItem()
-            assert(state is AtsUiState.Success)
-            val success = state as AtsUiState.Success
-            assert(success.searchQuery == "Android")
-            assert(success.filteredHistory.size == 1)
-            assert(success.filteredHistory.first().resumeName == "Android Dev")
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertTrue(viewModel.uiState.value is AtsUiState.Error)
     }
 
     @Test
-    fun `delete result triggers repository and shows snackbar`() = runTest {
-        val results = listOf(
-            AtsResult(id = 1, score = 85, resumeName = "Resume1", date = 1000L),
-            AtsResult(id = 2, score = 92, resumeName = "Resume2", date = 2000L)
-        )
-        coEvery { mockRepository.getAtsResults() } returns MutableStateFlow(results)
-        coEvery { mockRepository.deleteAtsResult(any()) } returns Unit
-        coEvery { mockRepository.saveAtsResult(any()) } returns 1L
-
-        viewModel = AtsViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.onEvent(AtsUiEvent.DeleteResult(2L))
-
-        viewModel.effects.test {
-            val effect = awaitItem()
-            assert(effect is AtsUiEffect.ShowSnackbar)
-            cancelAndIgnoreRemainingEvents()
-        }
-        coVerify { mockRepository.deleteAtsResult(2L) }
-    }
-
-    @Test
-    fun `refresh triggers track event`() = runTest {
-        coEvery { mockRepository.getAtsResults() } returns MutableStateFlow(emptyList())
-
-        viewModel = AtsViewModel(mockRepository, mockTrackEvent)
-
-        viewModel.onEvent(AtsUiEvent.Refresh)
-
-        coVerify { mockTrackEvent("ats_refresh") }
+    fun `reset returns to SelectingResume`() {
+        viewModel = createViewModel()
+        viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
+        viewModel.onEvent(AtsUiEvent.Reset)
+        assertTrue(viewModel.uiState.value is AtsUiState.SelectingResume)
     }
 }

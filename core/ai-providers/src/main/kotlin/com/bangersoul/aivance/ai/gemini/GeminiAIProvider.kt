@@ -33,7 +33,7 @@ import timber.log.Timber
  */
 class GeminiAIProvider(
     private val context: Context,
-    private val config: ProviderConfiguration
+    private var config: ProviderConfiguration
 ) : AIProvider(
     metadata = ProviderMetadata(
         id = "gemini",
@@ -62,6 +62,18 @@ class GeminiAIProvider(
 ) {
     private var firebaseApp: FirebaseApp? = null
     private var _generativeModel: GenerativeModel? = null
+
+    override val isConfigured: Boolean
+        get() = (config.secrets["apiKey"] ?: "").isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: ProviderConfiguration) {
+        // Only swap the configuration; the caller (validateProvider / reconfigure)
+        // owns re-initialization, which rebuilds the Firebase app + model.
+        this.config = config
+    }
 
     private val modelName: String
         get() = config.settings["model"] ?: "gemini-2.0-flash"

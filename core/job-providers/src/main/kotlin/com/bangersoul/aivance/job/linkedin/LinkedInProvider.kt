@@ -13,7 +13,7 @@ class LinkedInProvider(
     apiKey: String,
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit
 ) : ApifyJobProvider(
     metadata = ProviderMetadata(
         id = "linkedin",
@@ -33,8 +33,8 @@ class LinkedInProvider(
         )
     ),
     apiKey = apiKey,
-    actorId = "linkedin-jobs-scraper",
+    actorId = "valig~linkedin-jobs-scraper",
     jobCache = jobCache,
     okHttpClient = okHttpClient,
-    retrofit = retrofit
+    baseRetrofit = baseRetrofit
 )

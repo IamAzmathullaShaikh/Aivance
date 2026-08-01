@@ -28,8 +28,10 @@ import timber.log.Timber
  */
 abstract class OpenAiBaseProvider(
     metadata: ProviderMetadata,
-    private val config: ProviderConfiguration,
-    private val defaultBaseUrl: String
+    protected var config: ProviderConfiguration,
+    private val defaultBaseUrl: String,
+    protected open val defaultModel: String = "gpt-4o",
+    protected open val requiresApiKey: Boolean = true
 ) : AIProvider(
     metadata = metadata,
     capabilities = setOf(
@@ -45,10 +47,23 @@ abstract class OpenAiBaseProvider(
         get() = config.settings["baseUrl"] ?: defaultBaseUrl
 
     private val modelName: String
-        get() = config.settings["model"] ?: "gpt-4o"
+        get() = config.settings["model"] ?: defaultModel
 
-    private val apiKey: String
+    protected val apiKey: String
         get() = config.secrets["apiKey"] ?: ""
+
+    override val isConfigured: Boolean
+        get() = !requiresApiKey || apiKey.isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = apiKey.isNotBlank()
+
+    override suspend fun applyConfiguration(config: ProviderConfiguration) {
+        // Only swap the configuration; the caller (validateProvider / reconfigure)
+        // owns re-initialization, which rebuilds the Retrofit/API. This avoids
+        // double-initialization churn.
+        this.config = config
+    }
 
     override suspend fun onInitialize() {
         updateStatus(ProviderStatus.Initializing)
@@ -68,10 +83,44 @@ abstract class OpenAiBaseProvider(
                 .build()
 
             api = retrofit.create(OpenAiApi::class.java)
-            updateStatus(ProviderStatus.Ready)
+            if (requiresApiKey && apiKey.isBlank()) {
+                // Stay out of Ready until the user provides a real key, so AI
+                // selection skips this provider instead of firing doomed 401s.
+                updateStatus(ProviderStatus.InvalidConfiguration)
+            } else {
+                updateStatus(ProviderStatus.Ready)
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize ${metadata.name}")
             updateStatus(ProviderStatus.Error)
+        }
+    }
+
+    override suspend fun checkHealth(): ProviderStatus {
+        if (!::api.isInitialized) {
+            onInitialize()
+        }
+        if (!::api.isInitialized) {
+            updateStatus(ProviderStatus.Error)
+            return ProviderStatus.Error
+        }
+        return try {
+            // Real authenticated request: a wrong key gets a 401 here, so
+            // onboarding/settings validation genuinely rejects bad credentials
+            // instead of blindly trusting a non-blank key.
+            val response = api.listModels("Bearer $apiKey")
+            if (response.isSuccessful) {
+                updateStatus(ProviderStatus.Active)
+                ProviderStatus.Active
+            } else {
+                Timber.w("Health check for ${metadata.name} failed: HTTP ${response.code()}")
+                updateStatus(ProviderStatus.Error)
+                ProviderStatus.Error
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Health check for ${metadata.name} failed")
+            updateStatus(ProviderStatus.Error)
+            ProviderStatus.Error
         }
     }
 

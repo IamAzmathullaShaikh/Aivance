@@ -1,7 +1,6 @@
 package com.bangersoul.aivance.feature.dashboard
 
 import app.cash.turbine.test
-import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import io.mockk.coEvery
@@ -9,12 +8,13 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -29,7 +29,7 @@ class HomeViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockTrackEvent.invoke(any()) } returns Result.Success(Unit)
     }
 
     @After
@@ -40,56 +40,60 @@ class HomeViewModelTest {
     @Test
     fun `initial state is Success with greeting`() {
         viewModel = HomeViewModel(mockTrackEvent)
-        assert(viewModel.uiState.value is HomeUiState.Success)
+        assertTrue(viewModel.uiState.value is HomeUiState.Success)
     }
 
     @Test
-    fun `quick action navigates to correct route`() = runTest {
+    fun `quick action navigates to correct route`() = runTest(testDispatcher) {
         viewModel = HomeViewModel(mockTrackEvent)
 
-        viewModel.onEvent(HomeUiEvent.QuickAction(QuickAction.AnalyzeResume))
+        viewModel.onEvent(HomeUiEvent.PerformQuickAction(QuickAction.AnalyzeResume))
+        testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
             val effect = awaitItem()
-            assert(effect is HomeUiEffect.Navigate)
-            assert((effect as HomeUiEffect.Navigate).route == "resume")
+            assertTrue(effect is HomeUiEffect.Navigate)
+            assertEquals("resume", (effect as HomeUiEffect.Navigate).route)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `quick action triggers track event`() = runTest {
+    fun `quick action triggers track event`() = runTest(testDispatcher) {
         viewModel = HomeViewModel(mockTrackEvent)
 
-        viewModel.onEvent(HomeUiEvent.QuickAction(QuickAction.SearchJobs))
+        viewModel.onEvent(HomeUiEvent.PerformQuickAction(QuickAction.SearchJobs))
+        testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { mockTrackEvent("quick_action_SearchJobs") }
+        coVerify { mockTrackEvent.invoke(match { it.eventName == "quick_action_SearchJobs" }) }
     }
 
     @Test
-    fun `navigate to dashboard triggers effect`() = runTest {
+    fun `navigate to dashboard triggers effect`() = runTest(testDispatcher) {
         viewModel = HomeViewModel(mockTrackEvent)
 
         viewModel.onEvent(HomeUiEvent.NavigateToDashboard)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
             val effect = awaitItem()
-            assert(effect is HomeUiEffect.Navigate)
-            assert((effect as HomeUiEffect.Navigate).route == "dashboard")
+            assertTrue(effect is HomeUiEffect.Navigate)
+            assertEquals("dashboard", (effect as HomeUiEffect.Navigate).route)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `show notifications triggers navigate effect`() = runTest {
+    fun `show notifications triggers navigate effect`() = runTest(testDispatcher) {
         viewModel = HomeViewModel(mockTrackEvent)
 
         viewModel.onEvent(HomeUiEvent.ShowNotifications)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.effects.test {
             val effect = awaitItem()
-            assert(effect is HomeUiEffect.Navigate)
-            assert((effect as HomeUiEffect.Navigate).route == "notifications")
+            assertTrue(effect is HomeUiEffect.Navigate)
+            assertEquals("notifications", (effect as HomeUiEffect.Navigate).route)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -98,6 +102,6 @@ class HomeViewModelTest {
     fun `greeting returns correct message for time of day`() {
         // This should always return one of the three greetings
         val greeting = getGreeting()
-        assert(greeting in listOf("Good morning", "Good afternoon", "Good evening"))
+        assertTrue(greeting in listOf("Good morning", "Good afternoon", "Good evening"))
     }
 }

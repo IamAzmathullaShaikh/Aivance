@@ -1,27 +1,22 @@
 package com.bangersoul.aivance.feature.interview
 
-import app.cash.turbine.test
-import com.bangersoul.aivance.core.common.model.InterviewSession as DomainInterviewSession
-import com.bangersoul.aivance.core.common.model.InterviewFeedback as DomainInterviewFeedback
-import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.enums.InterviewDifficulty
+import com.bangersoul.aivance.core.common.model.InterviewSession
+import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.InterviewRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
-import com.bangersoul.aivance.core.domain.usecase.interview.EndInterviewUseCase
-import com.bangersoul.aivance.core.domain.usecase.interview.EvaluateAnswersUseCase
-import com.bangersoul.aivance.core.domain.usecase.interview.GenerateFeedbackUseCase
-import com.bangersoul.aivance.core.domain.usecase.interview.GenerateInterviewQuestionsUseCase
-import com.bangersoul.aivance.core.domain.usecase.interview.StartInterviewSessionUseCase
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -29,19 +24,27 @@ import org.junit.Test
 class InterviewViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val mockStartSession: StartInterviewSessionUseCase = mockk()
-    private val mockGenerateQuestions: GenerateInterviewQuestionsUseCase = mockk()
-    private val mockEvaluateAnswers: EvaluateAnswersUseCase = mockk()
-    private val mockGenerateFeedback: GenerateFeedbackUseCase = mockk()
-    private val mockEndInterview: EndInterviewUseCase = mockk()
+    private val mockRepository: InterviewRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: InterviewViewModel
 
+    private val sampleSession = InterviewSession(
+        id = "session_1",
+        targetRole = "Android Dev",
+        type = "BEHAVIORAL",
+        companyName = "Tech Corp",
+        difficulty = InterviewDifficulty.MEDIUM
+    )
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        coEvery { mockTrackEvent(any()) } returns flowOf(Result.Success(Unit))
+        coEvery { mockTrackEvent.invoke(any()) } returns Result.Success(Unit)
+        coEvery {
+            mockRepository.startSession(any(), any(), any(), any(), any(), any())
+        } returns Result.Success(sampleSession)
+        coEvery { mockRepository.generateQuestions(any(), any()) } returns Result.Success(Unit)
     }
 
     @After
@@ -51,79 +54,68 @@ class InterviewViewModelTest {
 
     @Test
     fun `initial state is Idle`() {
-        viewModel = InterviewViewModel(
-            mockStartSession, mockGenerateQuestions, mockEvaluateAnswers,
-            mockGenerateFeedback, mockEndInterview, mockTrackEvent
-        )
-        assert(viewModel.uiState.value is InterviewUiState.Idle)
+        viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
+        assertTrue(viewModel.uiState.value is InterviewUiState.Idle)
     }
 
     @Test
-    fun `starting session with empty role shows error`() {
-        viewModel = InterviewViewModel(
-            mockStartSession, mockGenerateQuestions, mockEvaluateAnswers,
-            mockGenerateFeedback, mockEndInterview, mockTrackEvent
-        )
-        viewModel.onEvent(InterviewUiEvent.StartSession(""))
-        assert(viewModel.uiState.value is InterviewUiState.Error)
+    fun `start session transitions to Active`() = runTest(testDispatcher) {
+        viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
+
+        viewModel.onEvent(InterviewUiEvent.StartSession("Android Dev", "Tech Corp", "BEHAVIORAL"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is InterviewUiState.Active)
+        assertEquals("session_1", (state as InterviewUiState.Active).session.id)
     }
 
     @Test
-    fun `start session transitions through states correctly`() = runTest {
-        val session = DomainInterviewSession(id = "session_1", role = "Android Dev", difficulty = "MEDIUM")
-        coEvery { mockStartSession.invoke(any(), any()) } returns flowOf(Result.Success(session))
+    fun `start session failure shows error`() = runTest(testDispatcher) {
+        coEvery {
+            mockRepository.startSession(any(), any(), any(), any(), any(), any())
+        } returns Result.Failure(DomainError("Failed to start session"))
 
-        viewModel = InterviewViewModel(
-            mockStartSession, mockGenerateQuestions, mockEvaluateAnswers,
-            mockGenerateFeedback, mockEndInterview, mockTrackEvent
-        )
+        viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
 
-        viewModel.onEvent(InterviewUiEvent.StartSession("Android Dev", "MEDIUM"))
+        viewModel.onEvent(InterviewUiEvent.StartSession("Android Dev", "Tech Corp", "BEHAVIORAL"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.uiState.test {
-            skipItems(1) // Preparing
-            skipItems(1) // Loading
-            val ready = awaitItem()
-            assert(ready is InterviewUiState.Ready)
-            assert((ready as InterviewUiState.Ready).sessionId == "session_1")
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertTrue(viewModel.uiState.value is InterviewUiState.Error)
     }
 
     @Test
-    fun `end session transitions to feedback state`() = runTest {
-        val session = DomainInterviewSession(id = "session_1", role = "Test", difficulty = "EASY")
-        val feedback = DomainInterviewFeedback(overallScore = 85, strengths = listOf("Communication"), improvements = listOf("Technical depth"))
-        coEvery { mockStartSession.invoke(any(), any()) } returns flowOf(Result.Success(session))
-        coEvery { mockEndInterview.invoke(any()) } returns flowOf(Result.Success(feedback))
+    fun `complete session transitions to Review`() = runTest(testDispatcher) {
+        coEvery { mockRepository.completeSession(any()) } returns Result.Success(Unit)
 
-        viewModel = InterviewViewModel(
-            mockStartSession, mockGenerateQuestions, mockEvaluateAnswers,
-            mockGenerateFeedback, mockEndInterview, mockTrackEvent
-        )
+        viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
 
-        viewModel.onEvent(InterviewUiEvent.StartSession("Test", "EASY"))
+        viewModel.onEvent(InterviewUiEvent.StartSession("Android Dev", "Tech Corp", "BEHAVIORAL"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onEvent(InterviewUiEvent.Complete)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.onEvent(InterviewUiEvent.EndSession("session_1"))
+        assertTrue(viewModel.uiState.value is InterviewUiState.Review)
+    }
+
+    @Test
+    fun `next question increments index`() = runTest(testDispatcher) {
+        viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
+
+        viewModel.onEvent(InterviewUiEvent.StartSession("Android Dev", "Tech Corp", "BEHAVIORAL"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.uiState.test {
-            val feedbackState = awaitItem()
-            assert(feedbackState is InterviewUiState.Feedback)
-            assert((feedbackState as InterviewUiState.Feedback).feedback.summary == "85")
-            cancelAndIgnoreRemainingEvents()
-        }
+        viewModel.onEvent(InterviewUiEvent.NextQuestion)
+
+        val state = viewModel.uiState.value
+        assertTrue(state is InterviewUiState.Active)
+        assertEquals(1, (state as InterviewUiState.Active).currentQuestionIndex)
     }
 
     @Test
     fun `reset returns to Idle`() {
-        viewModel = InterviewViewModel(
-            mockStartSession, mockGenerateQuestions, mockEvaluateAnswers,
-            mockGenerateFeedback, mockEndInterview, mockTrackEvent
-        )
+        viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
         viewModel.onEvent(InterviewUiEvent.Reset)
-        assert(viewModel.uiState.value is InterviewUiState.Idle)
+        assertTrue(viewModel.uiState.value is InterviewUiState.Idle)
     }
 }

@@ -29,5 +29,7 @@ class OllamaProvider(
         )
     ),
     config = config,
-    defaultBaseUrl = "http://localhost:11434/v1/"
+    defaultBaseUrl = "http://localhost:11434/v1/",
+    defaultModel = "llama3.1",
+    requiresApiKey = false
 )

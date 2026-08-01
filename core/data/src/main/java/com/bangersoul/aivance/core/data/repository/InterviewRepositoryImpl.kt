@@ -3,6 +3,8 @@ package com.bangersoul.aivance.core.data.repository
 import com.bangersoul.aivance.core.common.enums.InterviewDifficulty
 import com.bangersoul.aivance.core.common.model.InterviewMessage
 import com.bangersoul.aivance.core.common.model.InterviewSession
+import com.bangersoul.aivance.core.common.model.InterviewQuestion
+import com.bangersoul.aivance.core.common.model.InterviewEvaluation
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.common.result.runCatchingCore
@@ -18,6 +20,7 @@ import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,6 +31,8 @@ class InterviewRepositoryImpl @Inject constructor(
     private val jobDao: JobDao,
     private val providerManager: ProviderManager
 ) : InterviewRepository {
+
+    private val json = Json { ignoreUnknownKeys = true }
 
     override fun getSessions(): Flow<CoreResult<List<InterviewSession>>> {
         return interviewDao.getInterviewSessions().map { entities ->
@@ -66,16 +71,78 @@ class InterviewRepositoryImpl @Inject constructor(
     }
 
     override suspend fun generateQuestions(sessionId: String, count: Int): CoreResult<Unit> = runCatchingCore {
-        // Logic to generate questions via AI
+        val id = sessionId.toLongOrNull() ?: throw Exception("Invalid ID")
+        val sessionWithData = interviewDao.getInterviewSessionWithMessagesById(id) ?: throw Exception("Session not found")
+        val session = sessionWithData.toDomain()
+
+        val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+            ?: throw Exception("No AI provider available")
+
+        val prompt = """
+            Generate $count interview questions for a ${session.difficulty} level interview for the role of ${session.targetRole} at ${session.companyName}.
+            Type of interview: ${session.type}.
+
+            Return ONLY a JSON array of objects with:
+            "text": String,
+            "category": String (e.g. Technical, Behavioral),
+            "difficulty": String (Easy, Medium, Hard),
+            "expectedKeyPoints": [String],
+            "idealAnswer": String
+        """.trimIndent()
+
+        val response = provider.generateText(prompt).getOrNull() ?: throw Exception("AI failed to generate questions")
+
+        val jsonText = if (response.contains("```json")) {
+            response.substringAfter("```json").substringBefore("```").trim()
+        } else if (response.contains("[")) {
+            response.substring(response.indexOf("["), response.lastIndexOf("]") + 1)
+        } else response
+
+        val questions = json.decodeFromString<List<InterviewQuestion>>(jsonText)
+        questions.forEach { q ->
+            interviewDao.insertQuestion(q.toEntity(id))
+        }
     }
 
     override suspend fun submitAnswer(sessionId: String, message: InterviewMessage): CoreResult<Unit> = runCatchingCore {
-        interviewDao.insertMessage(message.toEntity())
-        evaluateAnswer(message.id)
+        val msgId = interviewDao.insertMessage(message.toEntity())
+        evaluateAnswer(msgId.toString())
     }
 
     override suspend fun evaluateAnswer(messageId: String): CoreResult<Unit> = runCatchingCore {
-        // Logic for AI evaluation
+        val msgId = messageId.toLongOrNull() ?: throw Exception("Invalid ID")
+        val messageEntity = interviewDao.getMessageById(msgId) ?: throw Exception("Message not found")
+        val sessionWithData = interviewDao.getInterviewSessionWithMessagesById(messageEntity.sessionId) ?: throw Exception("Session not found")
+
+        val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+            ?: throw Exception("No AI provider available")
+
+        val prompt = """
+            Evaluate the following candidate interview answer for the role ${sessionWithData.session.targetRole}.
+            Answer: "${messageEntity.text}"
+
+            Return ONLY a JSON object with:
+            "scoreClarity": Int (0-100),
+            "scoreAccuracy": Int (0-100),
+            "scoreTone": Int (0-100),
+            "starMethodScore": Int (0-100, optional),
+            "feedback": String,
+            "improvementTips": [String]
+        """.trimIndent()
+
+        val response = provider.generateText(prompt).getOrNull() ?: throw Exception("AI evaluation failed")
+
+        val jsonText = if (response.contains("```json")) {
+            response.substringAfter("```json").substringBefore("```").trim()
+        } else if (response.contains("{")) {
+            response.substring(response.indexOf("{"), response.lastIndexOf("}") + 1)
+        } else response
+
+        val evaluation = json.decodeFromString<InterviewEvaluation>(jsonText).copy(
+            messageId = messageId
+        )
+
+        interviewDao.insertEvaluation(evaluation.toEntity())
     }
 
     override suspend fun completeSession(sessionId: String): CoreResult<Unit> = runCatchingCore {

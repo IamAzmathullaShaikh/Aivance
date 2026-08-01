@@ -2,7 +2,6 @@ package com.bangersoul.aivance.core.domain.usecase.analytics
 
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
-import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
@@ -22,8 +21,6 @@ class TrackEventUseCaseTest {
 
     @Test
     fun `should track event successfully`() = runTest {
-        coEvery { analyticsRepository.logEvent(any()) } returns Result.Success(Unit)
-
         val result = useCase(TrackEventRequest(eventName = "test_event"))
         assertTrue(result.isSuccess)
     }

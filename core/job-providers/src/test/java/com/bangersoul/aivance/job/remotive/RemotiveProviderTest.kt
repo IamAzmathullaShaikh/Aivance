@@ -83,7 +83,12 @@ class RemotiveProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = RemotiveProvider(jobCache, client, retrofit)
+        val provider = RemotiveProvider(
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 
@@ -111,7 +116,12 @@ class RemotiveProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = RemotiveProvider(jobCache, client, retrofit)
+        val provider = RemotiveProvider(
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 

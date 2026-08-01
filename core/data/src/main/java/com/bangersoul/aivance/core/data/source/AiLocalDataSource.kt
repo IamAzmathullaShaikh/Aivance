@@ -30,7 +30,8 @@ interface AiLocalDataSource {
 
 class AiLocalDataSourceImpl @Inject constructor(
     private val aiAnalyticsDao: AiAnalyticsDao,
-    private val secretsManager: SecretsManager
+    private val secretsManager: SecretsManager,
+    private val providerManager: com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 ) : AiLocalDataSource {
 
     override fun getConversations(): Flow<List<AIConversation>> {
@@ -78,6 +79,21 @@ class AiLocalDataSourceImpl @Inject constructor(
         )
         aiAnalyticsDao.insertProviderConfig(entity)
         secretsManager.saveSecret("provider_${config.providerId}_apiKey", config.apiKey)
+        // Reconfigure the live provider so the AI Settings save flow takes effect
+        // immediately (previously persisted only).
+        providerManager.reconfigure(
+            config.providerId,
+            com.bangersoul.aivance.sdk.config.ProviderConfiguration(
+                providerId = config.providerId,
+                settings = mapOf(
+                    "model" to config.selectedModel,
+                    "baseUrl" to (config.customBaseUrl ?: ""),
+                    "temperature" to config.temperature.toString(),
+                    "maxTokens" to config.maxTokens.toString()
+                ),
+                secrets = mapOf("apiKey" to config.apiKey)
+            )
+        )
     }
 
     override fun getAnalyticsEvents(): Flow<List<AnalyticsEvent>> {

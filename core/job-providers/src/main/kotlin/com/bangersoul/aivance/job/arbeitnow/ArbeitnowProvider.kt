@@ -22,7 +22,8 @@ import retrofit2.Retrofit
 class ArbeitnowProvider(
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://www.arbeitnow.com/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "arbeitnow",
@@ -36,10 +37,8 @@ class ArbeitnowProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://www.arbeitnow.com/"
-
     private val api: ArbeitnowApi by lazy { retrofit.create(ArbeitnowApi::class.java) }
 
     override suspend fun executeSearch(
@@ -60,7 +59,5 @@ class ArbeitnowProvider(
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
-    }
+
 }

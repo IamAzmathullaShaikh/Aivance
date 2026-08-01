@@ -20,7 +20,8 @@ import retrofit2.Retrofit
 class JobicyProvider(
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://jobicy.com/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "jobicy",
@@ -34,10 +35,8 @@ class JobicyProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://jobicy.com/"
-
     private val api: JobicyApi by lazy { retrofit.create(JobicyApi::class.java) }
 
     override suspend fun executeSearch(
@@ -45,21 +44,28 @@ class JobicyProvider(
         sortOrder: JobSortOrder,
         page: Int
     ): List<JobListing> {
-        // Note: Jobicy v2 has no free-text search param - only geo/industry/tag.
-        // Passing the query as `industry` is a heuristic to narrow results.
+        // Jobicy v2 has no free-text search param - only geo/industry/tag.
+        // Passing arbitrary free text as `industry`/`geo` made Jobicy respond
+        // with HTTP 400 (it only accepts known values), which zeroed out every
+        // queried search. Fetch recent global jobs and filter client-side.
         val response = api.getJobs(
             count = 100,
-            geo = filter.location.ifBlank { null },
-            industry = filter.query.ifBlank { null }
+            geo = null,
+            industry = null
         )
         if (response.isSuccessful) {
-            return response.body()?.jobs?.map { JobMapper.mapToJobListing(it, metadata.id) } ?: emptyList()
+            return response.body()?.jobs
+                ?.filter { job ->
+                    filter.query.isBlank() ||
+                        job.jobTitle?.contains(filter.query, ignoreCase = true) == true ||
+                        job.companyName?.contains(filter.query, ignoreCase = true) == true
+                }
+                ?.map { JobMapper.mapToJobListing(it, metadata.id) }
+                ?: emptyList()
         } else {
             throw Exception("Jobicy API failed: ${response.code()}")
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
-    }
+
 }

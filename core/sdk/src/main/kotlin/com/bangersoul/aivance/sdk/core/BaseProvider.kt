@@ -1,9 +1,9 @@
 package com.bangersoul.aivance.sdk.core
 
+import com.bangersoul.aivance.sdk.config.ProviderConfiguration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Abstract base class for all AI providers.
@@ -48,6 +48,43 @@ abstract class BaseProvider(
      */
     fun hasCapability(capability: ProviderCapability): Boolean {
         return capabilities.contains(capability)
+    }
+
+    /**
+     * Whether this provider currently holds usable credentials/configuration.
+     *
+     * Used by [com.bangersoul.aivance.sdk.infrastructure.ProviderManager.getBestProviderFor]
+     * to prefer configured providers (e.g. a Groq instance with a real API key)
+     * over unconfigured ones that merely self-mark Ready.
+     */
+    open val isConfigured: Boolean
+        get() = true
+
+    /**
+     * Whether this provider currently holds real user-supplied credentials.
+     *
+     * This is stronger than [isConfigured]: keyless providers (e.g. Ollama, which
+     * needs no API key) report [isConfigured] == true even though they hold no
+     * secrets and may point at an unreachable local server. [getBestProviderFor]
+     * prefers providers with real credentials so a keyed Groq/OpenAI/Claude wins
+     * over a keyless Ollama, regardless of registry iteration order.
+     */
+    open val hasCredentials: Boolean
+        get() = false
+
+    /**
+     * Applies a new configuration to this provider instance at runtime.
+     *
+     * Enables the "reconfigure" flow: after a user validates/saves credentials
+     * (onboarding, AI settings, provider management), the live DI-singleton
+     * provider picks up the new key without an app restart.
+     *
+     * Default implementation is a no-op; credential-based providers override it.
+     *
+     * @param config The new configuration to apply.
+     */
+    open suspend fun applyConfiguration(config: ProviderConfiguration) {
+        // No-op by default.
     }
 
     /**

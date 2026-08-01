@@ -1,7 +1,8 @@
 package com.bangersoul.aivance.core.domain.usecase.coverletter
 
-import com.bangersoul.aivance.core.common.enums.LetterTone
 import com.bangersoul.aivance.core.common.model.CoverLetter
+import com.bangersoul.aivance.core.common.model.CoverLetterSection
+import com.bangersoul.aivance.core.common.model.CoverLetterVersion
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.CoverLetterRepository
 import io.mockk.coEvery
@@ -23,21 +24,46 @@ class ExportCoverLetterUseCaseTest {
         useCase = ExportCoverLetterUseCase(coverLetterRepository)
     }
 
+    private fun sampleLetter() = CoverLetter(
+        id = 1L,
+        resumeVersionId = 1L,
+        jobId = 2L,
+        recruiterId = null,
+        company = "Tech Corp",
+        role = "Engineer",
+        versions = listOf(
+            CoverLetterVersion(
+                id = 10L,
+                coverLetterId = 1L,
+                versionName = "v1",
+                writingStyle = "PROFESSIONAL",
+                sections = listOf(
+                    CoverLetterSection(
+                        id = 100L,
+                        versionId = 10L,
+                        sectionType = "OPENING",
+                        title = "Opening",
+                        content = "Dear Hiring Manager..."
+                    )
+                )
+            )
+        )
+    )
+
     @Test
     fun `should export cover letter as text`() = runTest {
-        val letter = CoverLetter(id = 1L, company = "Tech Corp", role = "Engineer", content = "Dear Hiring Manager...", tone = LetterTone.PROFESSIONAL)
-        coEvery { coverLetterRepository.getCoverLetterById(1L) } returns flowOf(Result.Success(letter))
+        coEvery { coverLetterRepository.getCoverLetterById(1L) } returns flowOf(Result.Success(sampleLetter()))
 
         val result = useCase(ExportCoverLetterRequest(coverLetterId = 1L, format = ExportLetterFormat.TXT))
         assertTrue(result.isSuccess)
         val text = (result as Result.Success).data
         assertTrue(text.contains("Tech Corp"))
+        assertTrue(text.contains("Dear Hiring Manager..."))
     }
 
     @Test
     fun `should export cover letter as markdown`() = runTest {
-        val letter = CoverLetter(id = 1L, company = "Tech Corp", role = "Engineer", content = "Dear Hiring Manager...", tone = LetterTone.PROFESSIONAL)
-        coEvery { coverLetterRepository.getCoverLetterById(1L) } returns flowOf(Result.Success(letter))
+        coEvery { coverLetterRepository.getCoverLetterById(1L) } returns flowOf(Result.Success(sampleLetter()))
 
         val result = useCase(ExportCoverLetterRequest(coverLetterId = 1L, format = ExportLetterFormat.MARKDOWN))
         assertTrue(result.isSuccess)

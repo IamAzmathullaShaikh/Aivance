@@ -30,5 +30,6 @@ class OpenAIProvider(
         supportedModels = listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo")
     ),
     config = config,
-    defaultBaseUrl = "https://api.openai.com/v1/"
+    defaultBaseUrl = "https://api.openai.com/v1/",
+    defaultModel = "gpt-4o-mini"
 )

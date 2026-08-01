@@ -14,6 +14,7 @@ import com.bangersoul.aivance.sdk.core.ConfigField
 import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
+import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.core.ProviderType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -21,10 +22,11 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class GreenhouseProvider(
-    private val boardToken: String,
+    private var boardToken: String,
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://boards-api.greenhouse.io/v1/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "greenhouse",
@@ -45,12 +47,21 @@ class GreenhouseProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://boards-api.greenhouse.io/v1/"
-
     private val api: GreenhouseApi by lazy { retrofit.create(GreenhouseApi::class.java) }
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US)
+
+    override val isConfigured: Boolean
+        get() = boardToken.isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: com.bangersoul.aivance.sdk.config.ProviderConfiguration) {
+        // boardToken is a non-sensitive TEXT field, stored in settings.
+        boardToken = config.settings["boardToken"] ?: boardToken
+    }
 
     override suspend fun executeSearch(
         filter: JobSearchFilter,
@@ -68,8 +79,15 @@ class GreenhouseProvider(
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
+
+
+    override suspend fun onInitialize() {
+        super.onInitialize()
+        // Stay out of Active/Ready until the user provides a real board token,
+        // so search aggregation filters this provider out.
+        if (boardToken.isBlank()) {
+            updateStatus(ProviderStatus.InvalidConfiguration)
+        }
     }
 
     private fun mapToJobListing(dto: GreenhouseJobDto): JobListing {

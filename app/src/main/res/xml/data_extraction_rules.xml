@@ -3,6 +3,8 @@
     Data extraction rules for Aivance (Android 12+).
     Excludes sensitive data from cloud backup and device transfer.
     Must remain consistent with backup_rules.xml for API < 31 devices.
+    Note: the system automatically excludes cache/ and no_backup/; the
+    analytics database is intentionally not included (stays local only).
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -15,10 +17,6 @@
         <!-- Exclude sensitive data -->
         <exclude domain="sharedpref" path="auth_preferences.xml" />
         <exclude domain="sharedpref" path="crypto_key_store.xml" />
-        <exclude domain="file" path="cache/" />
-        <exclude domain="file" path="no_backup/" />
-        <exclude domain="database" path="analytics.db" />
-        <exclude domain="database" path="analytics.db-wal" />
     </cloud-backup>
 
     <device-transfer>
@@ -30,9 +28,5 @@
         <!-- Exclude sensitive data from transfer -->
         <exclude domain="sharedpref" path="auth_preferences.xml" />
         <exclude domain="sharedpref" path="crypto_key_store.xml" />
-        <exclude domain="file" path="cache/" />
-        <exclude domain="file" path="no_backup/" />
-        <exclude domain="database" path="analytics.db" />
-        <exclude domain="database" path="analytics.db-wal" />
     </device-transfer>
 </data-extraction-rules>

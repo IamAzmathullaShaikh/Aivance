@@ -13,7 +13,7 @@ class IndeedProvider(
     apiKey: String,
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit
 ) : ApifyJobProvider(
     metadata = ProviderMetadata(
         id = "indeed",
@@ -33,8 +33,8 @@ class IndeedProvider(
         )
     ),
     apiKey = apiKey,
-    actorId = "indeed-scraper",
+    actorId = "misceres~indeed-scraper",
     jobCache = jobCache,
     okHttpClient = okHttpClient,
-    retrofit = retrofit
+    baseRetrofit = baseRetrofit
 )

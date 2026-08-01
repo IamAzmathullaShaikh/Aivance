@@ -27,8 +27,15 @@ class GroqProvider(
                 fieldType = FieldType.PASSWORD
             )
         ),
-        supportedModels = listOf("llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768", "gemma-7b-it")
+        supportedModels = listOf(
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "openai/gpt-oss-120b",
+            "qwen/qwen3.6-27b",
+            "allam-2-7b"
+        )
     ),
     config = config,
-    defaultBaseUrl = "https://api.groq.com/openai/v1/"
+    defaultBaseUrl = "https://api.groq.com/openai/v1/",
+    defaultModel = "llama-3.3-70b-versatile"
 )

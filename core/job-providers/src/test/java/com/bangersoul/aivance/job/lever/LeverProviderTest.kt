@@ -81,7 +81,13 @@ class LeverProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = LeverProvider("acmecorp", jobCache, client, retrofit)
+        val provider = LeverProvider(
+            companyId = "acmecorp",
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 
@@ -137,7 +143,13 @@ class LeverProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = LeverProvider("startup", jobCache, client, retrofit)
+        val provider = LeverProvider(
+            companyId = "startup",
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 
@@ -179,7 +191,13 @@ class LeverProviderTest {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
 
-        val provider = LeverProvider("startup", jobCache, client, retrofit)
+        val provider = LeverProvider(
+            companyId = "startup",
+            jobCache = jobCache,
+            okHttpClient = client,
+            baseRetrofit = retrofit,
+            baseUrl = mockWebServer.url("/").toString()
+        )
         provider.onInitialize()
         provider.onStart()
 

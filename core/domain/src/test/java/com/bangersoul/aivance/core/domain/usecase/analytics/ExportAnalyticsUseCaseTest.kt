@@ -1,6 +1,6 @@
 package com.bangersoul.aivance.core.domain.usecase.analytics
 
-import com.bangersoul.aivance.core.common.model.AnalyticsEvent
+import com.bangersoul.aivance.core.common.model.AnalyticsSnapshot
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import io.mockk.every
@@ -24,22 +24,23 @@ class ExportAnalyticsUseCaseTest {
 
     @Test
     fun `should export analytics with data`() = runTest {
-        val events = listOf(
-            AnalyticsEvent(id = "1", eventName = "test", category = "GENERAL", timestamp = System.currentTimeMillis())
+        val snapshots = listOf(
+            AnalyticsSnapshot(id = 1L, careerScore = 85, kpis = mapOf("applications" to 3.0))
         )
-        every { analyticsRepository.getEvents() } returns flowOf(Result.Success(events))
+        every { analyticsRepository.getSnapshots() } returns flowOf(Result.Success(snapshots))
 
-        val result = useCase()
+        val result = useCase(Unit)
         assertTrue(result.isSuccess)
         val report = (result as Result.Success).data
-        assertTrue(report.contains("test"))
+        assertTrue(report.isNotBlank())
+        assertTrue(report.contains("careerScore"))
     }
 
     @Test
     fun `should handle empty analytics`() = runTest {
-        every { analyticsRepository.getEvents() } returns flowOf(Result.Success(emptyList()))
+        every { analyticsRepository.getSnapshots() } returns flowOf(Result.Success(emptyList()))
 
-        val result = useCase()
+        val result = useCase(Unit)
         assertTrue(result.isSuccess)
     }
 }

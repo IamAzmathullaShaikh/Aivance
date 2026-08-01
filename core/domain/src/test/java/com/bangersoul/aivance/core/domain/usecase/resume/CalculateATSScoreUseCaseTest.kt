@@ -32,7 +32,7 @@ class CalculateATSScoreUseCaseTest {
             appendLine("Experienced Kotlin developer")
             appendLine("- Led Android team")
         }
-        val resume = Resume(id = 1L, fileName = "resume.pdf", fileUri = "content://", rawText = resumeText)
+        val resume = Resume(id = 1L, name = "resume.pdf", rawText = resumeText)
         val analysis = ResumeAnalysis(
             overallScore = 80,
             matchingKeywords = listOf("Kotlin"),
@@ -41,32 +41,49 @@ class CalculateATSScoreUseCaseTest {
         )
 
         coEvery { resumeRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
-        coEvery { resumeRepository.analyzeResume(1L, any()) } returns Result.Success(analysis)
+        coEvery { resumeRepository.analyzeResume(1L, 2L, any()) } returns Result.Success(analysis)
 
-        val result = useCase(AtsScoreRequest(resumeId = 1L, jobDescription = "Kotlin developer needed"))
+        val result = useCase(
+            AtsScoreRequest(resumeId = 1L, versionId = 2L, jobDescription = "Kotlin developer needed")
+        )
 
         assertTrue(result.isSuccess)
         val response = (result as Result.Success).data
         assertEquals(80, response.atsResult.score)
+        assertEquals("resume.pdf", response.atsResult.resumeName)
         assertTrue(response.atsResult.matchingKeywords.contains("Kotlin"))
+        assertEquals(80, response.analysis.overallScore)
     }
 
     @Test
     fun `should fail for invalid resume ID`() = runTest {
-        val result = useCase(AtsScoreRequest(resumeId = 0L, jobDescription = "Job description"))
+        val result = useCase(
+            AtsScoreRequest(resumeId = 0L, versionId = 2L, jobDescription = "Job description")
+        )
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `should fail for blank job description`() = runTest {
+        val result = useCase(
+            AtsScoreRequest(resumeId = 1L, versionId = 2L, jobDescription = "")
+        )
         assertTrue(result.isFailure)
     }
 
     @Test
     fun `should clamp score between 0 and 100`() = runTest {
-        val resume = Resume(id = 1L, fileName = "resume.pdf", fileUri = "content://", rawText = "Test content")
+        val resume = Resume(id = 1L, name = "resume.pdf", rawText = "Test content")
         val analysis = ResumeAnalysis(overallScore = 150)
 
         coEvery { resumeRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
-        coEvery { resumeRepository.analyzeResume(1L, any()) } returns Result.Success(analysis)
+        coEvery { resumeRepository.analyzeResume(1L, 2L, any()) } returns Result.Success(analysis)
 
-        val result = useCase(AtsScoreRequest(resumeId = 1L, jobDescription = "Test job"))
+        val result = useCase(
+            AtsScoreRequest(resumeId = 1L, versionId = 2L, jobDescription = "Test job")
+        )
+
         assertTrue(result.isSuccess)
-        assertEquals(100, ((result as Result.Success).data.atsResult.score))
+        assertEquals(100, (result as Result.Success).data.atsResult.score)
     }
 }

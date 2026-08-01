@@ -76,11 +76,55 @@ class ArbeitnowProviderTest {
     }
 
     @Test
+    fun `searchJobs tolerates object-shaped tags in the live API`() = runTest {
+        // The live Arbeitnow API sometimes returns `tags` as an object instead of an array,
+        // which used to throw JsonDecodingException and fail the entire provider.
+        val json = """
+        {
+          "data": [
+            {
+              "slug": "tags-object-case",
+              "company_name": "RobustCo",
+              "title": "Platform Engineer",
+              "description": "Tolerant parsing.",
+              "remote": true,
+              "url": "https://www.arbeitnow.com/jobs/tags-object-case",
+              "tags": {"main": "engineering"},
+              "job_types": ["full-time"],
+              "location": "Remote",
+              "created_at": 1785499244
+            }
+          ],
+          "meta": { "count": 1, "page": 1 }
+        }
+        """.trimIndent()
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(json))
+
+        val provider = ArbeitnowProvider(
+            jobCache = mockk(relaxed = true),
+            okHttpClient = OkHttpClient(),
+            baseRetrofit = buildRetrofit(mockWebServer),
+            baseUrl = mockWebServer.url("/").toString()
+        )
+        provider.onInitialize()
+        provider.onStart()
+
+        val result = provider.searchJobs(
+            com.bangersoul.aivance.core.common.model.JobSearchFilter(),
+            com.bangersoul.aivance.core.common.enums.JobSortOrder.RELEVANCE,
+            1
+        )
+
+        assertTrue("Expected Success despite object-shaped tags, got $result", result is com.bangersoul.aivance.core.common.result.Result.Success)
+        assertEquals(1, (result as com.bangersoul.aivance.core.common.result.Result.Success).data.size)
+    }
+
+    @Test
     fun `provider metadata is correct`() {
         val provider = ArbeitnowProvider(
             jobCache = mockk<JobCache>(),
             okHttpClient = OkHttpClient(),
-            retrofit = buildRetrofit(mockWebServer)
+            baseRetrofit = buildRetrofit(mockWebServer)
         )
         assertEquals("arbeitnow", provider.metadata.id)
         assertEquals("Arbeitnow", provider.metadata.name)

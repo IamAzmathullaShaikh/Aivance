@@ -13,6 +13,8 @@ import com.bangersoul.aivance.job.remoteok.dto.RemoteOKJobDto
 import com.bangersoul.aivance.job.remotive.dto.RemotiveJobDto
 import com.bangersoul.aivance.job.usajobs.dto.USAJobsDescriptorDto
 import com.bangersoul.aivance.job.usajobs.dto.USAJobsLocationDto
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -179,7 +181,7 @@ class JobMapperTest {
             description = "Kotlin role in Berlin.",
             remote = true,
             url = "https://www.arbeitnow.com/jobs/android-dev-berlin-123",
-            tags = listOf("android", "kotlin"),
+            tags = buildJsonArray { add(JsonPrimitive("android")); add(JsonPrimitive("kotlin")) },
             jobTypes = listOf("full-time"),
             location = "Berlin",
             createdAt = 1785499244

@@ -83,7 +83,7 @@ class JobicyProviderTest {
         val provider = JobicyProvider(
             jobCache = mockk<JobCache>(),
             okHttpClient = OkHttpClient(),
-            retrofit = buildRetrofit(mockWebServer)
+            baseRetrofit = buildRetrofit(mockWebServer)
         )
         assertEquals("jobicy", provider.metadata.id)
         assertEquals("Jobicy", provider.metadata.name)

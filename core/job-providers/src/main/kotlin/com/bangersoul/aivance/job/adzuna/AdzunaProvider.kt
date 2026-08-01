@@ -22,12 +22,13 @@ import retrofit2.Retrofit
  * Supports 16 countries: gb, us, de, fr, ca, au, in, nl, pl, at, br, nz, sg, za, mx, it.
  */
 class AdzunaProvider(
-    private val appId: String,
-    private val appKey: String,
+    private var appId: String,
+    private var appKey: String,
     private val countryCode: String = "us",
     jobCache: JobCache,
     okHttpClient: OkHttpClient,
-    retrofit: Retrofit
+    baseRetrofit: Retrofit,
+    override val baseUrl: String = "https://api.adzuna.com/"
 ) : RestJobProvider(
     metadata = ProviderMetadata(
         id = "adzuna",
@@ -56,11 +57,23 @@ class AdzunaProvider(
     capabilities = setOf(ProviderCapability.JobSearch),
     jobCache = jobCache,
     baseOkHttpClient = okHttpClient,
-    baseRetrofit = retrofit
+    baseRetrofit = baseRetrofit
 ) {
-    override val baseUrl: String = "https://api.adzuna.com/"
-
     private val api: AdzunaApi by lazy { retrofit.create(AdzunaApi::class.java) }
+
+    override val isConfigured: Boolean
+        get() = appId.isNotBlank() && appKey.isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: com.bangersoul.aivance.sdk.config.ProviderConfiguration) {
+        appId = config.settings["appId"] ?: appId
+        // appKey is the provider's own PASSWORD field key; new configs land it in
+        // secrets (encrypted). Fall back to settings for configs saved before the
+        // secret-routing fix, which stored it in plaintext settings.
+        appKey = config.secrets["appKey"] ?: config.settings["appKey"] ?: appKey
+    }
 
     override suspend fun executeSearch(
         filter: JobSearchFilter,
@@ -82,9 +95,7 @@ class AdzunaProvider(
         }
     }
 
-    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
-        return Result.Failure(ProviderError(metadata.id, message = "Direct job detail fetch not supported"))
-    }
+
 
     override suspend fun performHealthCheck() {
         if (appId.isBlank() || appKey.isBlank()) {

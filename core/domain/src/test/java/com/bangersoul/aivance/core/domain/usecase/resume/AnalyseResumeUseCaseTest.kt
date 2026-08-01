@@ -1,12 +1,10 @@
 package com.bangersoul.aivance.core.domain.usecase.resume
 
-import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeAnalysis
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import io.mockk.coEvery
 import io.mockk.mockk
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -26,12 +24,6 @@ class AnalyseResumeUseCaseTest {
 
     @Test
     fun `should analyse resume successfully`() = runTest {
-        val resume = Resume(
-            id = 1L,
-            fileName = "resume.pdf",
-            fileUri = "content://resume.pdf",
-            rawText = "Experienced Kotlin developer"
-        )
         val analysis = ResumeAnalysis(
             overallScore = 85,
             matchingKeywords = listOf("Kotlin", "Android"),
@@ -39,11 +31,15 @@ class AnalyseResumeUseCaseTest {
             suggestions = listOf("Add Compose experience"),
             matchSummary = "Great match"
         )
+        coEvery { resumeRepository.analyzeResume(1L, 2L, any()) } returns Result.Success(analysis)
 
-        coEvery { resumeRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
-        coEvery { resumeRepository.analyzeResume(1L, any()) } returns Result.Success(analysis)
-
-        val result = useCase(AnalyseResumeRequest(resumeId = 1L, jobDescription = "Kotlin Android developer needed"))
+        val result = useCase(
+            AnalyseResumeRequest(
+                resumeId = 1L,
+                versionId = 2L,
+                jobDescription = "Kotlin Android developer needed"
+            )
+        )
 
         assertTrue(result.isSuccess)
         val data = (result as Result.Success).data
@@ -53,19 +49,25 @@ class AnalyseResumeUseCaseTest {
 
     @Test
     fun `should fail for invalid resume ID`() = runTest {
-        val result = useCase(AnalyseResumeRequest(resumeId = 0L, jobDescription = "Job description"))
+        val result = useCase(
+            AnalyseResumeRequest(resumeId = 0L, versionId = 2L, jobDescription = "Job description")
+        )
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `should fail for invalid version ID`() = runTest {
+        val result = useCase(
+            AnalyseResumeRequest(resumeId = 1L, versionId = 0L, jobDescription = "Job description")
+        )
         assertTrue(result.isFailure)
     }
 
     @Test
     fun `should fail for blank job description`() = runTest {
-        val result = useCase(AnalyseResumeRequest(resumeId = 1L, jobDescription = ""))
-        assertTrue(result.isFailure)
-    }
-
-    @Test
-    fun `should fail for short job description`() = runTest {
-        val result = useCase(AnalyseResumeRequest(resumeId = 1L, jobDescription = "Short"))
+        val result = useCase(
+            AnalyseResumeRequest(resumeId = 1L, versionId = 2L, jobDescription = "")
+        )
         assertTrue(result.isFailure)
     }
 }

@@ -75,3 +75,48 @@ Honest states make failures explainable ("Provider unavailable" with retry), kee
 
 ### Future Impact
 New features must ship with complete state coverage and real event wiring — no placeholders.
+
+---
+
+## ADR 015: Release-Ready Test Contracts
+### Problem
+Phase 1–11 rewrites changed use-case and ViewModel signatures, leaving 20+ stale test files that referenced deleted classes (`ApplyToJobUseCase`, `BookmarkJobUseCase`, `SearchSavedJobsUseCase`), obsolete constructor shapes, and Flow-returning stubs where production now returns `CoreResult` synchronously. The stale tests failed to compile, blocking the release gate.
+
+### Selected Solution
+Rewrote every stale test against the current contracts: direct `CoreResult` stubs, Main-dispatcher scheduler advancement (`testDispatcher.scheduler.advanceUntilIdle()`) before `coVerify`/`effects.test`, turbine for effects, and removal of tests for deleted behavior. App-module tests mock WorkManager via `mockkObject(WorkManager.Companion)` and stub `getSystemService` for ConnectivityMonitor.
+
+### Reasoning
+Tests must describe the system as it exists, not as it was. Deterministic Main-dispatcher scheduling removes the cross-scheduler races that caused flaky tests.
+
+### Future Impact
+All new features must ship with tests matching current contracts in the same commit — enforced by the CI unit-test matrix.
+
+---
+
+## ADR 016: Environment-Separated Release Pipeline
+### Problem
+Production distribution requires reproducible builds, secure signing, and staged rollout with no secrets in source code.
+
+### Selected Solution
+Release signing is driven by environment variables (`AIVANCE_STORE_PASSWORD`, `AIVANCE_KEY_ALIAS`, `AIVANCE_KEY_PASSWORD`) plus an optional `keystore.jks`; CI decodes `AIVANCE_KEYSTORE_BASE64`. The pipeline runs gates (quality → tests → security) before producing signed AAB/APK, ProGuard mapping, and native symbols, then uploads to Google Play with a staged 10% rollout and crash symbolication mapping.
+
+### Reasoning
+Builds are reproducible and reversible (rollback via Play Console); signing secrets never touch the repository; mapping files stay private.
+
+### Future Impact
+Every future release follows the same pipeline; version bumps are the only per-release code change.
+
+---
+
+## ADR 017: Privacy-First Production Telemetry
+### Problem
+Crash and analytics reporting must not leak sensitive career data or provider credentials.
+
+### Selected Solution
+Centralized `CrashReporter` with payload scrubbing; KPI telemetry carries only non-PII metadata (event names, timestamps, provider health, durations); analytics can be disabled in Settings; audit logs stay local and exportable via the Privacy Center.
+
+### Reasoning
+Monitors production stability while preserving user trust and GDPR posture.
+
+### Future Impact
+All future instrumentation must pass the same scrub rules before it ships.

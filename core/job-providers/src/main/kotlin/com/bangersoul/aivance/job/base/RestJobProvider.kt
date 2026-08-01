@@ -66,20 +66,20 @@ abstract class RestJobProvider(
 
         return try {
             val jobs = executeSearch(filter, sortOrder, page)
-            
+
             // Success: Reset error counter and restore status if needed
             consecutiveErrors.set(0)
             if (status == ProviderStatus.Degraded) {
                 updateStatus(ProviderStatus.Active)
             }
-            
+
             // Cache results for reliability
             jobCache.saveJobs(jobs)
-            
+
             Result.Success(jobs)
         } catch (e: Exception) {
             handleFailure(e)
-            
+
             // Reliability: Fallback to cache if network fails
             val cachedJobs = jobCache.getJobs()
             if (cachedJobs.isNotEmpty()) {
@@ -90,6 +90,31 @@ abstract class RestJobProvider(
             }
         }
     }
+
+    override suspend fun getJobDetails(jobId: String): Result<JobListing> {
+        // 1. Try Cache
+        val cachedJob = jobCache.getJobs().find { it.id == jobId }
+        if (cachedJob != null) return Result.Success(cachedJob)
+
+        // 2. Try Network if implemented by subclass
+        return try {
+            val job = executeGetDetails(jobId)
+            if (job != null) {
+                jobCache.saveJobs(listOf(job))
+                Result.Success(job)
+            } else {
+                Result.Failure(ProviderError(metadata.id, message = "Job $jobId not found in network or cache"))
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to fetch job details from network for ${metadata.id}")
+            Result.Failure(ProviderError(metadata.id, message = e.message ?: "Failed to fetch job details", cause = e))
+        }
+    }
+
+    /**
+     * Hook for subclasses to implement fetching a single job by ID from the network.
+     */
+    protected open suspend fun executeGetDetails(jobId: String): JobListing? = null
 
     /**
      * Implementation-specific search logic using [okHttpClient].
@@ -106,7 +131,7 @@ abstract class RestJobProvider(
     private fun handleFailure(e: Exception) {
         val errors = consecutiveErrors.incrementAndGet()
         Timber.w(e, "Provider ${metadata.id} request failed ($errors/$errorThreshold)")
-        
+
         if (errors >= errorThreshold) {
             Timber.e("Circuit breaker tripped for ${metadata.id}. Setting status to Degraded.")
             updateStatus(ProviderStatus.Degraded)
@@ -116,7 +141,7 @@ abstract class RestJobProvider(
     override suspend fun checkHealth(): ProviderStatus {
         return try {
             performHealthCheck()
-            
+
             // If health check succeeds, reset errors and mark as Active
             consecutiveErrors.set(0)
             if (status == ProviderStatus.Degraded || status == ProviderStatus.Error) {
@@ -125,7 +150,20 @@ abstract class RestJobProvider(
             ProviderStatus.Active
         } catch (e: Exception) {
             handleFailure(e)
-            status
+            // Honest failure: a throwing health check (bad key, unreachable host)
+            // must surface as Degraded so validateProvider rejects bad credentials
+            // (anything that isn't Ready/Active fails validation) instead of silently
+            // passing via the previous status (typically Ready).
+            //
+            // We deliberately use Degraded, NOT Error: searchJobs hard-blocks on
+            // Error with no automatic recovery path, so a single transient network
+            // blip during validation would permanently disable the provider.
+            // Degraded keeps the provider searchable and it self-recovers on the
+            // next successful search (restored to Active).
+            if (status != ProviderStatus.Error) {
+                updateStatus(ProviderStatus.Degraded)
+            }
+            ProviderStatus.Degraded
         }
     }
 

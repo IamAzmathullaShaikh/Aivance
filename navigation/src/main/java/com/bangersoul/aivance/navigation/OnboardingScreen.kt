@@ -25,8 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.bangersoul.aivance.core.designsystem.components.ActionButton
 import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
@@ -117,7 +120,7 @@ fun OnboardingScreen(
             )
 
             OnboardingUiState.Complete -> {
-                onComplete()
+                LaunchedEffect(Unit) { onComplete() }
                 Box(Modifier.fillMaxSize())
             }
         }
@@ -250,13 +253,24 @@ private fun DynamicField(
     value: String,
     onValueChange: (String) -> Unit
 ) {
+    val isPassword = field.fieldType == FieldType.PASSWORD
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(field.label) },
         placeholder = { field.hint?.let { Text(it) } },
         modifier = Modifier.fillMaxWidth(),
-        visualTransformation = if (field.fieldType == FieldType.PASSWORD) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(
+            // Password keyboard type + no autocorrect/capitalization so API keys
+            // (which contain mixed case, digits and underscores) are typed exactly
+            // as entered instead of being silently rewritten by the IME.
+            // autoCorrectEnabled is the non-deprecated constructor parameter for
+            // Compose foundation 1.7.x (BOM 2024.09.00); autoCorrect is deprecated.
+            keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+            autoCorrectEnabled = false,
+            capitalization = KeyboardCapitalization.None
+        ),
         singleLine = true
     )
 }

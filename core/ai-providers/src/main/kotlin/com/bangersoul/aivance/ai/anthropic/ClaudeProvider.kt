@@ -30,7 +30,7 @@ import timber.log.Timber
  * Anthropic Claude AI Provider implementation.
  */
 class ClaudeProvider(
-    private val config: ProviderConfiguration,
+    private var config: ProviderConfiguration,
 ) : AIProvider(
     metadata = ProviderMetadata(
         id = "anthropic",
@@ -57,6 +57,17 @@ class ClaudeProvider(
 ) {
     private lateinit var api: ClaudeApi
     private val json = Json { ignoreUnknownKeys = true }
+
+    override val isConfigured: Boolean
+        get() = (config.secrets["apiKey"] ?: "").isNotBlank()
+
+    override val hasCredentials: Boolean
+        get() = isConfigured
+
+    override suspend fun applyConfiguration(config: ProviderConfiguration) {
+        // Only swap the configuration; the caller owns re-initialization.
+        this.config = config
+    }
 
     private val baseUrl: String
         get() = config.settings["baseUrl"] ?: "https://api.anthropic.com/"
@@ -88,7 +99,13 @@ class ClaudeProvider(
                 .build()
 
             api = retrofit.create(ClaudeApi::class.java)
-            updateStatus(ProviderStatus.Ready)
+            if (apiKey.isBlank()) {
+                // Stay out of Ready until the user provides a real key, so AI
+                // selection skips this provider instead of firing doomed 401s.
+                updateStatus(ProviderStatus.InvalidConfiguration)
+            } else {
+                updateStatus(ProviderStatus.Ready)
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize ${metadata.name}")
             updateStatus(ProviderStatus.Error)

@@ -77,6 +77,15 @@ object NetworkModule {
             .build()
     }
 
+    /**
+     * Shared Retrofit template (converter factory + client).
+     *
+     * The base URL here is a dummy and is deliberately NEVER used for real
+     * requests: every provider rebuilds its own Retrofit from this template
+     * via `baseRetrofit.newBuilder().baseUrl(<provider baseUrl>)`. Do not
+     * "fix" this placeholder — it only needs to be a valid URL for Retrofit
+     * construction.
+     */
     @Provides
     @Singleton
     fun provideRetrofit(
@@ -85,7 +94,7 @@ object NetworkModule {
     ): Retrofit {
         val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
-            .baseUrl("https://api.example.com/") // Placeholder — replace per-provider
+            .baseUrl("https://api.example.com/") // Template only — never used for requests
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory(contentType))
             .build()
