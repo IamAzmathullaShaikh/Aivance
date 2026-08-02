@@ -16,6 +16,9 @@ interface UserPreferencesRepository {
     suspend fun updateInterviewRemindersEnabled(enabled: Boolean)
     suspend fun updateFollowUpRemindersEnabled(enabled: Boolean)
 
+    /** Persists the ISO-639 language code chosen in Settings. */
+    suspend fun updateLanguage(language: String)
+
     /** Persists the signed-in user's session identity so Splash can auto-login. */
     suspend fun updateSession(userId: String?, email: String? = null, firstName: String? = null)
     suspend fun clearSession()
@@ -73,6 +76,12 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override suspend fun updateFollowUpRemindersEnabled(enabled: Boolean) {
         dataStore.updateData {
             it.copy(followUpRemindersEnabled = enabled)
+        }
+    }
+
+    override suspend fun updateLanguage(language: String) {
+        dataStore.updateData {
+            it.copy(language = language)
         }
     }
 

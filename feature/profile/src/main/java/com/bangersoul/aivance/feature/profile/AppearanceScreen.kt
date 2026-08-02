@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,7 +47,7 @@ fun AppearanceScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        AivanceTopBar(title = "Appearance", onBack = onBack)
+        AivanceTopBar(title = stringResource(R.string.appearance_title), onBack = onBack)
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -63,16 +64,16 @@ fun AppearanceScreen(
 @Composable
 private fun ThemeModeSection(state: AppearanceUiState, viewModel: AppearanceViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionLabel("Theme Mode")
+        SectionLabel(stringResource(R.string.theme_mode))
         DashboardCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ThemeConfig.entries.forEach { config ->
                     SelectableRow(
                         label = when (config) {
-                            ThemeConfig.FOLLOW_SYSTEM -> "Follow System"
-                            ThemeConfig.LIGHT -> "Light"
-                            ThemeConfig.DARK -> "Dark"
-                            ThemeConfig.AMOLED -> "AMOLED (Pure Black)"
+                            ThemeConfig.FOLLOW_SYSTEM -> stringResource(R.string.theme_follow_system)
+                            ThemeConfig.LIGHT -> stringResource(R.string.theme_light)
+                            ThemeConfig.DARK -> stringResource(R.string.theme_dark)
+                            ThemeConfig.AMOLED -> stringResource(R.string.theme_amoled)
                         },
                         selected = state.themeConfig == config,
                         onClick = { viewModel.setThemeConfig(config) }
@@ -86,7 +87,7 @@ private fun ThemeModeSection(state: AppearanceUiState, viewModel: AppearanceView
 @Composable
 private fun AccentSection(state: AppearanceUiState, viewModel: AppearanceViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionLabel("Accent Color")
+        SectionLabel(stringResource(R.string.accent_color))
         DashboardCard(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
@@ -130,7 +131,7 @@ private fun AccentSwatch(seed: AccentSeed, selected: Boolean, onClick: () -> Uni
 @Composable
 private fun DynamicColorSection(state: AppearanceUiState, viewModel: AppearanceViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionLabel("Material You")
+        SectionLabel(stringResource(R.string.material_you))
         DashboardCard(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
@@ -140,9 +141,9 @@ private fun DynamicColorSection(state: AppearanceUiState, viewModel: AppearanceV
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Dynamic Color", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.dynamic_color), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "Use system wallpaper colors (Android 12+)",
+                        stringResource(R.string.dynamic_color_sub),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -210,7 +211,7 @@ private fun SelectableRow(label: String, selected: Boolean, onClick: () -> Unit)
 private fun AppearanceScreenPreview() {
     AivanceTheme(darkTheme = true) {
         Column(modifier = Modifier.padding(16.dp)) {
-            SectionLabel("Theme Mode")
+            SectionLabel(stringResource(R.string.theme_mode))
             DashboardCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ThemeConfig.entries.forEach { config ->

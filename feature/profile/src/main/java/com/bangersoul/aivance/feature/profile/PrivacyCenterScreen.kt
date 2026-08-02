@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bangersoul.aivance.core.designsystem.components.ActionButton
@@ -29,10 +30,10 @@ fun PrivacyCenterScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Privacy & Security", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.privacy_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -48,8 +49,8 @@ fun PrivacyCenterScreen(
                 Icon(Icons.Rounded.PrivacyTip, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
                 Spacer(Modifier.width(16.dp))
                 Column {
-                    Text("Your Data, Your Control", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("AiVance uses on-device encryption to protect your sensitive information.", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.privacy_header), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.privacy_header_sub), style = MaterialTheme.typography.bodySmall)
                 }
             }
 
@@ -64,18 +65,18 @@ fun PrivacyCenterScreen(
 
             DashboardCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Data Portability & Backup", fontWeight = FontWeight.Bold)
-                    Text("Export or restore an encrypted backup of your resumes, applications, and profile.", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.privacy_portability), fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.privacy_portability_sub), style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionButton(
-                            text = "Export Backup",
+                            text = stringResource(R.string.export_backup),
                             onClick = { viewModel.exportData() },
                             icon = Icons.Rounded.Download,
                             modifier = Modifier.weight(1f)
                         )
                         ActionButton(
-                            text = "Restore Backup",
+                            text = stringResource(R.string.restore_backup),
                             onClick = { importLauncher.launch(arrayOf("*/*")) },
                             icon = Icons.Rounded.PrivacyTip,
                             modifier = Modifier.weight(1f)
@@ -85,14 +86,14 @@ fun PrivacyCenterScreen(
             }
 
             // Danger Zone
-            Text("Danger Zone", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.danger_zone), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
             DashboardCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Delete All Data", fontWeight = FontWeight.Bold)
-                    Text("Permanently remove all local data, credentials, and history. This cannot be undone.", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.delete_all_data), fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.delete_all_data_sub), style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(16.dp))
                     ActionButton(
-                        text = "Wipe Everything",
+                        text = stringResource(R.string.wipe_everything),
                         onClick = { showDeleteConfirm = true },
                         icon = Icons.Rounded.DeleteForever,
                         containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -111,19 +112,19 @@ fun PrivacyCenterScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Are you absolutely sure?") },
-            text = { Text("This will delete all your resumes, applications, and settings forever.") },
+            title = { Text(stringResource(R.string.delete_confirm_title)) },
+            text = { Text(stringResource(R.string.delete_confirm_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.deleteAllData()
                     showDeleteConfirm = false
                 }) {
-                    Text("Yes, Delete Everything", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.yes_delete_everything), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

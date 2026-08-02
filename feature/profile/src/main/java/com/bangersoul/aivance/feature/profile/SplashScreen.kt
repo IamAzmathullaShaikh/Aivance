@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -62,20 +63,20 @@ fun SplashScreen(
         ) {
             Icon(
                 imageVector = Icons.Rounded.AutoAwesome,
-                contentDescription = "Aivance Logo",
+                contentDescription = stringResource(R.string.splash_logo_desc),
                 modifier = Modifier.size(80.dp),
                 tint = DarkAccent
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Aivance",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "AI-Powered Career Co-Pilot",
+                text = stringResource(R.string.app_tagline),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

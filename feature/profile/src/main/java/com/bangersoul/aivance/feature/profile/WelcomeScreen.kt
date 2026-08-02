@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -56,15 +57,15 @@ private val NavyDeep = Color(0xFF0B1220)
 private val Charcoal = Color(0xFF09090B)
 private val GlowBlue = Color(0xFF3B82F6)
 
-private data class FeatureBullet(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+private data class FeatureBullet(val titleRes: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 private val featureBullets = listOf(
-    FeatureBullet("Resume Intelligence", Icons.Rounded.AutoAwesome),
-    FeatureBullet("ATS Optimization", Icons.Rounded.CheckCircle),
-    FeatureBullet("Job Discovery", Icons.Rounded.CheckCircle),
-    FeatureBullet("Recruiter Intelligence", Icons.Rounded.CheckCircle),
-    FeatureBullet("Interview Preparation", Icons.Rounded.CheckCircle),
-    FeatureBullet("Career Analytics", Icons.Rounded.CheckCircle)
+    FeatureBullet(R.string.feature_resume_intelligence, Icons.Rounded.AutoAwesome),
+    FeatureBullet(R.string.feature_ats_optimization, Icons.Rounded.CheckCircle),
+    FeatureBullet(R.string.feature_job_discovery, Icons.Rounded.CheckCircle),
+    FeatureBullet(R.string.feature_recruiter_intelligence, Icons.Rounded.CheckCircle),
+    FeatureBullet(R.string.feature_interview_preparation, Icons.Rounded.CheckCircle),
+    FeatureBullet(R.string.feature_career_analytics, Icons.Rounded.CheckCircle)
 )
 
 /**
@@ -125,7 +126,7 @@ fun WelcomeScreen(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = "AiVance Logo",
+                    contentDescription = stringResource(R.string.splash_logo_desc),
                     modifier = Modifier.size(48.dp),
                     tint = GlowBlue
                 )
@@ -134,14 +135,14 @@ fun WelcomeScreen(
             Spacer(Modifier.height(28.dp))
 
             Text(
-                text = "✦  AiVance",
+                text = stringResource(R.string.welcome_brand),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "AI Powered Career Operating System",
+                text = stringResource(R.string.welcome_tagline),
                 style = MaterialTheme.typography.titleMedium,
                 color = GlowBlue.copy(alpha = 0.9f),
                 letterSpacing = 0.5.sp
@@ -149,14 +150,14 @@ fun WelcomeScreen(
 
             Spacer(Modifier.height(20.dp))
             Text(
-                text = "“Made by a Job Seeker, For Us ❤️”",
+                text = stringResource(R.string.welcome_quote),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.55f),
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "Land your next opportunity faster with AI.",
+                text = stringResource(R.string.welcome_headline),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.White.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
@@ -177,7 +178,7 @@ fun WelcomeScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "✦  ${feature.title}",
+                            text = "✦  " + stringResource(feature.titleRes),
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.White.copy(alpha = 0.85f),
                             textAlign = TextAlign.Center
@@ -191,7 +192,7 @@ fun WelcomeScreen(
 
             // Shimmer Get Started button
             ShimmerButton(
-                text = "Get Started",
+                text = stringResource(R.string.get_started),
                 onClick = onGetStarted,
                 modifier = Modifier.fillMaxWidth().height(58.dp)
             )
@@ -199,7 +200,7 @@ fun WelcomeScreen(
             Spacer(Modifier.height(12.dp))
             androidx.compose.material3.TextButton(onClick = onSkip) {
                 Text(
-                    text = "Skip for now",
+                    text = stringResource(R.string.skip_for_now),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.5f)
                 )

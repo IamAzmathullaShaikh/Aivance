@@ -22,7 +22,10 @@ data class UserPreferences(
      */
     val userId: String? = null,
     val userEmail: String? = null,
-    val userFirstName: String? = null
+    val userFirstName: String? = null,
+
+    /** ISO-639 language code selected in Settings (default: English). */
+    val language: String = "en"
 )
 
 enum class ThemeConfig {

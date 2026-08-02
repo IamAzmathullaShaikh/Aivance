@@ -93,7 +93,7 @@ class SettingsViewModel @Inject constructor(
         when (event) {
             is SettingsUiEvent.SetThemeMode -> pendingChanges = pendingChanges.copy(themeMode = event.mode)
             is SettingsUiEvent.SetDynamicColor -> pendingChanges = pendingChanges.copy(dynamicColorEnabled = event.enabled)
-            is SettingsUiEvent.SetLanguage -> pendingChanges = pendingChanges.copy(language = event.language)
+            is SettingsUiEvent.SetLanguage -> setLanguage(event.language)
             is SettingsUiEvent.SetAnalyticsEnabled -> pendingChanges = pendingChanges.copy(analyticsEnabled = event.enabled)
             is SettingsUiEvent.SetLocalProcessing -> pendingChanges = pendingChanges.copy(localProcessingOnly = event.enabled)
             is SettingsUiEvent.SetAutoSave -> pendingChanges = pendingChanges.copy(autoSave = event.enabled)
@@ -116,7 +116,8 @@ class SettingsViewModel @Inject constructor(
             pendingChanges = AppSettings(
                 jobAlertsEnabled = prefs?.jobAlertsEnabled ?: true,
                 interviewRemindersEnabled = prefs?.interviewRemindersEnabled ?: true,
-                followUpRemindersEnabled = prefs?.followUpRemindersEnabled ?: true
+                followUpRemindersEnabled = prefs?.followUpRemindersEnabled ?: true,
+                language = prefs?.language ?: "en"
             )
             _uiState.value = SettingsUiState.Success(settings = pendingChanges)
         }
@@ -138,6 +139,27 @@ class SettingsViewModel @Inject constructor(
         pendingChanges = pendingChanges.copy(followUpRemindersEnabled = enabled)
         viewModelScope.launch { userPreferencesRepository.updateFollowUpRemindersEnabled(enabled) }
         refreshState()
+    }
+
+    private fun setLanguage(language: String) {
+        pendingChanges = pendingChanges.copy(language = language)
+        viewModelScope.launch {
+            userPreferencesRepository.updateLanguage(language)
+            trackEventUseCase(TrackEventRequest(eventName = "settings_language_$language"))
+            _effects.send(SettingsUiEffect.ShowSnackbar("Language set to ${languageName(language)}"))
+        }
+        refreshState()
+    }
+
+    private fun languageName(code: String): String = when (code) {
+        "en" -> "English"
+        "hi" -> "हिन्दी (Hindi)"
+        "es" -> "Español"
+        "fr" -> "Français"
+        "de" -> "Deutsch"
+        "zh" -> "中文"
+        "ja" -> "日本語"
+        else -> code
     }
 
     private fun refreshState() {

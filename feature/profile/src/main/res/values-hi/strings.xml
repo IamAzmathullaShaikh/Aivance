@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="back">वापस</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="save">सहेजें</string>
+    <string name="edit">संपादित करें</string>
+    <string name="ok">ठीक है</string>
+    <string name="done">पूर्ण</string>
+    <string name="delete">हटाएं</string>
+    <string name="email">ईमेल</string>
+    <string name="settings">सेटिंग्स</string>
+    <string name="notifications">सूचनाएं</string>
+
+    <!-- Splash -->
+    <string name="splash_logo_desc">Aivance लोगो</string>
+    <string name="app_name">Aivance</string>
+    <string name="app_tagline">AI-संचालित करियर को-पायलट</string>
+
+    <!-- Welcome -->
+    <string name="welcome_brand">✦  AiVance</string>
+    <string name="welcome_tagline">AI संचालित करियर ऑपरेटिंग सिस्टम</string>
+    <string name="welcome_quote">“एक नौकरी चाहने वाले द्वारा, हम सबके लिए ❤️”</string>
+    <string name="welcome_headline">AI के साथ अपना अगला अवसर तेजी से पाएं।</string>
+    <string name="feature_resume_intelligence">रिज़्यूमे इंटेलिजेंस</string>
+    <string name="feature_ats_optimization">ATS अनुकूलन</string>
+    <string name="feature_job_discovery">नौकरी खोज</string>
+    <string name="feature_recruiter_intelligence">भर्तीकर्ता इंटेलिजेंस</string>
+    <string name="feature_interview_preparation">इंटरव्यू तैयारी</string>
+    <string name="feature_career_analytics">करियर एनालिटिक्स</string>
+    <string name="get_started">शुरू करें</string>
+    <string name="skip_for_now">अभी के लिए छोड़ें</string>
+
+    <!-- Login -->
+    <string name="login_title">अपना AI सेट करें</string>
+    <string name="login_subtitle">AI-संचालित सुविधाओं के साथ शुरू करने के लिए अपनी Gemini API कुंजी दर्ज करें।</string>
+    <string name="api_key">API कुंजी</string>
+    <string name="login_placeholder">अपनी Gemini API कुंजी दर्ज करें...</string>
+    <string name="hide">छिपाएं</string>
+    <string name="show">दिखाएं</string>
+    <string name="continue_button">जारी रखें</string>
+    <string name="skip_later">छोड़ें, मैं बाद में करूंगा</string>
+
+    <!-- About -->
+    <string name="about_title">AiVance के बारे में</string>
+    <string name="about_brand">✦ AiVance</string>
+    <string name="about_tagline">AI संचालित करियर ऑपरेटिंग सिस्टम</string>
+    <string name="about_quote">“एक नौकरी चाहने वाले द्वारा, हम सबके लिए ❤️”</string>
+    <string name="version_placeholder">संस्करण 1.0.0</string>
+    <string name="connect_creator">निर्माता से जुड़ें</string>
+    <string name="contact_email_title">ईमेल</string>
+    <string name="contact_instagram_title">Instagram</string>
+    <string name="how_made">AiVance कैसे बना है</string>
+    <string name="tech_native_android">नेटिव एंड्रॉइड</string>
+    <string name="tech_native_android_sub">Kotlin · Jetpack Compose · Material 3 · क्लीन आर्किटेक्चर</string>
+    <string name="tech_ai_engines">AI इंजन</string>
+    <string name="tech_ai_engines_sub">Groq, Gemini, OpenRouter और अधिक, टोकन-दर-टोकन स्ट्रीम</string>
+    <string name="tech_career_intelligence">करियर इंटेलिजेंस</string>
+    <string name="tech_career_intelligence_sub">रिज़्यूमे · ATS · नौकरियां · भर्तीकर्ता · इंटरव्यू · पाइपलाइन</string>
+    <string name="about_architecture">एक मल्टी-मॉड्यूल Gradle आर्किटेक्चर के साथ निर्मित — कोर SDK, डेटा, डोमेन और फीचर परतें एक ही करियर ऑपरेटिंग सिस्टम के रूप में मिलकर काम करती हैं।</string>
+    <string name="open_source_licenses">ओपन सोर्स लाइसेंस</string>
+    <string name="license_androidx">AndroidX / Jetpack</string>
+    <string name="license_kotlin">Kotlin और Coroutines</string>
+    <string name="license_material">Material Design आइकन</string>
+    <string name="license_okhttp">OkHttp / Retrofit</string>
+    <string name="license_room">Room / Hilt (Google)</string>
+    <string name="license_coil">Coil इमेज लोडिंग</string>
+    <string name="license_workmanager">WorkManager / Firebase</string>
+    <string name="license_provider_sdks">Groq / Gemini / OpenRouter SDKs</string>
+    <string name="license_apache">Apache लाइसेंस 2.0</string>
+    <string name="license_provider_terms">प्रदाता की शर्तें देखें</string>
+    <string name="view_license">लाइसेंस देखें</string>
+    <string name="made_with_care">हर नौकरी चाहने वाले के लिए प्यार से बनाया गया</string>
+
+    <!-- Appearance -->
+    <string name="appearance_title">दिखावट</string>
+    <string name="theme_mode">थीम मोड</string>
+    <string name="theme_follow_system">सिस्टम का अनुसरण करें</string>
+    <string name="theme_light">लाइट</string>
+    <string name="theme_dark">डार्क</string>
+    <string name="theme_amoled">AMOLED (शुद्ध काला)</string>
+    <string name="accent_color">एक्सेंट रंग</string>
+    <string name="material_you">Material You</string>
+    <string name="dynamic_color">डायनामिक रंग</string>
+    <string name="dynamic_color_sub">सिस्टम वॉलपेपर रंगों का उपयोग करें (Android 12+)</string>
+
+    <!-- Privacy Center -->
+    <string name="privacy_title">गोपनीयता और सुरक्षा</string>
+    <string name="privacy_header">आपका डेटा, आपका नियंत्रण</string>
+    <string name="privacy_header_sub">AiVance आपकी संवेदनशील जानकारी की सुरक्षा के लिए ऑन-डिवाइस एन्क्रिप्शन का उपयोग करता है।</string>
+    <string name="privacy_portability">डेटा पोर्टेबिलिटी और बैकअप</string>
+    <string name="privacy_portability_sub">अपने रिज़्यूमे, आवेदन और प्रोफ़ाइल का एन्क्रिप्टेड बैकअप निर्यात या पुनर्स्थापित करें।</string>
+    <string name="export_backup">बैकअप निर्यात करें</string>
+    <string name="restore_backup">बैकअप पुनर्स्थापित करें</string>
+    <string name="danger_zone">खतरनाक क्षेत्र</string>
+    <string name="delete_all_data">सभी डेटा हटाएं</string>
+    <string name="delete_all_data_sub">सभी स्थानीय डेटा, क्रेडेंशियल और इतिहास को स्थायी रूप से हटाएं। इसे पूर्ववत नहीं किया जा सकता।</string>
+    <string name="wipe_everything">सब कुछ मिटाएं</string>
+    <string name="delete_confirm_title">क्या आप पूरी तरह आश्वस्त हैं?</string>
+    <string name="delete_confirm_body">यह आपके सभी रिज़्यूमे, आवेदन और सेटिंग्स को हमेशा के लिए हटा देगा।</string>
+    <string name="yes_delete_everything">हां, सब कुछ हटाएं</string>
+
+    <!-- Profile -->
+    <string name="profile_title">प्रोफ़ाइल</string>
+    <string name="profile_photo_desc">प्रोफ़ाइल फोटो</string>
+    <string name="change_photo">फोटो बदलें</string>
+    <string name="your_name_placeholder">आपका नाम</string>
+    <string name="add_current_role">अपनी वर्तमान भूमिका जोड़ें</string>
+    <string name="designation_at"> पर </string>
+    <string name="tap_camera_hint">फोटो बदलने के लिए कैमरा टैप करें</string>
+    <string name="personal_section">व्यक्तिगत</string>
+    <string name="full_name">पूरा नाम</string>
+    <string name="email_locked">ईमेल आपके खाते से जुड़ा है और इसे बदला नहीं जा सकता।</string>
+    <string name="phone_optional">फ़ोन (वैकल्पिक)</string>
+    <string name="date_of_birth">जन्म तिथि</string>
+    <string name="linkedin_optional">LinkedIn URL (वैकल्पिक)</string>
+    <string name="github_optional">GitHub URL (वैकल्पिक)</string>
+    <string name="career_section">करियर</string>
+    <string name="current_role">वर्तमान भूमिका</string>
+    <string name="company">कंपनी</string>
+    <string name="target_role">लक्ष्य भूमिका</string>
+    <string name="years_experience">अनुभव के वर्ष</string>
+    <string name="years_short">%1$d वर्ष</string>
+    <string name="skills">कौशल</string>
+    <string name="no_skills">अभी तक कोई कौशल नहीं जोड़ा गया।</string>
+    <string name="remove_skill_desc">%1$s हटाएं</string>
+    <string name="settings_sub">सूचनाएं, गोपनीयता, प्रदाता और अधिक</string>
+    <string name="quick_access">त्वरित पहुंच</string>
+    <string name="saved_jobs">सहेजी गई नौकरियां</string>
+    <string name="interview">इंटरव्यू</string>
+    <string name="career_analytics">करियर एनालिटिक्स</string>
+    <string name="career_analytics_sub">KPIs, रुझान और अंतर्दृष्टि</string>
+    <string name="learning_hub">लर्निंग हब</string>
+    <string name="learning_hub_sub">कौशल और संसाधन</string>
+    <string name="notifications_sub">अलर्ट और अनुस्मारक</string>
+    <string name="provider_management">प्रदाता प्रबंधन</string>
+    <string name="provider_management_sub">AI, नौकरी और एनरिचमेंट प्रदाता</string>
+    <string name="pick">चुनें</string>
+    <string name="add_skill">+ जोड़ें</string>
+    <string name="skill_placeholder">कौशल</string>
+    <string name="add_skill_desc">कौशल जोड़ें</string>
+
+    <!-- Settings -->
+    <string name="settings_title">सेटिंग्स</string>
+    <string name="section_general">सामान्य</string>
+    <string name="appearance_item">दिखावट</string>
+    <string name="appearance_item_sub">थीम, एक्सेंट और डायनामिक रंग</string>
+    <string name="section_notifications">सूचनाएं</string>
+    <string name="job_alerts">नौकरी अलर्ट</string>
+    <string name="job_alerts_sub">नई मिलती-जुलती नौकरियां</string>
+    <string name="interview_reminders">इंटरव्यू अनुस्मारक</string>
+    <string name="interview_reminders_sub">आगामी सत्र</string>
+    <string name="follow_up_reminders">फॉलो-अप अनुस्मारक</string>
+    <string name="follow_up_reminders_sub">आवेदन फॉलो-अप</string>
+    <string name="section_providers">प्रदाता</string>
+    <string name="provider_management_item">प्रदाता प्रबंधन</string>
+    <string name="provider_management_item_sub">AI, नौकरी और एनरिचमेंट प्रदाता</string>
+    <string name="section_privacy">गोपनीयता और सुरक्षा</string>
+    <string name="privacy_center_item">गोपनीयता केंद्र</string>
+    <string name="privacy_center_item_sub">एन्क्रिप्शन, निर्यात और हटाना</string>
+    <string name="analytics_insights">एनालिटिक्स अंतर्दृष्टि</string>
+    <string name="analytics_insights_sub">विस्तृत करियर KPIs</string>
+    <string name="export_my_data">मेरा डेटा निर्यात करें</string>
+    <string name="export_my_data_sub">अपना डेटा JSON के रूप में डाउनलोड करें</string>
+    <string name="delete_account">खाता हटाएं</string>
+    <string name="delete_account_sub">अपना डेटा स्थायी रूप से हटाएं</string>
+    <string name="section_about">हमारे बारे में</string>
+    <string name="about_item">Aivance के बारे में</string>
+    <string name="sign_out">साइन आउट</string>
+    <string name="delete_account_confirm">खाता हटाएं?</string>
+    <string name="delete_account_confirm_body">यह आपकी प्रोफ़ाइल और करियर डेटा को स्थायी रूप से हटा देगा। यह क्रिया पूर्ववत नहीं की जा सकती।</string>
+    <string name="language">भाषा</string>
+    <string name="selected">चयनित</string>
+    <string name="language_english">English</string>
+</resources>

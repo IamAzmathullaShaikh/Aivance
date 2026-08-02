@@ -111,6 +111,32 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `set language persists via repository and updates state`() = runTest {
+        coEvery { mockUserPreferences.updateLanguage("es") } returns Unit
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(SettingsUiEvent.SetLanguage("es"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockUserPreferences.updateLanguage("es") }
+        assertEquals("es", (viewModel.uiState.value as SettingsUiState.Success).settings.language)
+    }
+
+    @Test
+    fun `initial load reads persisted language`() = runTest {
+        every { mockUserPreferences.userPreferences } returns flowOf(
+            UserPreferences(language = "fr")
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("fr", (viewModel.uiState.value as SettingsUiState.Success).settings.language)
+    }
+
+    @Test
     fun `export settings emits export result effect`() = runTest {
         coEvery { mockExportSettings.invoke() } returns Result.Success("/tmp/settings.json")
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -62,13 +63,13 @@ fun LoginScreen(
             tint = DarkAccent
         )
         Text(
-            text = "Set Up Your AI",
+            text = stringResource(R.string.login_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Enter your Gemini API key to get started with AI-powered features.",
+            text = stringResource(R.string.login_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -76,8 +77,8 @@ fun LoginScreen(
         OutlinedTextField(
             value = apiKey,
             onValueChange = { apiKey = it },
-            label = { Text("API Key") },
-            placeholder = { Text("Enter your Gemini API key...") },
+            label = { Text(stringResource(R.string.api_key)) },
+            placeholder = { Text(stringResource(R.string.login_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -92,7 +93,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = if (isVisible) Icons.Rounded.VisibilityOff
                         else Icons.Rounded.Visibility,
-                        contentDescription = if (isVisible) "Hide" else "Show"
+                        contentDescription = if (isVisible) stringResource(R.string.hide) else stringResource(R.string.show)
                     )
                 }
             },
@@ -112,14 +113,14 @@ fun LoginScreen(
             shape = MaterialTheme.shapes.medium,
             colors = ButtonDefaults.buttonColors(containerColor = DarkAccent)
         ) {
-            Text("Continue", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.continue_button), fontWeight = FontWeight.SemiBold)
         }
         Button(
             onClick = onSkip,
             modifier = Modifier.padding(top = 12.dp),
             colors = ButtonDefaults.textButtonColors()
         ) {
-            Text("Skip, I'll do this later", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.skip_later), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

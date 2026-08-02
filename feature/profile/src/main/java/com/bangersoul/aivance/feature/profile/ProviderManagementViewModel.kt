@@ -41,6 +41,8 @@ data class ProviderInfo(
     val selectedModel: String = "",
     val availableModels: List<String> = emptyList(),
     val apiKeyConfigured: Boolean = false,
+    /** Masked preview of the configured credential, e.g. `sk-…abcd` — never the full key. */
+    val maskedApiKey: String = "",
     val healthStatus: ProviderHealthStatus = ProviderHealthStatus.UNKNOWN
 )
 
@@ -129,6 +131,7 @@ class ProviderManagementViewModel @Inject constructor(
                     ?: models.firstOrNull()
                     ?: ""
 
+                val secretValue = persisted?.secrets?.values?.firstOrNull { it.isNotBlank() }
                 ProviderInfo(
                     id = meta.id,
                     name = meta.name,
@@ -140,10 +143,11 @@ class ProviderManagementViewModel @Inject constructor(
                     description = meta.description,
                     isEnabled = persisted?.settings?.get("isEnabled")?.toBoolean()
                         ?: (statuses[meta.id] == ProviderStatus.Active || statuses[meta.id] == ProviderStatus.Ready),
-                    isConnected = persisted?.secrets?.values?.any { it.isNotBlank() } == true,
+                    isConnected = secretValue != null,
                     selectedModel = selectedModel,
                     availableModels = models,
-                    apiKeyConfigured = persisted?.secrets?.values?.any { it.isNotBlank() } == true,
+                    apiKeyConfigured = secretValue != null,
+                    maskedApiKey = secretValue?.let { maskKey(it) }.orEmpty(),
                     healthStatus = mapStatus(statuses[meta.id] ?: base.status)
                 )
             }.sortedBy { it.category.ordinal }
@@ -324,6 +328,15 @@ class ProviderManagementViewModel @Inject constructor(
             settings = settings,
             secrets = secrets
         )
+    }
+
+    /**
+     * Masks a credential for display: keeps the first 4 and last 4 characters
+     * so users can confirm which key is configured without exposing it.
+     */
+    private fun maskKey(key: String): String {
+        if (key.length <= 8) return "••••••••"
+        return "${key.take(4)}••••${key.takeLast(4)}"
     }
 
     private fun baseStatusFor(providerId: String): ProviderStatus {

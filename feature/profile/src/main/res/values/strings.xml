@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="ok">OK</string>
+    <string name="done">Done</string>
+    <string name="delete">Delete</string>
+    <string name="email">Email</string>
+    <string name="settings">Settings</string>
+    <string name="notifications">Notifications</string>
+
+    <!-- Splash -->
+    <string name="splash_logo_desc">Aivance Logo</string>
+    <string name="app_name">Aivance</string>
+    <string name="app_tagline">AI-Powered Career Co-Pilot</string>
+
+    <!-- Welcome -->
+    <string name="welcome_brand">✦  AiVance</string>
+    <string name="welcome_tagline">AI Powered Career Operating System</string>
+    <string name="welcome_quote">“Made by a Job Seeker, For Us ❤️”</string>
+    <string name="welcome_headline">Land your next opportunity faster with AI.</string>
+    <string name="feature_resume_intelligence">Resume Intelligence</string>
+    <string name="feature_ats_optimization">ATS Optimization</string>
+    <string name="feature_job_discovery">Job Discovery</string>
+    <string name="feature_recruiter_intelligence">Recruiter Intelligence</string>
+    <string name="feature_interview_preparation">Interview Preparation</string>
+    <string name="feature_career_analytics">Career Analytics</string>
+    <string name="get_started">Get Started</string>
+    <string name="skip_for_now">Skip for now</string>
+
+    <!-- Login -->
+    <string name="login_title">Set Up Your AI</string>
+    <string name="login_subtitle">Enter your Gemini API key to get started with AI-powered features.</string>
+    <string name="api_key">API Key</string>
+    <string name="login_placeholder">Enter your Gemini API key...</string>
+    <string name="hide">Hide</string>
+    <string name="show">Show</string>
+    <string name="continue_button">Continue</string>
+    <string name="skip_later">Skip, I\'ll do this later</string>
+
+    <!-- About -->
+    <string name="about_title">About AiVance</string>
+    <string name="about_brand">✦ AiVance</string>
+    <string name="about_tagline">AI Powered Career Operating System</string>
+    <string name="about_quote">“Made by a Job Seeker, For Us ❤️”</string>
+    <string name="version_placeholder">Version 1.0.0</string>
+    <string name="connect_creator">Connect with the Creator</string>
+    <string name="contact_email_title">Email</string>
+    <string name="contact_instagram_title">Instagram</string>
+    <string name="how_made">How AiVance is Made</string>
+    <string name="tech_native_android">Native Android</string>
+    <string name="tech_native_android_sub">Kotlin · Jetpack Compose · Material 3 · Clean Architecture</string>
+    <string name="tech_ai_engines">AI Engines</string>
+    <string name="tech_ai_engines_sub">Groq, Gemini, OpenRouter &amp; more, streamed token-by-token</string>
+    <string name="tech_career_intelligence">Career Intelligence</string>
+    <string name="tech_career_intelligence_sub">Resume · ATS · Jobs · Recruiters · Interview · Pipeline</string>
+    <string name="about_architecture">Built with a multi-module Gradle architecture — core SDK, data, domain and feature layers working together as a single Career Operating System.</string>
+    <string name="open_source_licenses">Open Source Licenses</string>
+    <string name="license_androidx">AndroidX / Jetpack</string>
+    <string name="license_kotlin">Kotlin &amp; Coroutines</string>
+    <string name="license_material">Material Design Icons</string>
+    <string name="license_okhttp">OkHttp / Retrofit</string>
+    <string name="license_room">Room / Hilt (Google)</string>
+    <string name="license_coil">Coil Image Loading</string>
+    <string name="license_workmanager">WorkManager / Firebase</string>
+    <string name="license_provider_sdks">Groq / Gemini / OpenRouter SDKs</string>
+    <string name="license_apache">Apache License 2.0</string>
+    <string name="license_provider_terms">See provider terms</string>
+    <string name="view_license">View License</string>
+    <string name="made_with_care">Made with care for every job seeker</string>
+
+    <!-- Appearance -->
+    <string name="appearance_title">Appearance</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="theme_follow_system">Follow System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_amoled">AMOLED (Pure Black)</string>
+    <string name="accent_color">Accent Color</string>
+    <string name="material_you">Material You</string>
+    <string name="dynamic_color">Dynamic Color</string>
+    <string name="dynamic_color_sub">Use system wallpaper colors (Android 12+)</string>
+
+    <!-- Privacy Center -->
+    <string name="privacy_title">Privacy &amp; Security</string>
+    <string name="privacy_header">Your Data, Your Control</string>
+    <string name="privacy_header_sub">AiVance uses on-device encryption to protect your sensitive information.</string>
+    <string name="privacy_portability">Data Portability &amp; Backup</string>
+    <string name="privacy_portability_sub">Export or restore an encrypted backup of your resumes, applications, and profile.</string>
+    <string name="export_backup">Export Backup</string>
+    <string name="restore_backup">Restore Backup</string>
+    <string name="danger_zone">Danger Zone</string>
+    <string name="delete_all_data">Delete All Data</string>
+    <string name="delete_all_data_sub">Permanently remove all local data, credentials, and history. This cannot be undone.</string>
+    <string name="wipe_everything">Wipe Everything</string>
+    <string name="delete_confirm_title">Are you absolutely sure?</string>
+    <string name="delete_confirm_body">This will delete all your resumes, applications, and settings forever.</string>
+    <string name="yes_delete_everything">Yes, Delete Everything</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_photo_desc">Profile photo</string>
+    <string name="change_photo">Change photo</string>
+    <string name="your_name_placeholder">Your Name</string>
+    <string name="add_current_role">Add your current role</string>
+    <string name="designation_at"> at </string>
+    <string name="tap_camera_hint">Tap the camera to change your photo</string>
+    <string name="personal_section">Personal</string>
+    <string name="full_name">Full Name</string>
+    <string name="email_locked">Email is linked to your account and cannot be changed.</string>
+    <string name="phone_optional">Phone (optional)</string>
+    <string name="date_of_birth">Date of Birth</string>
+    <string name="linkedin_optional">LinkedIn URL (optional)</string>
+    <string name="github_optional">GitHub URL (optional)</string>
+    <string name="career_section">Career</string>
+    <string name="current_role">Current Role</string>
+    <string name="company">Company</string>
+    <string name="target_role">Target Role</string>
+    <string name="years_experience">Years of Experience</string>
+    <string name="years_short">%1$d yrs</string>
+    <string name="skills">Skills</string>
+    <string name="no_skills">No skills added yet.</string>
+    <string name="remove_skill_desc">Remove %1$s</string>
+    <string name="settings_sub">Notifications, privacy, providers &amp; more</string>
+    <string name="quick_access">Quick Access</string>
+    <string name="saved_jobs">Saved Jobs</string>
+    <string name="interview">Interview</string>
+    <string name="career_analytics">Career Analytics</string>
+    <string name="career_analytics_sub">KPIs, trends, and insights</string>
+    <string name="learning_hub">Learning Hub</string>
+    <string name="learning_hub_sub">Skills and resources</string>
+    <string name="notifications_sub">Alerts and reminders</string>
+    <string name="provider_management">Provider Management</string>
+    <string name="provider_management_sub">AI, job, and enrichment providers</string>
+    <string name="pick">Pick</string>
+    <string name="add_skill">+ Add</string>
+    <string name="skill_placeholder">Skill</string>
+    <string name="add_skill_desc">Add skill</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="section_general">General</string>
+    <string name="appearance_item">Appearance</string>
+    <string name="appearance_item_sub">Theme, accent, and dynamic color</string>
+    <string name="section_notifications">Notifications</string>
+    <string name="job_alerts">Job alerts</string>
+    <string name="job_alerts_sub">New matching jobs</string>
+    <string name="interview_reminders">Interview reminders</string>
+    <string name="interview_reminders_sub">Upcoming sessions</string>
+    <string name="follow_up_reminders">Follow-up reminders</string>
+    <string name="follow_up_reminders_sub">Application follow-ups</string>
+    <string name="section_providers">Providers</string>
+    <string name="provider_management_item">Provider Management</string>
+    <string name="provider_management_item_sub">AI, Job, and Enrichment providers</string>
+    <string name="section_privacy">Privacy &amp; Security</string>
+    <string name="privacy_center_item">Privacy Center</string>
+    <string name="privacy_center_item_sub">Encryption, export, and delete</string>
+    <string name="analytics_insights">Analytics Insights</string>
+    <string name="analytics_insights_sub">Detailed career KPIs</string>
+    <string name="export_my_data">Export my data</string>
+    <string name="export_my_data_sub">Download your data as JSON</string>
+    <string name="delete_account">Delete account</string>
+    <string name="delete_account_sub">Permanently remove your data</string>
+    <string name="section_about">About</string>
+    <string name="about_item">About Aivance</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="delete_account_confirm">Delete account?</string>
+    <string name="delete_account_confirm_body">This permanently removes your profile and career data. This action cannot be undone.</string>
+    <string name="language">Language</string>
+    <string name="selected">Selected</string>
+    <string name="language_english">English</string>
+</resources>
