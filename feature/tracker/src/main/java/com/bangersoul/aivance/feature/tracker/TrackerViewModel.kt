@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.Application
 import com.bangersoul.aivance.core.common.model.ApplicationStage
+import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
+import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.workflow.WorkflowEngine
@@ -31,6 +33,8 @@ sealed interface TrackerUiEvent {
     data class SelectApplication(val applicationId: Long) : TrackerUiEvent
     data object CloseApplication : TrackerUiEvent
     data class UpdateNotes(val applicationId: Long, val notes: String) : TrackerUiEvent
+    /** Manually add a job application (company + role) to the selected stage. */
+    data class AddApplication(val company: String, val role: String, val stageId: String) : TrackerUiEvent
     data object Refresh : TrackerUiEvent
 }
 
@@ -38,7 +42,8 @@ sealed interface TrackerUiEvent {
 class TrackerViewModel @Inject constructor(
     private val repository: ApplicationWorkflowRepository,
     private val workflowEngine: WorkflowEngine,
-    private val trackEventUseCase: TrackEventUseCase
+    private val trackEventUseCase: TrackEventUseCase,
+    private val jobRepository: JobRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TrackerUiState>(TrackerUiState.Loading)
@@ -58,6 +63,7 @@ class TrackerViewModel @Inject constructor(
             is TrackerUiEvent.SelectApplication -> selectApplication(event.applicationId)
             TrackerUiEvent.CloseApplication -> closeApplication()
             is TrackerUiEvent.UpdateNotes -> updateNotes(event.applicationId, event.notes)
+            is TrackerUiEvent.AddApplication -> addApplication(event.company, event.role, event.stageId)
             TrackerUiEvent.Refresh -> loadData()
         }
     }
@@ -138,7 +144,61 @@ class TrackerViewModel @Inject constructor(
         }
     }
 
-    // Legacy support for older screens if needed
-    fun addApplication(company: String, role: String, status: Any) {}
-    fun updateStatus(id: Long, status: Any) {}
+    /**
+     * Manually adds an application to the pipeline. The Application row has a
+     * non-null [Application.jobId] foreign key into the jobs table, so the
+     * synthetic job is cached first (reusing an existing row for the same URL)
+     * and the returned DB id is used as the FK.
+     */
+    private fun addApplication(company: String, role: String, stageId: String) {
+        if (company.isBlank() || role.isBlank()) {
+            viewModelScope.launch { _effects.send("Enter a company and role to add an application.") }
+            return
+        }
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest("tracker_manual_add"))
+            val now = System.currentTimeMillis()
+            val job = JobListing(
+                id = "manual-${now}",
+                title = role.trim(),
+                company = company.trim(),
+                description = "",
+                url = "manual://${now}",
+                sourceProvider = "manual"
+            )
+            val cacheResult = jobRepository.cacheJob(job)
+            when (cacheResult) {
+                is Result.Success -> {
+                    val application = Application(
+                        jobId = cacheResult.data,
+                        currentStageId = stageId,
+                        status = "ACTIVE",
+                        dateApplied = now,
+                        lastModified = now
+                    )
+                    val saveResult = repository.saveApplication(application)
+                    if (saveResult is Result.Success) {
+                        repository.addTimelineEvent(
+                            com.bangersoul.aivance.core.common.model.TimelineEvent(
+                                applicationId = saveResult.data,
+                                eventType = "MANUAL_ADD",
+                                title = "Added to pipeline",
+                                description = "${role.trim()} at ${company.trim()} added manually",
+                                timestamp = now
+                            )
+                        )
+                        _effects.send("Added ${role.trim()} at ${company.trim()}")
+                    } else {
+                        _effects.send(
+                            (saveResult as? Result.Failure)?.error?.message ?: "Failed to add application"
+                        )
+                    }
+                }
+                is Result.Failure -> {
+                    _effects.send(cacheResult.error.message ?: "Failed to prepare job")
+                }
+            }
+            loadData()
+        }
+    }
 }

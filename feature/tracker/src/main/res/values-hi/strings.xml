@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">वापस</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="add">जोड़ें</string>
+    <string name="delete">हटाएं</string>
+
+    <string name="career_pipeline_title">करियर पाइपलाइन</string>
+    <string name="pipeline_unavailable">पाइपलाइन अनुपलब्ध</string>
+    <string name="add_application">आवेदन जोड़ें</string>
+    <string name="add_application_title">आवेदन जोड़ें</string>
+    <string name="company">कंपनी</string>
+    <string name="role_job_title">भूमिका / नौकरी का शीर्षक</string>
+    <string name="stage">चरण</string>
+    <string name="saved">सहेजा गया</string>
+    <string name="no_pipeline_stages">कोई पाइपलाइन चरण नहीं</string>
+    <string name="no_pipeline_stages_desc">पाइपलाइन चरण लोड नहीं हो सके।</string>
+    <string name="no_applications">कोई आवेदन नहीं</string>
+    <string name="unknown_role">अज्ञात भूमिका</string>
+    <string name="unknown_company">अज्ञात कंपनी</string>
+    <string name="ats_optimized">ATS अनुकूलित</string>
+    <string name="open_tasks">%1$d खुले कार्य%2$s</string>
+    <string name="timeline">समयरेखा</string>
+    <string name="no_activity">अभी तक कोई गतिविधि दर्ज नहीं।</string>
+    <string name="notes">नोट्स</string>
+    <string name="notes_placeholder">फॉलो-अप नोट्स, संपर्क विवरण, लिंक जोड़ें…</string>
+    <string name="notes_autosave">टाइप करते ही स्वचालित रूप से सहेजा जाता है।</string>
+    <string name="open_job_listing">नौकरी की सूची खोलें</string>
+    <string name="delete_application">आवेदन हटाएं</string>
+    <string name="delete_application_title">आवेदन हटाएं?</string>
+    <string name="delete_application_body">यह "%1$s" और इसका पूरा इतिहास आपकी पाइपलाइन से हटा देगा। इसे पूर्ववत नहीं किया जा सकता।</string>
+    <string name="updated">अपडेट %1$s</string>
+</resources>

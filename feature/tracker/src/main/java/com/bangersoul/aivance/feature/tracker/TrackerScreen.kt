@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draganddrop.DragAndDropEvent
@@ -56,9 +57,11 @@ fun TrackerScreen(
         }
     }
 
+    var showAddDialog by remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            AivanceTopBar(title = "Career Pipeline", onBack = onBack)
+            AivanceTopBar(title = stringResource(R.string.career_pipeline_title), onBack = onBack)
             AnimatedContent(
                 targetState = uiState,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -69,7 +72,7 @@ fun TrackerScreen(
                     is TrackerUiState.Error -> AivanceError(
                         message = state.message,
                         onRetry = { viewModel.onEvent(TrackerUiEvent.Refresh) },
-                        title = "Pipeline unavailable"
+                        title = stringResource(R.string.pipeline_unavailable)
                     )
                     is TrackerUiState.Success -> PipelineBoard(
                         stages = state.stages,
@@ -94,11 +97,113 @@ fun TrackerScreen(
             }
         }
 
+        // Manual application adding — a FAB opens the add dialog.
+        FloatingActionButton(
+            onClick = { showAddDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(20.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ) {
+            Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.add_application))
+        }
+
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
+
+    if (showAddDialog) {
+        val stages = (uiState as? TrackerUiState.Success)?.stages ?: emptyList()
+        AddApplicationDialog(
+            stages = stages,
+            onDismiss = { showAddDialog = false },
+            onAdd = { company, role, stageId ->
+                showAddDialog = false
+                viewModel.onEvent(TrackerUiEvent.AddApplication(company, role, stageId))
+            }
+        )
+    }
+}
+
+/**
+ * Dialog to manually add a job application: company, role, and pipeline stage.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddApplicationDialog(
+    stages: List<ApplicationStage>,
+    onDismiss: () -> Unit,
+    onAdd: (String, String, String) -> Unit
+) {
+    var company by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf("") }
+    var selectedStageId by remember { mutableStateOf(stages.firstOrNull()?.id ?: "SAVED") }
+    var stageExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.add_application_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = company,
+                    onValueChange = { company = it },
+                    label = { Text(stringResource(R.string.company)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = role,
+                    onValueChange = { role = it },
+                    label = { Text(stringResource(R.string.role_job_title)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                ExposedDropdownMenuBox(
+                    expanded = stageExpanded,
+                    onExpandedChange = { stageExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = stages.firstOrNull { it.id == selectedStageId }?.label ?: stringResource(R.string.saved),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.stage)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = stageExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        singleLine = true
+                    )
+                    ExposedDropdownMenu(
+                        expanded = stageExpanded,
+                        onDismissRequest = { stageExpanded = false }
+                    ) {
+                        stages.forEach { stage ->
+                            DropdownMenuItem(
+                                text = { Text(stage.label) },
+                                onClick = {
+                                    selectedStageId = stage.id
+                                    stageExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onAdd(company, role, selectedStageId) },
+                enabled = company.isNotBlank() && role.isNotBlank()
+            ) {
+                Text(stringResource(R.string.add))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        }
+    )
 }
 
 @Composable
@@ -114,8 +219,8 @@ private fun PipelineBoard(
 ) {
     if (stages.isEmpty()) {
         AivanceEmptyState(
-            title = "No pipeline stages",
-            description = "Pipeline stages could not be loaded.",
+            title = stringResource(R.string.no_pipeline_stages),
+            description = stringResource(R.string.no_pipeline_stages_desc),
             icon = Icons.Rounded.ViewKanban
         )
         return
@@ -237,7 +342,7 @@ private fun PipelineColumn(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "No applications",
+                        stringResource(R.string.no_applications),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -295,7 +400,7 @@ private fun KanbanCard(
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
-                app.job?.title ?: "Unknown Role",
+                app.job?.title ?: stringResource(R.string.unknown_role),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -303,7 +408,7 @@ private fun KanbanCard(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Icon(Icons.Rounded.Business, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
                 Text(
-                    app.job?.company ?: "Unknown Company",
+                    app.job?.company ?: stringResource(R.string.unknown_company),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.secondary,
                     maxLines = 1
@@ -314,7 +419,7 @@ private fun KanbanCard(
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Rounded.Description, null, Modifier.size(12.dp), tint = AivanceTheme.colors.success)
-                    Text("ATS Optimized", style = MaterialTheme.typography.labelSmall, color = AivanceTheme.colors.success)
+                    Text(stringResource(R.string.ats_optimized), style = MaterialTheme.typography.labelSmall, color = AivanceTheme.colors.success)
                 }
             }
 
@@ -322,7 +427,7 @@ private fun KanbanCard(
                 Spacer(Modifier.height(8.dp))
                 val openTasks = app.tasks.count { !it.isCompleted }
                 Text(
-                    "$openTasks open task${if (openTasks == 1) "" else "s"}",
+                    stringResource(R.string.open_tasks, openTasks, if (openTasks == 1) "" else "s"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -401,12 +506,12 @@ private fun ApplicationDetailSheet(
                 }
                 Column {
                     Text(
-                        application.job?.title ?: "Unknown Role",
+                        application.job?.title ?: stringResource(R.string.unknown_role),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        application.job?.company ?: "Unknown Company",
+                        application.job?.company ?: stringResource(R.string.unknown_company),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -421,7 +526,7 @@ private fun ApplicationDetailSheet(
             ) {
                 StatusChip(text = application.currentStageId.replace('_', ' '), tone = BannerTone.INFO)
                 Text(
-                    "Updated ${formatTimestamp(application.lastModified)}",
+                    stringResource(R.string.updated, formatTimestamp(application.lastModified)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -430,10 +535,10 @@ private fun ApplicationDetailSheet(
             HorizontalDivider()
 
             // Timeline
-            Text("Timeline", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.timeline), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (application.timeline.isEmpty()) {
                 Text(
-                    "No activity recorded yet.",
+                    stringResource(R.string.no_activity),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -446,16 +551,16 @@ private fun ApplicationDetailSheet(
             HorizontalDivider()
 
             // Notes
-            Text("Notes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.notes), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = notesText,
                 onValueChange = { notesText = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Add follow-up notes, contact details, links…") },
+                placeholder = { Text(stringResource(R.string.notes_placeholder)) },
                 minLines = 3
             )
             Text(
-                "Saved automatically as you type.",
+                stringResource(R.string.notes_autosave),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -469,7 +574,7 @@ private fun ApplicationDetailSheet(
                 ) {
                     Icon(Icons.Rounded.OpenInNew, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Open Job Listing")
+                    Text(stringResource(R.string.open_job_listing))
                 }
             }
 
@@ -481,7 +586,7 @@ private fun ApplicationDetailSheet(
             ) {
                 Icon(Icons.Rounded.DeleteOutline, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Delete Application")
+                Text(stringResource(R.string.delete_application))
             }
         }
     }
@@ -489,9 +594,9 @@ private fun ApplicationDetailSheet(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete application?") },
+            title = { Text(stringResource(R.string.delete_application_title)) },
             text = {
-                Text("This removes \"${application.job?.title ?: "this role"}\" and its entire history from your pipeline. This cannot be undone.")
+                Text(stringResource(R.string.delete_application_body, application.job?.title ?: stringResource(R.string.saved)))
             },
             confirmButton = {
                 TextButton(
@@ -501,12 +606,12 @@ private fun ApplicationDetailSheet(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

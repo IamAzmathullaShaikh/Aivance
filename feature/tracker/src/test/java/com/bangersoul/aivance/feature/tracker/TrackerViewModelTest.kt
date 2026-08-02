@@ -6,6 +6,7 @@ import com.bangersoul.aivance.core.common.model.ApplicationStage
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
+import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.workflow.WorkflowEngine
@@ -32,12 +33,13 @@ class TrackerViewModelTest {
     private val mockRepository: ApplicationWorkflowRepository = mockk()
     private val mockAnalyticsRepository: AnalyticsRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
+    private val mockJobRepository: JobRepository = mockk()
 
     private lateinit var viewModel: TrackerViewModel
 
     private fun buildViewModel(): TrackerViewModel {
         val workflowEngine = WorkflowEngine(mockRepository, mockAnalyticsRepository)
-        return TrackerViewModel(mockRepository, workflowEngine, mockTrackEvent)
+        return TrackerViewModel(mockRepository, workflowEngine, mockTrackEvent, mockJobRepository)
     }
 
     private val stages = listOf(
@@ -142,6 +144,39 @@ class TrackerViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { mockRepository.deleteApplication(1L) }
+    }
+
+    @Test
+    fun `manual add application caches job and saves application`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
+        coEvery { mockJobRepository.cacheJob(any()) } returns Result.Success(10L)
+        coEvery { mockRepository.saveApplication(any()) } returns Result.Success(7L)
+        coEvery { mockRepository.addTimelineEvent(any()) } returns Result.Success(1L)
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.AddApplication("Acme", "Android Engineer", "SAVED"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockJobRepository.cacheJob(any()) }
+        coVerify { mockRepository.saveApplication(match { it.jobId == 10L && it.currentStageId == "SAVED" }) }
+        coVerify { mockRepository.addTimelineEvent(any()) }
+        coVerify { mockTrackEvent(TrackEventRequest("tracker_manual_add")) }
+    }
+
+    @Test
+    fun `manual add with blank role shows snackbar and does not save`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.AddApplication("Acme", "  ", "SAVED"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { mockJobRepository.cacheJob(any()) }
+        coVerify(exactly = 0) { mockRepository.saveApplication(any()) }
     }
 
     @Test
