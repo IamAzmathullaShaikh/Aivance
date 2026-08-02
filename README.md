@@ -11,11 +11,23 @@ Aivance leverages modern Android development practices to provide a seamless use
 
 ## Key Features
 
-- **Resume Optimizer & ATS Matcher**: Analyze and optimize your resume to pass Applicant Tracking Systems (ATS) with ease. Get real-time feedback and keyword optimization suggestions.
+- **Resume Optimizer & ATS Matcher**: Analyze and optimize your resume to pass Applicant Tracking Systems (ATS) with ease. Get **live-reactive scoring** — the ATS engine recalculates automatically (debounced 800 ms) whenever your resume version or job description changes, and **streams analysis progress token-by-token** so you watch the keywords light up instead of staring at a spinner.
 - **AI Career Roadmap**: Generate personalized career paths based on your current skills and target roles.
-- **Dynamic Cover Letter Generator**: Create tailored cover letters for every job application using advanced AI models.
+- **Dynamic Cover Letter Generator**: Create tailored cover letters for every job application using advanced AI models. From any job detail screen the engine auto-generates a letter for that job (Copy / Edit / Export to PDF wired).
 - **AI Interview Coach**: Practice interviews with a real-time AI coach that provides feedback on your answers and delivery.
-- **Universal Job Tracker**: Manage your entire job search funnel in one place, from discovery to offer.
+- **Real-Time AI Career Assistant**: A context-aware assistant that streams responses token-by-token (Groq/OpenAI/Gemini/Claude SSE), routes intent-based commands (resume analysis, job search, roadmap, mock interview) to the right engine, and gracefully falls back to one-shot generation when a provider lacks streaming.
+- **Universal Job Tracker / Pipeline**: Manage your entire job search funnel in one place, from discovery to offer, as a Kanban board.
+- **Real Job Search & Filters**: Search across multiple providers (RemoteOK, Remotive, Apify, Arbeitnow, Jobicy, Adzuna, USAJobs) with genuine client-side filtering — **Location (Country / State / City from a ~80-country world catalog), Employment Type (Full-time, Part-time, Internship, Apprenticeship, Contract), Workplace (On-site, Remote, Hybrid), and Experience (0–15+ years)** — plus relevance-ranked results (title > company > description) instead of random provider dumps. Searches fire only when you commit the query (Enter / search button) or apply a filter, so results always match your intent.
+- **Working Apply Flow**: "Apply & Track" opens the real application page via a normalized apply URL (explicit URL → `sourceUrl` → href inside the description HTML), and one tap creates an application in the Pipeline.
+- **Linked Intelligence Engines**: Job detail → ATS (pre-filled with the job description), Job detail → Cover Letter (auto-generates for that job), Job detail → Recruiter Discovery, Company detail → Recruiters + open roles — every button navigates somewhere real.
+- **Streaming Everywhere**: Beyond the Assistant, the **Cover Letter generator and Resume Engine optimization step now stream tokens live** with a typewriter caret — you watch the letter / improved section being written instead of staring at a spinner, with graceful fallback for non-streaming providers.
+- **Career HQ Pie Chart**: The Dashboard renders an animated **career-breakdown pie chart** (Career Score · ATS Score · Applied · Saved Jobs) alongside the hero gauge and quick stats.
+- **Masked Provider Keys**: Provider Management shows a **masked credential preview** (`sk-••••abcd`) next to the live health chip — the full API key is never rendered on screen.
+- **About AiVance**: A new About screen with creator contact (email `iamshaikhazmathulla@outlook.com` · Instagram `@Iamazmathulla`), clickable open-source license links, and a "How AiVance is Made" tech section.
+- **Fully Localized UI + Working Language Picker**: Every user-facing string across all feature modules (plus navigation and worker notifications) was extracted into `res/values*` string resources with a **complete Hindi (`values-hi`) translation**. Settings → Language (English/हिन्दी/Español/Français/Deutsch/中文/日本語) is persisted to the encrypted DataStore and applied at app startup — switching language now translates the entire app, not just system-formatted values.
+- **Always-On Bottom Navigation**: The 5-tab shell stays visible across the whole main graph (including detail screens) and system back pops one screen at a time — no more accidental app exits from a random tab.
+- **Pipeline Manual Add**: Add an application by hand (company + role + stage) straight from the Kanban board via the FAB.
+- **Reliable Resume Parsing**: Section parsing no longer dead-ends — versions are fully hydrated with their sections and a deterministic heading-based parser guarantees usable output even without an AI provider.
 
 ## Architecture
 
@@ -50,22 +62,29 @@ The project is divided into several modules to ensure a clean separation of conc
 
 - **`:app`**: The entry point of the application (containing `MainActivity` and `AivanceApp`). It handles global dependency injection, application configuration, and orchestrates the navigation.
 - **`:core`**: Shared infrastructure and utility modules.
-  - `:core:common`: Shared models, constants, and basic utilities used across modules.
+  - `:core:common`: Shared models, constants, enums, and basic utilities used across modules.
   - `:core:database`: Local data persistence using Room.
   - `:core:datastore`: Key-value storage for user preferences and settings.
   - `:core:designsystem`: The design system containing UI components, themes, and design tokens (Material 3).
-  - `:core:network`: Remote data source handling using Retrofit.
-  - `:core:util`: Low-level helpers and extension functions.
+  - `:core:network`: Remote data source handling using Retrofit (includes certificate-pinned OkHttp clients).
+  - `:core:util`: Low-level helpers and extension functions (PDF/DOCX export, backup/restore).
+  - `:core:sdk`: The Provider SDK (ProviderRegistry, ProviderManager, AIProvider abstraction).
+  - `:core:ai-providers`: OpenAI-compatible providers (OpenAI, Groq, OpenRouter, Ollama) with streaming SSE.
+  - `:core:job-providers`: Job source integrations (RemoteOK, Remotive, Apify, Arbeitnow, Jobicy, Adzuna, USAJobs, Lever, Greenhouse).
+  - `:core:enrichment-providers`: Recruiter/email enrichment (Hunter.io).
 - **`:feature`**: Independent feature modules, each containing its own UI, ViewModel, and business logic.
-  - `:feature:ats`: Applicant Tracking System integration features.
+  - `:feature:assistant`: The real-time streaming AI Career Assistant.
+  - `:feature:ats`: Applicant Tracking System engine (live-reactive + streaming analysis).
   - `:feature:coverletter`: Tools for generating and managing cover letters.
-  - `:feature:dashboard`: The central hub and overview screen.
-  - `:feature:interview`: Resources and prep tools for interviews.
-  - `:feature:jobs`: Job search and listing functionality.
+  - `:feature:dashboard`: The central Career HQ hub and overview screen.
+  - `:feature:interview`: Prep Studio (practice, history, question bank).
+  - `:feature:jobs`: Job search, filters, job detail, company detail, and recruiter discovery.
+  - `:feature:recruiter`: Recruiter intelligence and outreach drafts.
+  - `:feature:analytics`: Career analytics dashboard.
   - `:feature:profile`: User profile management and settings.
-  - `:feature:resume`: **Resume Optimizer & ATS Matcher** tools.
-  - `:feature:tracker`: Job application tracking and status monitoring.
-- **`:navigation`**: Centralized navigation logic using the Jetpack Navigation 3 Adaptive APIs.
+  - `:feature:resume`: **Resume Optimizer & ATS Matcher** engine (7-step pipeline).
+  - `:feature:tracker`: Job application tracking and the Pipeline Kanban.
+- **`:navigation`**: Centralized navigation logic using the Jetpack Navigation 3 APIs (Auth + Main graphs, 5-tab shell).
 
 ## 🚀 Usage Guide
 

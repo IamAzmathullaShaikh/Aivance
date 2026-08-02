@@ -83,6 +83,81 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 
 ---
 
+### V2-14 — Job search relevance depends on provider data quality
+- **Area**: `core:data` `JobFilterMatcher` + `JobRepositoryImpl`.
+- **Description**: Search results are now client-side filtered on every filter dimension (structured location country/state/city, employment type incl. Apprenticeship, workplace on-site/remote/hybrid, experience 0–15+ years, salary) and relevance-ranked (title > company > description) with recency tiebreak. Some providers return sparse metadata (e.g., missing `employmentType`/`experienceLevel`), so a job may pass/fail a filter based on defaults.
+- **Mitigation**: Providers with missing metadata default to `FULL_TIME`/`NOT_SPECIFIED`; the matcher's experience-year bucketing uses level midpoints. Acceptable trade-off — documented in `JobFilterMatcher` KDoc.
+
+### V2-15 — Apply URL resolution is best-effort
+- **Area**: `JobDetailsViewModel.resolveApplyUrl`.
+- **Description**: The apply link is resolved by priority — explicit job `url` → `sourceUrl` → first `href` found in the description HTML — then normalized to absolute `https`. When a listing carries none of these, the button shows a snackbar ("No apply link available") instead of failing silently.
+- **Mitigation**: Acceptable; real apply pages are opened where the provider supplies them.
+
+### V2-16 — ATS streaming surfaces progress but the final report is one-shot
+- **Area**: `feature:ats` `StreamAtsAnalysisUseCase` + `AtsRepositoryImpl.streamAtsAnalysis`.
+- **Description**: ATS analysis now streams live analysis-progress tokens into the UI while computing; the persisted `AtsReport` is still produced by the one-shot scoring pipeline. Streaming text is a progress narrative, not the report body.
+- **Mitigation**: Intentional — keeps the report format stable for downstream export while giving real-time feedback.
+
+### V2-18 — Streaming wired into Cover Letter + Resume Engine
+- **Area**: `feature:coverletter`, `feature:resume`, `core:domain`, `core:data`.
+- **Description**: `StreamGenerateCoverLetterUseCase` + `CoverLetterRepository.streamGenerate` and `StreamImproveSectionUseCase` + `AiRepository.streamAnalyzeText` now stream tokens into the Cover Letter generation view and the Resume Engine's optimization step (typewriter caret, retry on stream failure). Falls back to non-streaming providers gracefully.
+
+### V2-19 — Dashboard career-breakdown pie chart
+- **Area**: `core:designsystem` `PieChart`, `feature:dashboard`.
+- **Description**: Added an animated multi-segment `PieChart` (ATS score, applied jobs, saved jobs, career score) to the Career HQ alongside the existing hero gauge, quick stats and activity feed.
+
+### V2-20 — About AiVance screen + provider key masking
+- **Area**: `feature:profile` `AboutScreen`, `Destination.About`, `ProviderManagement`.
+- **Description**: New About screen (creator email `iamshaikhazmathulla@outlook.com` + Instagram `@Iamazmathulla` with icons, open-source licenses with clickable links, and a "How AiVance is Made" tech section). Provider Management now shows a masked credential preview (`sk-••••abcd`) next to the live health chip — the full key is never rendered.
+
+### V2-21 — Provider selection consolidated into Provider Management
+- **Area**: `feature:profile` Settings + Profile screens.
+- **Description**: The duplicate "AI Configuration" entry was removed from Settings and Profile so AI / Job / Enrichment provider dropdowns exist only in Provider Management (per user request).
+
+### V2-22 — ~~Language picker now functional~~ ✅ RESOLVED
+- **Resolved in the full localization pass**: Language is a real picker (English/हिन्दी/Español/Français/Deutsch/中文/日本語) persisted to the encrypted DataStore via `UserPreferencesRepository.updateLanguage`; `MainActivity` applies the locale at startup so dates and formatting follow the choice. With V2-31, every user-facing UI string now comes from `res/values*` string resources including a complete `values-hi` (Hindi) set — the picker now translates the whole app, not just system-formatted values.
+
+### V2-23 — Job search triggers only on commit (Enter / filters)
+- **Area**: `feature:jobs` `JobsScreen`.
+- **Description**: The search field no longer fires a provider call on every keystroke — results refresh only when the user commits the query (keyboard Search action or the Send button) or applies a filter. This keeps provider calls intentional and prevents "random results" appearing mid-typing.
+
+### V2-24 — World-scale location catalog
+- **Area**: `feature:jobs` `LocationCatalog`.
+- **Description**: The Country → State/Region → City catalog was expanded from a 6-country starter set to a broad world dataset (~80 countries across every inhabited continent, each with its subdivisions and major cities). Client-side matching (`JobFilterMatcher.matchesStructuredLocation`) keeps results honest to the selected location.
+
+### V2-25 — Job detail resolution fixed ("Something went wrong" on tap)
+- **Area**: `core:data` `JobRepositoryImpl` + `JobDao.getJobByUrl`.
+- **Description**: Tapping a job from the discovery list could surface "Something went wrong" because the list carried provider-external ids that `getJobById` could not resolve. `searchJobs` now caches each listing and remaps its id to the internal DB row id (deduped by URL), and `getJobById` additionally falls back to a URL lookup — so tapping a result always resolves from the local DB.
+
+### V2-26 — Resume parsing no longer dead-ends on empty sections
+- **Area**: `core:data` `ResumeLocalDataSource`, `ResumeParser`, `feature:resume` `ResumeEngineViewModel`.
+- **Description**: Three root causes fixed: (1) `saveVersion` orphaned sections on new versions (sections were written under the pre-insert id 0); (2) `getVersionsForResume` returned empty-shell versions without their sections; (3) `ResumeParser` returned an empty section list when no AI provider was configured. Now sections are saved under the real generated version id, versions are fully hydrated, and the parser falls back to a deterministic heading-based splitter (with a final "Summary" catch-all) — the "Parsing failed — no sections" error can no longer occur for valid text.
+
+### V2-27 — System back no longer exits from every screen
+- **Area**: `navigation` `AivanceNavGraph`.
+- **Description**: Added a `BackHandler` that pops the typed back stack one screen at a time (instead of the activity finishing), and the bottom navigation is now part of the main-graph shell — visible on every authenticated screen, including detail screens — with the owning tab highlighted (e.g. Jobs while viewing a job detail). Tab switching now works everywhere without hunting for a back arrow.
+
+### V2-28 — Pipeline manual application adding
+- **Area**: `feature:tracker` `TrackerViewModel` + `TrackerScreen`.
+- **Description**: The Pipeline now supports manually adding an application (company + role + stage) via a FAB that opens an add dialog. The ViewModel caches a synthetic job row (reusing the URL-dedup path) so the FK is valid, saves the `Application`, records a timeline event, and refreshes the board.
+
+### V2-29 — Typography + nav icon refresh
+- **Area**: `core:designsystem` `Type.kt`, `navigation`.
+- **Description**: Typography moved to a Helvetica/Arial-style geometric sans-serif stack with tighter display tracking for a cleaner, more professional card UI; bottom-nav icons are tinted with the theme primary when selected.
+
+### V2-30 — ~~Hindi language option~~ ✅ RESOLVED
+- **Resolved in the full localization pass**: Added हिन्दी (Hindi) to the functional Language picker (persisted to DataStore and applied at startup by `MainActivity`). With V2-31 the whole app — including Hindi — is now translated via `values-hi` string resources.
+
+### V2-31 — Full UI string extraction + Hindi translation
+- **Area**: All 12 feature modules + `navigation` + `app` workers.
+- **Description**: Every hardcoded user-facing UI string across the codebase (screen titles, buttons, placeholders, labels, content descriptions, error/success messages, chat prompts, and worker notification text) was extracted into Android string resources. Each module gained `res/values/strings.xml` (English) and `res/values-hi/strings.xml` (complete Hindi translation): navigation (nav-bar labels, Auth, Onboarding, Prep Studio, FeatureScreens), profile (Welcome/Splash/Login/About/Settings/Privacy/Appearance), jobs (discovery, details, company, saved), interview + recruiter, resume + Resume Engine, tracker, ats, coverletter, assistant, analytics, dashboard, and app worker notifications (Download/Upload/FollowUp/NotificationWorker channel names, titles, messages). The Settings → Language picker now translates the entire application.
+- **Details**: `Destination` gained a `@StringRes labelRes` mapping used by the bottom-nav bar (the `label` property stays for the existing nav tests); `strings.xml` reserved-keyword resource names (`continue`) were renamed to `continue_button` in profile + resume; launcher callbacks use `context.getString(...)` since they are not composable scopes.
+
+### V2-17 — New unit-test coverage across previously-uncovered modules
+- **Area**: `feature:assistant`, `feature:analytics`, `feature:recruiter`, `core:network`, `core:ai-providers`, `core:designsystem`, `navigation`.
+- **Description**: Added unit test suites: `AssistantViewModelTest` (streaming, single-flight, retry, partial-failure), `AnalyticsViewModelTest`, `RecruiterViewModelTest`, `CertificatePinningInterceptorTest`, `OpenAiApiSerializationTest`, `AccentPaletteTest`, `DestinationTest`, plus `JobFilterMatcherTest` for the new filter logic and expanded `JobDetailsViewModelTest` for apply-link resolution and linked navigation effects.
+- **Impact**: Full JVM unit test suite across all modules is green.
+
 ## Resolved
 - **H-01** (SecurityMigrationWorker) — resolved in Phase 5 with real plaintext scan + SecretsManager migration.
 - **M-01** (Recruiter persistence) — confirmed already resolved; `RecruiterIntelligenceRepositoryImpl` uses Room `RecruiterDao` throughout.

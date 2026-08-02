@@ -1,15 +1,15 @@
 {
   "project_info": {
-    "project_number": "433186935073",
-    "project_id": "test-387ab21e",
-    "storage_bucket": "test-387ab21e.firebasestorage.app"
+    "project_number": "362023371153",
+    "project_id": "test-dea4929b",
+    "storage_bucket": "test-dea4929b.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:433186935073:android:4db6a7764e014ef8e9ae60",
+        "mobilesdk_app_id": "1:362023371153:android:9ac714aae3c030f7edda30",
         "android_client_info": {
-          "package_name": "com.bangersoul.aivance"
+          "package_name": "com.bangersoul.aivance.debug"
         }
       },
       "oauth_client": [
@@ -20,7 +20,7 @@
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBC0sqlHYnyQyem47dMNIgFhjhD4p_S8bo"
+          "current_key": "AIzaSyDPFuKF_ZO5kH1KeHrAfqO4PeTjAW7OKwU"
         }
       ],
       "services": {
