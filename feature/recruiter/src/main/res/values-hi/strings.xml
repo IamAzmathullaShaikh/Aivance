@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">वापस</string>
+    <string name="recruiter_intelligence_title">भर्तीकर्ता इंटेलिजेंस</string>
+    <string name="no_recruiters">अभी कोई भर्तीकर्ता नहीं</string>
+    <string name="no_recruiters_desc">आपकी नौकरी खोज के सत्यापित भर्तीकर्ता संपर्क यहां दिखाई देंगे। अपना नेटवर्क बनाने के लिए कंपनियों का अन्वेषण करें।</string>
+    <string name="verified_contacts">सत्यापित संपर्क</string>
+    <string name="recruiter_fallback">भर्तीकर्ता</string>
+    <string name="personalized_outreach">व्यक्तिगत आउटरीच</string>
+    <string name="cold_email">कोल्ड ईमेल</string>
+    <string name="linkedin">LinkedIn</string>
+    <string name="ai_draft_for">%1$s के लिए AI ड्राफ्ट</string>
+    <string name="copy_draft">ड्राफ्ट कॉपी करें</string>
+    <string name="regenerate">पुनः उत्पन्न करें</string>
+</resources>

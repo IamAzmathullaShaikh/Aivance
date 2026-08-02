@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">Back</string>
+    <string name="recruiter_intelligence_title">Recruiter Intelligence</string>
+    <string name="no_recruiters">No Recruiters Yet</string>
+    <string name="no_recruiters_desc">Verified recruiter contacts from your job discovery will appear here. Explore companies to start building your network.</string>
+    <string name="verified_contacts">Verified Contacts</string>
+    <string name="recruiter_fallback">Recruiter</string>
+    <string name="personalized_outreach">Personalized Outreach</string>
+    <string name="cold_email">Cold Email</string>
+    <string name="linkedin">LinkedIn</string>
+    <string name="ai_draft_for">AI Draft for %1$s</string>
+    <string name="copy_draft">Copy Draft</string>
+    <string name="regenerate">Regenerate</string>
+</resources>

@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,10 +62,10 @@ fun RecruiterDashboardScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Recruiter Intelligence", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.recruiter_intelligence_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -82,8 +83,8 @@ fun RecruiterDashboardScreen(
                 is RecruiterUiState.Success -> {
                     if (state.recruiters.isEmpty()) {
                         AivanceEmptyState(
-                            title = "No Recruiters Yet",
-                            description = "Verified recruiter contacts from your job discovery will appear here. Explore companies to start building your network.",
+                            title = stringResource(R.string.no_recruiters),
+                            description = stringResource(R.string.no_recruiters_desc),
                             icon = Icons.Rounded.PersonSearch
                         )
                     } else {
@@ -107,7 +108,7 @@ private fun RecruiterListContent(
     onGenerate: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Verified Contacts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.verified_contacts), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
 
         LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -125,7 +126,7 @@ private fun RecruiterListContent(
                         Spacer(Modifier.width(16.dp))
                         Column {
                             Text(recruiter.name, fontWeight = FontWeight.Bold)
-                            Text(recruiter.title ?: "Recruiter", style = MaterialTheme.typography.bodySmall)
+                            Text(recruiter.title ?: stringResource(R.string.recruiter_fallback), style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -154,18 +155,18 @@ private fun OutreachSection(
     val clipboard = LocalClipboardManager.current
 
     Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-        Text("Personalized Outreach", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.personalized_outreach), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(12.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActionButton(
-                text = "Cold Email",
+                text = stringResource(R.string.cold_email),
                 onClick = { onGenerate("COLD_EMAIL") },
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.Email
             )
             ActionButton(
-                text = "LinkedIn",
+                text = stringResource(R.string.linkedin),
                 onClick = { onGenerate("LINKEDIN_REQUEST") },
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.AutoAwesome
@@ -180,7 +181,7 @@ private fun OutreachSection(
             Spacer(Modifier.height(16.dp))
             DashboardCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("AI Draft for ${recruiter.name}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.ai_draft_for, recruiter.name), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.height(8.dp))
                     Text(draftContent, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(16.dp))
@@ -189,14 +190,14 @@ private fun OutreachSection(
                             onClick = { clipboard.setText(AnnotatedString(draftContent)) },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Copy Draft")
+                            Text(stringResource(R.string.copy_draft))
                         }
                         Button(
                             onClick = { onGenerate("COLD_EMAIL") },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                         ) {
-                            Text("Regenerate", color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(stringResource(R.string.regenerate), color = MaterialTheme.colorScheme.onPrimaryContainer)
                         }
                     }
                 }
