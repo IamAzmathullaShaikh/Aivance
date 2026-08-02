@@ -12,6 +12,11 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -35,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,15 +86,18 @@ fun AssistantScreen(
                     is AssistantUiState.Loading -> SkeletonDashboard(modifier = Modifier.fillMaxSize())
                     is AssistantUiState.Chatting -> ChatContent(
                         messages = state.messages,
-                        isTyping = state.isTyping
+                        isTyping = state.isTyping,
+                        streamingContent = state.streamingContent,
+                        streamFailed = state.streamFailed,
+                        onRetry = { viewModel.retry() }
                     )
                     is AssistantUiState.Error -> AivanceError(
                         message = state.message,
                         onRetry = { viewModel.retry() },
-                        title = "Provider unavailable",
-                        detail = "The AI provider could not be reached. Check your provider configuration or try again.",
-                        primaryActionText = "Retry",
-                        secondaryActionText = "Switch Provider",
+                        title = stringResource(R.string.assistant_provider_unavailable_title),
+                        detail = stringResource(R.string.assistant_provider_unavailable_detail),
+                        primaryActionText = stringResource(R.string.assistant_retry),
+                        secondaryActionText = stringResource(R.string.assistant_switch_provider),
                         onSecondaryAction = onSwitchProvider
                     )
                     else -> {}
@@ -107,10 +116,11 @@ fun AssistantScreen(
     }
 }
 
+@Composable
 private fun greetingForTime(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-    in 0..11 -> "Good Morning"
-    in 12..16 -> "Good Afternoon"
-    else -> "Good Evening"
+    in 0..11 -> stringResource(R.string.assistant_good_morning)
+    in 12..16 -> stringResource(R.string.assistant_good_afternoon)
+    else -> stringResource(R.string.assistant_good_evening)
 }
 
 @Composable
@@ -127,13 +137,13 @@ private fun AssistantHeader(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${greetingForTime()}, ${userName.ifBlank { "there" }}",
+                    text = "${greetingForTime()}, ${userName.ifBlank { stringResource(R.string.assistant_greeting_there) }}",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
                 Text(
-                    text = "What do you want to achieve today?",
+                    text = stringResource(R.string.assistant_achievement_question),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -146,9 +156,9 @@ private fun AssistantHeader(
 @Composable
 private fun ProviderStatusChip(status: ProviderStatusUi, onSwitchProvider: () -> Unit) {
     val (dotColor, label) = if (status.isReady) {
-        AivanceTheme.colors.success to (status.providerName?.let { "$it · ${status.statusLabel}" } ?: "Active")
+        AivanceTheme.colors.success to (status.providerName?.let { "$it · ${status.statusLabel}" } ?: stringResource(R.string.assistant_active))
     } else {
-        AivanceTheme.colors.warning to "No provider"
+        AivanceTheme.colors.warning to stringResource(R.string.assistant_no_provider)
     }
     Surface(
         onClick = onSwitchProvider,
@@ -176,13 +186,14 @@ private fun ProviderStatusChip(status: ProviderStatusUi, onSwitchProvider: () ->
     }
 }
 
-private val suggestedPrompts = listOf(
-    "Optimize my resume for a Senior Android Engineer role",
-    "Write a follow-up email after an interview",
-    "Generate a cold outreach message to a recruiter",
-    "What should I improve to raise my ATS score?",
-    "Draft a career roadmap for the next 6 months",
-    "Prepare me for a behavioral interview question"
+@Composable
+private fun suggestedPrompts(): List<String> = listOf(
+    stringResource(R.string.assistant_prompt_resume),
+    stringResource(R.string.assistant_prompt_followup),
+    stringResource(R.string.assistant_prompt_outreach),
+    stringResource(R.string.assistant_prompt_ats),
+    stringResource(R.string.assistant_prompt_roadmap),
+    stringResource(R.string.assistant_prompt_behavioral)
 )
 
 @Composable
@@ -191,6 +202,12 @@ private fun AssistantWelcomeContent(
     onPromptClick: (String) -> Unit,
     onConfigureProvider: () -> Unit
 ) {
+    val resumePrompt = stringResource(R.string.assistant_chip_prompt_resume)
+    val jobsPrompt = stringResource(R.string.assistant_chip_prompt_jobs)
+    val interviewPrompt = stringResource(R.string.assistant_chip_prompt_interview)
+    val letterPrompt = stringResource(R.string.assistant_chip_prompt_letter)
+    val prompts = suggestedPrompts()
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp),
@@ -214,12 +231,12 @@ private fun AssistantWelcomeContent(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "Your AI Career Assistant",
+                    stringResource(R.string.assistant_your_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Optimize resumes, find recruiters, prepare for interviews — all in one command surface.",
+                    stringResource(R.string.assistant_welcome_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth(0.85f),
@@ -237,38 +254,38 @@ private fun AssistantWelcomeContent(
 
         // Intent quick-action chips
         item {
-            SectionHeader(title = "Quick Actions")
+            SectionHeader(title = stringResource(R.string.assistant_quick_actions))
         }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 item {
-                    QuickActionChip("Improve Resume", Icons.Rounded.Description, AivanceTheme.colors.accent) {
-                        onPromptClick("Analyze my resume and suggest improvements")
+                    QuickActionChip(stringResource(R.string.assistant_action_improve_resume), Icons.Rounded.Description, AivanceTheme.colors.accent) {
+                        onPromptClick(resumePrompt)
                     }
                 }
                 item {
-                    QuickActionChip("Find Jobs", Icons.Rounded.WorkOutline, AivanceTheme.colors.info) {
-                        onPromptClick("Find jobs matching my profile")
+                    QuickActionChip(stringResource(R.string.assistant_action_find_jobs), Icons.Rounded.WorkOutline, AivanceTheme.colors.info) {
+                        onPromptClick(jobsPrompt)
                     }
                 }
                 item {
-                    QuickActionChip("Interview Prep", Icons.Rounded.RecordVoiceOver, AivanceTheme.colors.warning) {
-                        onPromptClick("Start a mock interview for my target role")
+                    QuickActionChip(stringResource(R.string.assistant_action_interview_prep), Icons.Rounded.RecordVoiceOver, AivanceTheme.colors.warning) {
+                        onPromptClick(interviewPrompt)
                     }
                 }
                 item {
-                    QuickActionChip("Cover Letter", Icons.Rounded.Edit, AivanceTheme.colors.success) {
-                        onPromptClick("Generate a cover letter for my target role")
+                    QuickActionChip(stringResource(R.string.assistant_action_cover_letter), Icons.Rounded.Edit, AivanceTheme.colors.success) {
+                        onPromptClick(letterPrompt)
                     }
                 }
             }
         }
 
         item {
-            SectionHeader(title = "Try a prompt")
+            SectionHeader(title = stringResource(R.string.assistant_try_prompt))
         }
 
-        items(suggestedPrompts.chunked(2)) { pair ->
+        items(prompts.chunked(2)) { pair ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 pair.forEach { prompt ->
                     Surface(
@@ -312,17 +329,17 @@ private fun ProviderSetupCard(onConfigureProvider: () -> Unit) {
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "No AI provider configured",
+                    stringResource(R.string.assistant_no_provider_configured),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    "Connect an AI provider to unlock the full assistant.",
+                    stringResource(R.string.assistant_no_provider_detail),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            AivanceTertiaryButton(text = "Configure", onClick = onConfigureProvider)
+            AivanceTertiaryButton(text = stringResource(R.string.assistant_configure), onClick = onConfigureProvider)
         }
     }
 }
@@ -354,13 +371,25 @@ private fun QuickActionChip(label: String, icon: ImageVector, tint: androidx.com
 }
 
 @Composable
-private fun ChatContent(messages: List<AssistantChatMessage>, isTyping: Boolean) {
+private fun ChatContent(
+    messages: List<AssistantChatMessage>,
+    isTyping: Boolean,
+    streamingContent: String?,
+    streamFailed: Boolean,
+    onRetry: () -> Unit
+) {
     val listState = rememberLazyListState()
+    val hasStreaming = streamingContent != null
+    val itemCount = messages.size + if (hasStreaming) 1 else 0
 
-    LaunchedEffect(messages.size, isTyping) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size)
-        }
+    // Follow the newest content. Chunk arrivals update streamingContent many
+    // times per second, so use an instant (non-animated) jump to avoid scroll
+    // jitter fighting the user; animate only when a new message lands.
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+    }
+    LaunchedEffect(streamingContent) {
+        if (hasStreaming) listState.scrollToItem(itemCount - 1)
     }
 
     LazyColumn(
@@ -372,13 +401,21 @@ private fun ChatContent(messages: List<AssistantChatMessage>, isTyping: Boolean)
         items(messages) { msg ->
             AssistantBubble(msg)
         }
-        if (isTyping) {
+        if (hasStreaming) {
+            item {
+                StreamingBubble(
+                    content = streamingContent.orEmpty(),
+                    failed = streamFailed,
+                    onRetry = onRetry
+                )
+            }
+        } else if (isTyping) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TypingIndicator()
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "Assistant is thinking",
+                        stringResource(R.string.assistant_thinking),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -386,6 +423,93 @@ private fun ChatContent(messages: List<AssistantChatMessage>, isTyping: Boolean)
             }
         }
     }
+}
+
+/**
+ * Live assistant bubble that grows as token chunks stream in. While generating
+ * it shows a blinking caret; if the stream failed it stops the caret and offers
+ * a retry so the partial text never reads as "still thinking".
+ */
+@Composable
+private fun StreamingBubble(
+    content: String,
+    failed: Boolean,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp),
+            color = if (failed) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.widthIn(max = 320.dp)
+        ) {
+            Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (!failed) {
+                    BlinkingCaret()
+                }
+            }
+        }
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = stringResource(R.string.assistant_label),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 6.dp)
+        )
+        if (failed) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(start = 6.dp, top = 4.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.WarningAmber,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    stringResource(R.string.assistant_response_interrupted),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                TextButton(onClick = onRetry) {
+                    Text(stringResource(R.string.assistant_retry))
+                }
+            }
+        }
+    }
+}
+
+/** A small caret that pulses while the assistant is generating. */
+@Composable
+private fun BlinkingCaret() {
+    val transition = rememberInfiniteTransition(label = "caret")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "caretAlpha"
+    )
+    Text(
+        text = "▌",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+    )
 }
 
 @Composable
@@ -413,7 +537,7 @@ private fun AssistantBubble(msg: AssistantChatMessage) {
         }
         Spacer(Modifier.height(2.dp))
         Text(
-            text = if (isUser) "You" else "Assistant",
+            text = if (isUser) stringResource(R.string.assistant_you) else stringResource(R.string.assistant_label),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 6.dp)
@@ -455,8 +579,8 @@ private fun AssistantInputBar(
                 uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
             )?.use { cursor ->
                 if (cursor.moveToFirst()) cursor.getString(0) else null
-            } ?: "document"
-            val prefix = "[Attached: $name]\n"
+            } ?: context.getString(R.string.assistant_document_fallback)
+            val prefix = context.getString(R.string.assistant_attached_file, name)
             onValueChange(prefix + value)
         }
     }
@@ -466,7 +590,7 @@ private fun AssistantInputBar(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            val marker = "[Photo attached]\n"
+            val marker = context.getString(R.string.assistant_photo_attached)
             onValueChange(marker + value)
         }
     }
@@ -484,7 +608,7 @@ private fun AssistantInputBar(
                 if (permissionState.status.isGranted) {
                     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your career question…")
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, context.getString(R.string.assistant_speak_prompt))
                         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
                     }
                     speechLauncher.launch(intent)
@@ -494,7 +618,7 @@ private fun AssistantInputBar(
             }) {
                 Icon(
                     Icons.Rounded.Mic,
-                    contentDescription = "Voice input",
+                    contentDescription = stringResource(R.string.assistant_voice_input),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -511,7 +635,7 @@ private fun AssistantInputBar(
             }) {
                 Icon(
                     Icons.Rounded.AttachFile,
-                    contentDescription = "Attach document",
+                    contentDescription = stringResource(R.string.assistant_attach_document),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -524,7 +648,7 @@ private fun AssistantInputBar(
             }) {
                 Icon(
                     Icons.Rounded.PhotoCamera,
-                    contentDescription = "Attach photo",
+                    contentDescription = stringResource(R.string.assistant_attach_photo),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -533,7 +657,7 @@ private fun AssistantInputBar(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask anything about your career...") },
+                placeholder = { Text(stringResource(R.string.assistant_input_placeholder)) },
                 shape = AivanceTheme.shapes.large,
                 maxLines = 4,
                 trailingIcon = {
@@ -545,7 +669,7 @@ private fun AssistantInputBar(
                         IconButton(onClick = { onSend(value) }) {
                             Icon(
                                 Icons.AutoMirrored.Rounded.Send,
-                                contentDescription = "Send",
+                                contentDescription = stringResource(R.string.assistant_send),
                                 tint = AivanceTheme.colors.accent
                             )
                         }

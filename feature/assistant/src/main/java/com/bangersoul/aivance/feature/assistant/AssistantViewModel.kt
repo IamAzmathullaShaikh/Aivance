@@ -22,10 +22,25 @@ import javax.inject.Inject
 sealed interface AssistantUiState {
     data object Idle : AssistantUiState
     data object Loading : AssistantUiState
+
     data class Chatting(
         val messages: List<AssistantChatMessage> = emptyList(),
-        val isTyping: Boolean = false
+        val isTyping: Boolean = false,
+        /**
+         * Non-null while a streaming response is in flight — the partial text
+         * accumulated so far. The UI renders it as a live, typewriter bubble
+         * until the stream completes and the full message is committed.
+         */
+        val streamingContent: String? = null,
+        /**
+         * True when the stream terminated early (network drop, provider error)
+         * after some partial text had already arrived. The partial content is
+         * kept visible so nothing is lost; the UI stops the blinking caret and
+         * offers retry instead of implying generation is still in progress.
+         */
+        val streamFailed: Boolean = false
     ) : AssistantUiState
+
     data class Error(val message: String) : AssistantUiState
 }
 
@@ -92,13 +107,33 @@ class AssistantViewModel @Inject constructor(
 
     private var lastUserMessage: String? = null
 
+    /**
+     * Sends a message and streams the reply into the bubble token-by-token.
+     *
+     * The assistant message appears immediately in "streaming" state and its
+     * text grows with every emitted chunk; when the stream completes the full
+     * response is persisted and committed as a normal message.
+     *
+     * Single-flight: a new send is ignored while a stream is still in flight,
+     * so rapid sends can never clobber the in-progress bubble's state. If the
+     * stream fails after partial text arrived, that partial is persisted and
+     * kept visible with [streamFailed] set so the UI can offer retry instead
+     * of hanging on a blinking caret forever.
+     */
     fun sendMessage(text: String) {
         if (text.isBlank()) return
+
+        val current = _uiState.value
+        if (current is AssistantUiState.Chatting &&
+            (current.isTyping || (current.streamingContent != null && !current.streamFailed))
+        ) {
+            // A stream is already in flight — ignore the duplicate send.
+            return
+        }
 
         lastUserMessage = text
 
         val userMsg = AssistantChatMessage("USER", text)
-        val current = _uiState.value
         val messages = if (current is AssistantUiState.Chatting) current.messages + userMsg else listOf(userMsg)
 
         _uiState.value = AssistantUiState.Chatting(messages, isTyping = true)
@@ -106,15 +141,48 @@ class AssistantViewModel @Inject constructor(
         viewModelScope.launch {
             assistantRepository.saveMessage(currentConversationId, "USER", text)
 
-            val result = getAssistantResponseUseCase(AssistantRequest(currentConversationId, text))
-            if (result is Result.Success) {
-                val aiMsg = AssistantChatMessage("ASSISTANT", result.data)
-                assistantRepository.saveMessage(currentConversationId, "ASSISTANT", result.data)
-                _uiState.value = AssistantUiState.Chatting(messages + aiMsg, isTyping = false)
-            } else {
-                _uiState.value = AssistantUiState.Error(
-                    (result as? Result.Failure)?.error?.message ?: "AI failed to respond"
+            var fullResponse = ""
+            try {
+                getAssistantResponseUseCase.stream(
+                    AssistantRequest(currentConversationId, text)
+                ).collect { chunk ->
+                    fullResponse += chunk
+                    _uiState.value = AssistantUiState.Chatting(
+                        messages = messages,
+                        isTyping = false,
+                        streamingContent = fullResponse
+                    )
+                }
+
+                if (fullResponse.isBlank()) {
+                    _uiState.value = AssistantUiState.Error("AI returned an empty response")
+                    return@launch
+                }
+
+                // Stream completed — persist and commit the full reply.
+                assistantRepository.saveMessage(currentConversationId, "ASSISTANT", fullResponse)
+                val aiMsg = AssistantChatMessage("ASSISTANT", fullResponse)
+                _uiState.value = AssistantUiState.Chatting(
+                    messages = messages + aiMsg,
+                    isTyping = false,
+                    streamingContent = null
                 )
+            } catch (e: Exception) {
+                if (fullResponse.isNotBlank()) {
+                    // Persist whatever arrived so Room history has no dangling
+                    // user message, then keep it visible for retry.
+                    assistantRepository.saveMessage(currentConversationId, "ASSISTANT", fullResponse)
+                    _uiState.value = AssistantUiState.Chatting(
+                        messages = messages,
+                        isTyping = false,
+                        streamingContent = fullResponse,
+                        streamFailed = true
+                    )
+                } else {
+                    _uiState.value = AssistantUiState.Error(
+                        e.message?.takeIf { it.isNotBlank() } ?: "AI failed to respond"
+                    )
+                }
             }
         }
     }
