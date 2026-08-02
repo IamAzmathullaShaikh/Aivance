@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">Back</string>
+    <string name="remote">Remote</string>
+    <string name="refresh">Refresh</string>
+
+    <!-- Jobs screen -->
+    <string name="job_discovery_title">Job Discovery</string>
+    <string name="job_discovery_subtitle">Unified search across providers</string>
+    <string name="search_placeholder">Search roles, skills, or companies</string>
+    <string name="clear_search">Clear search</string>
+    <string name="search">Search</string>
+    <string name="jobs_unavailable">Jobs unavailable</string>
+    <string name="country">Country</string>
+    <string name="state">State</string>
+    <string name="city">City</string>
+    <string name="type">Type</string>
+    <string name="workplace">Workplace</string>
+    <string name="experience">Experience</string>
+    <string name="all">All</string>
+    <string name="clear_all_filters">Clear all filters</string>
+    <string name="exp_0_2">0–2 years</string>
+    <string name="exp_3_5">3–5 years</string>
+    <string name="exp_6_10">6–10 years</string>
+    <string name="exp_11_15">11–15 years</string>
+    <string name="exp_15_plus">15+ years</string>
+    <string name="years_min_plus">%1$d+ years</string>
+    <string name="years_range">%1$d–%2$d years</string>
+    <string name="employment_full_time">Full Time</string>
+    <string name="employment_part_time">Part Time</string>
+    <string name="employment_internship">Internship</string>
+    <string name="employment_apprenticeship">Apprenticeship</string>
+    <string name="employment_contract">Contract</string>
+    <string name="employment_temporary">Temporary</string>
+    <string name="employment_freelance">Freelance</string>
+    <string name="employment_other">Other</string>
+    <string name="remote_on_site">On Site</string>
+    <string name="remote_hybrid">Hybrid</string>
+    <string name="no_matches_found">No matches found</string>
+    <string name="no_jobs_yet">No jobs yet</string>
+    <string name="no_matches_desc">Try a different keyword or filter — or refresh to pull the latest roles.</string>
+    <string name="no_jobs_desc">Configure a job provider to start discovering roles matched to your profile.</string>
+    <string name="saved_jobs">Saved Jobs</string>
+    <string name="ats_match">ATS Match %1$d%%</string>
+    <string name="save_job">Save job</string>
+
+    <!-- Job details -->
+    <string name="job_details_title">Job Details</string>
+    <string name="bookmark">Bookmark</string>
+    <string name="apply_on_provider_site">Apply on Provider Site</string>
+    <string name="apply_and_track">Apply &amp; Track in Pipeline</string>
+    <string name="find_recruiters">Find Recruiters</string>
+    <string name="cover_letter">Cover Letter</string>
+    <string name="ai_compatibility_check">AI Compatibility Check</string>
+    <string name="ai_compatibility_sub">Check how well your resume matches this job.</string>
+    <string name="check">Check</string>
+    <string name="job_description">Job Description</string>
+
+    <!-- Company detail -->
+    <string name="company_title">Company</string>
+    <string name="open_roles">Open Roles</string>
+    <string name="open_roles_count">Open Roles (%1$d)</string>
+    <string name="no_open_roles">No open roles found</string>
+    <string name="no_open_roles_desc">This company currently has no indexed roles in your job feed.</string>
+
+    <!-- Saved jobs -->
+    <string name="saved_jobs_title">Saved Jobs</string>
+    <string name="no_saved_jobs">No saved jobs</string>
+    <string name="no_saved_jobs_desc">Jobs you save will appear here for quick access.</string>
+    <string name="remove">Remove</string>
+</resources>

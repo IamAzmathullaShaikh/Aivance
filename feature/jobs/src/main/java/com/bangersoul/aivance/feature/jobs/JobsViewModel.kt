@@ -34,6 +34,7 @@ sealed interface JobsUiState {
 sealed interface JobsUiEvent {
     data class Search(val query: String) : JobsUiEvent
     data class UpdateFilter(val filter: JobSearchFilter) : JobsUiEvent
+    data object ClearFilters : JobsUiEvent
     data class ToggleBookmark(val jobId: String) : JobsUiEvent
     data class ViewDetails(val jobId: String) : JobsUiEvent
     data object Refresh : JobsUiEvent
@@ -61,6 +62,7 @@ class JobsViewModel @Inject constructor(
         when (event) {
             is JobsUiEvent.Search -> search(event.query)
             is JobsUiEvent.UpdateFilter -> updateFilter(event.filter)
+            JobsUiEvent.ClearFilters -> clearFilters()
             is JobsUiEvent.ToggleBookmark -> toggleBookmark(event.jobId)
             is JobsUiEvent.ViewDetails -> viewModelScope.launch { _effects.send(JobsUiEffect.NavigateToDetails(event.jobId)) }
             JobsUiEvent.Refresh -> search()
@@ -91,6 +93,14 @@ class JobsViewModel @Inject constructor(
         val current = _uiState.value as? JobsUiState.Success ?: return
         _uiState.value = current.copy(filter = filter)
         search()
+    }
+
+    /** Resets every filter dimension (keeps the free-text query). */
+    private fun clearFilters() {
+        val current = _uiState.value as? JobsUiState.Success ?: return
+        val cleared = JobSearchFilter(query = current.filter.query)
+        _uiState.value = current.copy(filter = cleared)
+        search(cleared.query)
     }
 
     private fun toggleBookmark(jobId: String) {

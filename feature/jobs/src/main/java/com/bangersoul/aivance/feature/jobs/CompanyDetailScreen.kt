@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,10 +69,10 @@ fun CompanyDetailScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Company", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.company_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -148,7 +149,7 @@ private fun CompanyContent(
         // back to the company id itself when no indexed roles exist.
         item {
             ActionButton(
-                text = "Find Recruiters",
+                text = stringResource(R.string.find_recruiters),
                 onClick = {
                     val targetId = state.openRoles.firstOrNull()?.id ?: companyId
                     onNavigateToRecruiters(targetId)
@@ -160,7 +161,11 @@ private fun CompanyContent(
 
         item {
             Text(
-                if (state.openRoles.isEmpty()) "Open Roles" else "Open Roles (${state.openRoles.size})",
+                if (state.openRoles.isEmpty()) {
+                    stringResource(R.string.open_roles)
+                } else {
+                    stringResource(R.string.open_roles_count, state.openRoles.size)
+                },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -169,8 +174,8 @@ private fun CompanyContent(
         if (state.openRoles.isEmpty()) {
             item {
                 AivanceEmptyState(
-                    title = "No open roles found",
-                    description = "This company currently has no indexed roles in your job feed.",
+                    title = stringResource(R.string.no_open_roles),
+                    description = stringResource(R.string.no_open_roles_desc),
                     icon = Icons.Rounded.WorkOutline
                 )
             }
@@ -185,7 +190,7 @@ private fun CompanyContent(
                         Text(job.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Icon(Icons.Rounded.LocationOn, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(job.location.ifBlank { "Remote" }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(job.location.ifBlank { stringResource(R.string.remote) }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

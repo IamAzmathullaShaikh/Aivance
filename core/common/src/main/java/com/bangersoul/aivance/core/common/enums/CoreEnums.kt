@@ -8,6 +8,7 @@ enum class JobType {
     PART_TIME,
     CONTRACT,
     INTERNSHIP,
+    APPRENTICESHIP,
     TEMPORARY,
     FREELANCE,
     OTHER
@@ -27,6 +28,7 @@ enum class EmploymentType {
     PART_TIME,
     CONTRACT,
     INTERNSHIP,
+    APPRENTICESHIP,
     TEMPORARY,
     FREELANCE,
     OTHER

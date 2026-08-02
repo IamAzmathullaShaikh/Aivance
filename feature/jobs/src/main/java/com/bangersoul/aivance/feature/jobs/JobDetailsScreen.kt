@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bangersoul.aivance.core.common.model.JobListing
@@ -61,9 +62,9 @@ fun JobDetailsScreen(
     jobId: String,
     onNavigateBack: () -> Unit,
     onNavigateToRecruiters: (String) -> Unit = {},
-    onNavigateToCoverLetter: () -> Unit = {},
+    onNavigateToCoverLetter: (Long) -> Unit = {},
     onNavigateToPipeline: () -> Unit = {},
-    onNavigateToAts: () -> Unit = {}
+    onNavigateToAts: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -81,7 +82,8 @@ fun JobDetailsScreen(
                 is JobDetailsUiEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 is JobDetailsUiEffect.OpenExternalUrl -> openUrl(context, effect.url)
                 is JobDetailsUiEffect.NavigateToRecruiters -> onNavigateToRecruiters(effect.jobId)
-                JobDetailsUiEffect.NavigateToCoverLetter -> onNavigateToCoverLetter()
+                is JobDetailsUiEffect.NavigateToCoverLetter -> onNavigateToCoverLetter(effect.jobId)
+                is JobDetailsUiEffect.NavigateToAts -> onNavigateToAts(effect.jobDescription)
                 JobDetailsUiEffect.NavigateToPipeline -> onNavigateToPipeline()
             }
         }
@@ -90,10 +92,10 @@ fun JobDetailsScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Job Details", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.job_details_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -101,7 +103,7 @@ fun JobDetailsScreen(
                     IconButton(onClick = { viewModel.onEvent(JobDetailsUiEvent.ToggleBookmark) }) {
                         Icon(
                             if (isBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                            contentDescription = "Bookmark"
+                            contentDescription = stringResource(R.string.bookmark)
                         )
                     }
                 },
@@ -125,7 +127,7 @@ fun JobDetailsScreen(
                         onApplyAndTrack = { viewModel.onEvent(JobDetailsUiEvent.ApplyAndTrack) },
                         onFindRecruiters = { viewModel.onEvent(JobDetailsUiEvent.FindRecruiters) },
                         onGenerateCoverLetter = { viewModel.onEvent(JobDetailsUiEvent.GenerateCoverLetter) },
-                        onOpenAts = onNavigateToAts
+                        onOpenAts = { viewModel.onEvent(JobDetailsUiEvent.OpenAts) }
                     )
                     else -> {}
                 }
@@ -180,13 +182,13 @@ private fun JobDetailsContent(
 
         // Primary actions
         ActionButton(
-            text = "Apply on Provider Site",
+            text = stringResource(R.string.apply_on_provider_site),
             onClick = onApplyClick,
             modifier = Modifier.fillMaxWidth(),
             icon = Icons.Rounded.Public
         )
         ActionButton(
-            text = "Apply & Track in Pipeline",
+            text = stringResource(R.string.apply_and_track),
             onClick = onApplyAndTrack,
             modifier = Modifier.fillMaxWidth(),
             icon = Icons.Rounded.PlaylistAdd,
@@ -195,7 +197,7 @@ private fun JobDetailsContent(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             ActionButton(
-                text = "Find Recruiters",
+                text = stringResource(R.string.find_recruiters),
                 onClick = onFindRecruiters,
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.PersonSearch,
@@ -203,7 +205,7 @@ private fun JobDetailsContent(
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
             ActionButton(
-                text = "Cover Letter",
+                text = stringResource(R.string.cover_letter),
                 onClick = onGenerateCoverLetter,
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.HistoryEdu,
@@ -216,16 +218,16 @@ private fun JobDetailsContent(
         DashboardCard(modifier = Modifier.fillMaxWidth()) {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("AI Compatibility Check", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    Text("Check how well your resume matches this job.", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.ai_compatibility_check), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.ai_compatibility_sub), style = MaterialTheme.typography.bodySmall)
                 }
-                ActionButton(text = "Check", onClick = onOpenAts)
+                ActionButton(text = stringResource(R.string.check), onClick = onOpenAts)
             }
         }
 
         // Description
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Job Description", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.job_description), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(job.description, style = MaterialTheme.typography.bodyMedium)
         }
 

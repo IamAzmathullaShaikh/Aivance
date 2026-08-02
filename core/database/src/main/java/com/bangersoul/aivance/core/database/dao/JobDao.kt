@@ -31,6 +31,10 @@ interface JobDao {
     @Query("SELECT * FROM jobs WHERE id = :id")
     suspend fun getJobWithDetailsById(id: Long): JobWithDetails?
 
+    /** Looks up a cached job row by its provider URL — used to dedupe caches. */
+    @Query("SELECT * FROM jobs WHERE url = :url LIMIT 1")
+    suspend fun getJobByUrl(url: String): JobEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertJob(job: JobEntity): Long
 

@@ -197,7 +197,8 @@ object JobMapper {
             "full-time", "fulltime" -> EmploymentType.FULL_TIME
             "part-time", "parttime" -> EmploymentType.PART_TIME
             "contract" -> EmploymentType.CONTRACT
-            "internship" -> EmploymentType.INTERNSHIP
+            "internship", "intern" -> EmploymentType.INTERNSHIP
+            "apprenticeship", "apprentice" -> EmploymentType.APPRENTICESHIP
             "freelance" -> EmploymentType.FREELANCE
             else -> EmploymentType.FULL_TIME
         }
@@ -209,6 +210,7 @@ object JobMapper {
             EmploymentType.PART_TIME -> JobType.PART_TIME
             EmploymentType.CONTRACT -> JobType.CONTRACT
             EmploymentType.INTERNSHIP -> JobType.INTERNSHIP
+            EmploymentType.APPRENTICESHIP -> JobType.APPRENTICESHIP
             EmploymentType.FREELANCE -> JobType.FREELANCE
             else -> JobType.FULL_TIME
         }

@@ -37,6 +37,7 @@ sealed interface JobDetailsUiEvent {
     data object ApplyAndTrack : JobDetailsUiEvent
     data object FindRecruiters : JobDetailsUiEvent
     data object GenerateCoverLetter : JobDetailsUiEvent
+    data object OpenAts : JobDetailsUiEvent
     data object Reload : JobDetailsUiEvent
 }
 
@@ -44,7 +45,9 @@ sealed interface JobDetailsUiEffect {
     data class ShowSnackbar(val message: String) : JobDetailsUiEffect
     data class OpenExternalUrl(val url: String) : JobDetailsUiEffect
     data class NavigateToRecruiters(val jobId: String) : JobDetailsUiEffect
-    data object NavigateToCoverLetter : JobDetailsUiEffect
+    /** Carries the DB job id (from caching) so the Cover Letter flow can target it. */
+    data class NavigateToCoverLetter(val jobId: Long) : JobDetailsUiEffect
+    data class NavigateToAts(val jobDescription: String) : JobDetailsUiEffect
     data object NavigateToPipeline : JobDetailsUiEffect
 }
 
@@ -91,6 +94,7 @@ class JobDetailsViewModel @Inject constructor(
             JobDetailsUiEvent.ApplyAndTrack -> applyAndTrack()
             JobDetailsUiEvent.FindRecruiters -> findRecruiters()
             JobDetailsUiEvent.GenerateCoverLetter -> generateCoverLetter()
+            JobDetailsUiEvent.OpenAts -> openAts()
             JobDetailsUiEvent.Reload -> loadJobDetails()
         }
     }
@@ -128,9 +132,61 @@ class JobDetailsViewModel @Inject constructor(
 
     private fun openUrl() {
         val state = _uiState.value as? JobDetailsUiState.Success ?: return
+        val job = state.job
+        val resolved = resolveApplyUrl(job.url, job.sourceUrl, job.descriptionHtml)
+        if (resolved == null) {
+            _effects.trySend(JobDetailsUiEffect.ShowSnackbar("No apply link available for this job"))
+            return
+        }
         viewModelScope.launch {
-            _effects.send(JobDetailsUiEffect.OpenExternalUrl(state.job.url))
+            _effects.send(JobDetailsUiEffect.OpenExternalUrl(resolved))
             trackEventUseCase(TrackEventRequest("job_details_open_url"))
+        }
+    }
+
+    companion object {
+        /**
+         * Resolves the best, normalized apply URL for a job.
+         *
+         * Priority: explicit [url] → [sourceUrl] → an href extracted from the
+         * description HTML. Blank or placeholder values are skipped, and the
+         * result is normalized to an absolute http(s) URL so the browser opens
+         * the real apply page instead of failing silently.
+         */
+        fun resolveApplyUrl(
+            url: String?,
+            sourceUrl: String?,
+            descriptionHtml: String?
+        ): String? {
+            val candidate = listOf(url, sourceUrl)
+                .mapNotNull { it }
+                .firstOrNull { it.isNotBlank() && !it.equals("null", ignoreCase = true) && it != "#" }
+                ?: extractHref(descriptionHtml)
+            return candidate?.let { normalizeUrl(it) }
+        }
+
+        private fun extractHref(descriptionHtml: String?): String? {
+            if (descriptionHtml.isNullOrBlank()) return null
+            val hrefRegex = Regex("""href\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+            val match = hrefRegex.find(descriptionHtml) ?: return null
+            return match.groupValues[1].takeIf { it.isNotBlank() && it != "#" }
+        }
+
+        fun normalizeUrl(raw: String): String? {
+            val trimmed = raw.trim()
+            if (trimmed.isBlank()) return null
+
+            // Any explicit scheme (https, http, mailto:, tel:, custom app deep
+            // links) is already absolute — leave it untouched. Without this
+            // guard a mailto:/tel: link would be mangled into https://mailto:….
+            val hasScheme = Regex("^[a-zA-Z][a-zA-Z0-9+.+-]*:").containsMatchIn(trimmed)
+            if (hasScheme) return trimmed
+
+            val clean = trimmed
+                .trimStart('/')
+                .trim()
+            if (clean.isBlank()) return null
+            return "https://$clean"
         }
     }
 
@@ -180,10 +236,30 @@ class JobDetailsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Routes to the ATS intelligence engine pre-filled with this job's
+     * description so the user can scan their resume against it directly.
+     */
+    fun openAts() {
+        val state = _uiState.value as? JobDetailsUiState.Success ?: return
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest("job_open_ats"))
+            _effects.send(JobDetailsUiEffect.NavigateToAts(state.job.description))
+        }
+    }
+
     private fun generateCoverLetter() {
+        val state = _uiState.value as? JobDetailsUiState.Success ?: return
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest("job_generate_cover_letter"))
-            _effects.send(JobDetailsUiEffect.NavigateToCoverLetter)
+            // Cache the job so the Cover Letter engine has a real DB id to target.
+            val cacheResult = jobRepository.cacheJob(state.job)
+            when (cacheResult) {
+                is Result.Success -> _effects.send(JobDetailsUiEffect.NavigateToCoverLetter(cacheResult.data))
+                is Result.Failure -> _effects.send(JobDetailsUiEffect.ShowSnackbar(
+                    cacheResult.error.message ?: "Failed to prepare cover letter"
+                ))
+            }
         }
     }
 }

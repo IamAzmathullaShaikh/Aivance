@@ -372,13 +372,28 @@ data class ProviderCapability(
 data class JobSearchFilter(
     val query: String = "",
     val location: String = "",
+    /** Structured location — free-text [location] takes precedence when set. */
+    val country: String = "",
+    val state: String = "",
+    val city: String = "",
     val remoteType: RemoteType? = null,
     val employmentTypes: List<EmploymentType> = emptyList(),
     val experienceLevels: List<ExperienceLevel> = emptyList(),
+    /** Numeric experience bounds (years). Null = no bound. */
+    val minExperienceYears: Int? = null,
+    val maxExperienceYears: Int? = null,
     val minSalary: Double? = null,
     val maxSalary: Double? = null,
     val currency: String = "USD"
-)
+) {
+    /** Combines the structured location parts into a single human-readable string. */
+    val structuredLocation: String
+        get() = listOf(city, state, country).filter { it.isNotBlank() }.joinToString(", ")
+
+    /** True when any structured location dimension is set. */
+    val hasStructuredLocation: Boolean
+        get() = country.isNotBlank() || state.isNotBlank() || city.isNotBlank()
+}
 
 @Serializable
 data class SearchFilter(

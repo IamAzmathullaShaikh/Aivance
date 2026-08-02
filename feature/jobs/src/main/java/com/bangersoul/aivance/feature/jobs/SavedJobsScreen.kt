@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,10 +53,10 @@ fun SavedJobsScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Saved Jobs", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.saved_jobs_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -64,8 +65,8 @@ fun SavedJobsScreen(
         isLoading = uiState is SavedJobsUiState.Loading,
         error = (uiState as? SavedJobsUiState.Error)?.message,
         isEmpty = uiState is SavedJobsUiState.Empty,
-        emptyTitle = "No saved jobs",
-        emptyDescription = "Jobs you save will appear here for quick access."
+        emptyTitle = stringResource(R.string.no_saved_jobs),
+        emptyDescription = stringResource(R.string.no_saved_jobs_desc)
     ) {
         when (val state = uiState) {
             is SavedJobsUiState.Success -> {
@@ -113,13 +114,13 @@ private fun SavedJobItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     MetricChip(label = job.location)
-                    if (job.isRemote) MetricChip(label = "Remote")
+                    if (job.isRemote) MetricChip(label = stringResource(R.string.remote))
                 }
             }
             IconButton(onClick = onRemove) {
                 Icon(
                     Icons.Rounded.DeleteOutline,
-                    contentDescription = "Remove",
+                    contentDescription = stringResource(R.string.remove),
                     tint = MaterialTheme.colorScheme.error
                 )
             }

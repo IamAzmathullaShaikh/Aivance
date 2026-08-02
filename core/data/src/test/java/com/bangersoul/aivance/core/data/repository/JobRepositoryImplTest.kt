@@ -4,6 +4,7 @@ import com.bangersoul.aivance.core.common.enums.JobSortOrder
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.data.job.JobFilterMatcher
 import com.bangersoul.aivance.core.data.job.JobNormalizer
 import com.bangersoul.aivance.core.database.dao.CompanyDao
 import com.bangersoul.aivance.core.database.dao.JobDao
@@ -27,10 +28,11 @@ class JobRepositoryImplTest {
     private val companyDao: CompanyDao = mockk()
     private val providerRegistry: ProviderRegistry = mockk()
     private val normalizer = JobNormalizer()
+    private val filterMatcher = JobFilterMatcher()
 
     @Before
     fun setUp() {
-        repository = JobRepositoryImpl(jobDao, companyDao, providerRegistry, normalizer)
+        repository = JobRepositoryImpl(jobDao, companyDao, providerRegistry, normalizer, filterMatcher)
     }
 
     @Test

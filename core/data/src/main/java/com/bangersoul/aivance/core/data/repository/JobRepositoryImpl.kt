@@ -7,6 +7,7 @@ import com.bangersoul.aivance.core.common.model.JobSearchFilter
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.runCatchingCore
+import com.bangersoul.aivance.core.data.job.JobFilterMatcher
 import com.bangersoul.aivance.core.data.job.JobNormalizer
 import com.bangersoul.aivance.core.data.mapper.toDomain
 import com.bangersoul.aivance.core.data.mapper.toEntity
@@ -33,7 +34,8 @@ class JobRepositoryImpl @Inject constructor(
     private val jobDao: JobDao,
     private val companyDao: CompanyDao,
     private val providerRegistry: ProviderRegistry,
-    private val normalizer: JobNormalizer
+    private val normalizer: JobNormalizer,
+    private val filterMatcher: JobFilterMatcher
 ) : JobRepository {
 
     override fun getJobs(): Flow<CoreResult<List<JobListing>>> {
@@ -65,21 +67,50 @@ class JobRepositoryImpl @Inject constructor(
 
             val aggregated = deferredResults.awaitAll().flatten()
 
-            // Cache in background
-            aggregated.forEach { job ->
-                val companyId = companyDao.insertCompany(CompanyEntity(
-                    name = job.company,
-                    logoUrl = job.companyLogoUrl,
-                    website = null,
-                    industry = null,
-                    domain = null,
-                    headquarters = null,
-                    socialLinks = emptyMap()
-                ))
-                jobDao.insertJob(job.toEntity(companyId))
+            // Client-side filtering: provider APIs only honour a subset of the
+            // filter (mostly query + location), so apply every dimension here to
+            // guarantee results actually respect the user's filters. Also ranks
+            // by relevance when a query is present and dedups across providers.
+            val filtered = filterMatcher.filterAndRank(aggregated, filter)
+
+            // Cache in background and remap each listing's id to the internal
+            // DB row id. The Jobs list then hands getJobById an id it can
+            // resolve from the local DB immediately — otherwise tapping a result
+            // would fall through to the providers (which rarely answer for an
+            // external id) and surface a "Job not found" error.
+            val withDbIds = filtered.map { job ->
+                val existing = jobDao.getJobByUrl(job.url)
+                val dbId = if (existing != null) {
+                    // Refresh the cached row with the freshest listing data
+                    // under the same internal id, so the detail screen never
+                    // disagrees with the card the user just tapped.
+                    val companyId = companyDao.insertCompany(CompanyEntity(
+                        name = job.company,
+                        logoUrl = job.companyLogoUrl,
+                        website = null,
+                        industry = null,
+                        domain = null,
+                        headquarters = null,
+                        socialLinks = emptyMap()
+                    ))
+                    jobDao.insertJob(job.copy(id = existing.id.toString()).toEntity(companyId))
+                    existing.id
+                } else {
+                    val companyId = companyDao.insertCompany(CompanyEntity(
+                        name = job.company,
+                        logoUrl = job.companyLogoUrl,
+                        website = null,
+                        industry = null,
+                        domain = null,
+                        headquarters = null,
+                        socialLinks = emptyMap()
+                    ))
+                    jobDao.insertJob(job.toEntity(companyId))
+                }
+                job.copy(id = dbId.toString())
             }
 
-            aggregated
+            withDbIds
         }
     }
 
@@ -89,6 +120,16 @@ class JobRepositoryImpl @Inject constructor(
         if (longId != null) {
             val dbJob = jobDao.getJobWithDetailsById(longId)?.toDomain()
             if (dbJob != null) return@runCatchingCore dbJob
+        }
+
+        // 1b. External id (non-numeric) — try the URL lookup so deep links and
+        //     provider ids that never got remapped still resolve from cache.
+        if (longId == null) {
+            jobDao.getJobByUrl(id)?.let { entity ->
+                jobDao.getJobWithDetailsById(entity.id)?.let { dbJob ->
+                    return@runCatchingCore dbJob.toDomain()
+                }
+            }
         }
 
         // 2. Try all Job Providers (some might have it in their instance cache)

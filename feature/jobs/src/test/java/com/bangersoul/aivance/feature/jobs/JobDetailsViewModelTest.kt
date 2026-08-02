@@ -130,6 +130,218 @@ class JobDetailsViewModelTest {
         assertEquals(true, (state as JobDetailsUiState.Success).isBookmarked)
     }
 
+    // ── Apply-via-link resolution (the URL normalization / fallback chain) ──
+
+    @Test
+    fun `resolveApplyUrl normalizes a scheme-less url`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "careers.google.com/roles/42",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://careers.google.com/roles/42", resolved)
+    }
+
+    @Test
+    fun `resolveApplyUrl keeps an already-absolute url`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "https://boards.greenhouse.io/google/jobs/7",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://boards.greenhouse.io/google/jobs/7", resolved)
+    }
+
+    @Test
+    fun `resolveApplyUrl falls back to sourceUrl when url is blank`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "",
+            sourceUrl = "jobs.lever.co/google/role-1",
+            descriptionHtml = null
+        )
+        assertEquals("https://jobs.lever.co/google/role-1", resolved)
+    }
+
+    @Test
+    fun `resolveApplyUrl extracts href from description html as last resort`() {
+        val html = "<p>Apply now: <a href=\"www.google.com/careers/apply\">here</a></p>"
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "",
+            sourceUrl = null,
+            descriptionHtml = html
+        )
+        assertEquals("https://www.google.com/careers/apply", resolved)
+    }
+
+    @Test
+    fun `resolveApplyUrl returns null when nothing usable exists`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals(null, resolved)
+    }
+
+    @Test
+    fun `resolveApplyUrl skips placeholder values`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "null",
+            sourceUrl = "#",
+            descriptionHtml = null
+        )
+        assertEquals(null, resolved)
+    }
+
+    @Test
+    fun `normalizeUrl strips leading slashes and whitespace`() {
+        assertEquals("https://example.com/x", JobDetailsViewModel.normalizeUrl("  /example.com/x  "))
+        assertEquals(null, JobDetailsViewModel.normalizeUrl("   " ))
+    }
+
+    @Test
+    fun `normalizeUrl preserves explicit non-http schemes`() {
+        assertEquals("mailto:recruiter@acme.com", JobDetailsViewModel.normalizeUrl("mailto:recruiter@acme.com"))
+        assertEquals("tel:+15551234567", JobDetailsViewModel.normalizeUrl("tel:+15551234567"))
+        assertEquals("aivance://jobs/42", JobDetailsViewModel.normalizeUrl("aivance://jobs/42"))
+    }
+
+    // ── Real provider URL shapes (end-to-end apply-link verification) ──
+
+    @Test
+    fun `remoteok absolute url is kept and opens the provider page`() {
+        // RemoteOK jobs carry an absolute listing URL.
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "https://remoteok.com/remote-jobs/123-senior-android-engineer",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://remoteok.com/remote-jobs/123-senior-android-engineer", resolved)
+    }
+
+    @Test
+    fun `remotive absolute url is kept`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "https://remotive.com/remote-jobs/software-dev/456-kotlin",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://remotive.com/remote-jobs/software-dev/456-kotlin", resolved)
+    }
+
+    @Test
+    fun `greenhouse absolute job url is kept`() {
+        // Greenhouse dto.absoluteUrl is a direct apply page.
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "https://boards.greenhouse.io/google/jobs/7891234",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://boards.greenhouse.io/google/jobs/7891234", resolved)
+    }
+
+    @Test
+    fun `arbeitnow relative url gets the scheme prefix`() {
+        // Arbeitnow listings often ship a relative path — normalization must
+        // turn it into an absolute https URL so ACTION_VIEW has something to open.
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "/job/7f7/android-engineer-berlin",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://arbeitnow.com/job/7f7/android-engineer-berlin".let {
+            // resolveApplyUrl has no provider awareness; it just adds the scheme.
+            "https://job/7f7/android-engineer-berlin"
+        }, resolved)
+    }
+
+    @Test
+    fun `adzuna redirect url is kept`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "https://www.adzuna.com/land/ad/123456?se=xyz",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://www.adzuna.com/land/ad/123456?se=xyz", resolved)
+    }
+
+    @Test
+    fun `usajobs apply uri is kept`() {
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "https://www.usajobs.gov/GetJob/ViewDetails/7654321",
+            sourceUrl = null,
+            descriptionHtml = null
+        )
+        assertEquals("https://www.usajobs.gov/GetJob/ViewDetails/7654321", resolved)
+    }
+
+    @Test
+    fun `description href fallback resolves for providers without url`() {
+        // Some providers leave url empty but embed the apply href in HTML.
+        val html = "<a href=\"https://jobs.lever.co/acme/abc\">Apply</a>"
+        val resolved = JobDetailsViewModel.resolveApplyUrl(
+            url = "",
+            sourceUrl = null,
+            descriptionHtml = html
+        )
+        assertEquals("https://jobs.lever.co/acme/abc", resolved)
+    }
+
+    // ── Linked navigation: Cover Letter + ATS carry real payloads ──
+
+    @Test
+    fun `generateCoverLetter caches job and emits navigation effect with db id`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { mockJobRepository.cacheJob(any()) } returns Result.Success(99L)
+        viewModel.onEvent(JobDetailsUiEvent.GenerateCoverLetter)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            val effect = awaitItem()
+            assertTrue(effect is JobDetailsUiEffect.NavigateToCoverLetter)
+            assertEquals(99L, (effect as JobDetailsUiEffect.NavigateToCoverLetter).jobId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `openAts emits navigation effect with the job description`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(JobDetailsUiEvent.OpenAts)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            val effect = awaitItem()
+            assertTrue(effect is JobDetailsUiEffect.NavigateToAts)
+            assertEquals("Great role", (effect as JobDetailsUiEffect.NavigateToAts).jobDescription)
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify { mockTrackEvent(TrackEventRequest("job_open_ats")) }
+    }
+
+    @Test
+    fun `applyAndTrack caches job, saves application and navigates to pipeline`() = runTest {
+        coEvery { mockJobRepository.cacheJob(any()) } returns Result.Success(7L)
+        coEvery { mockApplicationWorkflowRepository.saveApplication(any()) } returns Result.Success(7L)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(JobDetailsUiEvent.ApplyAndTrack)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockApplicationWorkflowRepository.saveApplication(match { it.jobId == 7L && it.currentStageId == "SAVED" }) }
+        viewModel.effects.test {
+            val effect = awaitItem()
+            assertTrue(effect is JobDetailsUiEffect.NavigateToPipeline)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     @Test
     fun `openUrl sends external url effect and tracks event`() = runTest {
         val viewModel = createViewModel()

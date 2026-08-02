@@ -82,7 +82,8 @@ class RemotiveProvider(
             "full_time", "full-time" -> EmploymentType.FULL_TIME
             "part_time", "part-time" -> EmploymentType.PART_TIME
             "contract" -> EmploymentType.CONTRACT
-            "internship" -> EmploymentType.INTERNSHIP
+            "internship", "intern" -> EmploymentType.INTERNSHIP
+            "apprenticeship", "apprentice" -> EmploymentType.APPRENTICESHIP
             else -> EmploymentType.FULL_TIME
         }
     }
