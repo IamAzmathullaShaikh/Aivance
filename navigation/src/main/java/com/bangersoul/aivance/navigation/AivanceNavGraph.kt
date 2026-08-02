@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,6 +10,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
@@ -17,6 +19,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -31,8 +35,6 @@ import com.bangersoul.aivance.feature.assistant.AssistantViewModel
 import com.bangersoul.aivance.feature.ats.AtsScreen
 import com.bangersoul.aivance.feature.coverletter.CoverLetterScreen
 import com.bangersoul.aivance.feature.dashboard.DashboardScreen
-import com.bangersoul.aivance.feature.interview.AiChatScreen
-import com.bangersoul.aivance.feature.interview.InterviewScreen
 import com.bangersoul.aivance.feature.interview.InterviewViewModel
 import com.bangersoul.aivance.feature.jobs.CompanyDetailScreen
 import com.bangersoul.aivance.feature.jobs.CompanyDetailViewModel
@@ -130,15 +132,46 @@ private fun AivanceMainNavGraph(
         }
     }
 
-    if (currentDestination in Destination.rootDestinations) {
+    // System-back behavior: pop one screen at a time. From a root tab this
+    // returns to the previous tab (or Dashboard for tabs reached from detail
+    // screens), so back never feels like it "exits from any tab". The app only
+    // finishes when back is pressed on the Dashboard root.
+    val isAuthSurface = currentDestination in Destination.authDestinations
+    val isOnRootTab = currentDestination in Destination.rootDestinations
+    BackHandler(
+        // Enabled on every main-graph screen, and additionally on non-Dashboard
+        // root tabs (tab switches replace the stack, leaving size == 1, so a
+        // plain size>1 guard would let back exit the app from any other tab).
+        enabled = !isAuthSurface && (backStack.size > 1 || (isOnRootTab && currentDestination != Destination.Dashboard))
+    ) {
+        if (backStack.size > 1) {
+            backStack.removeLastOrNull()
+        } else {
+            // Root tab other than home → send the user home instead of exiting.
+            onNavigate(Destination.Dashboard)
+        }
+    }
+
+    // Bottom navigation is part of the main graph shell, so it stays visible
+    // on every authenticated screen (including detail screens) — tab switching
+    // always works without hunting for a back arrow.
+    if (!isAuthSurface) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
                 Destination.rootDestinations.forEach { destination ->
                     item(
-                        selected = currentDestination == destination,
+                        selected = currentDestination == destination ||
+                            // Highlight the owning tab for detail screens so the
+                            // user always sees where they are in the flow.
+                            (currentDestination is Destination.JobDetails && destination == Destination.Jobs),
                         onClick = { onNavigate(destination) },
-                        icon = { destination.icon?.let { Icon(it, null) } },
-                        label = { Text(destination.label) }
+                        icon = {
+                            val tint = if (currentDestination == destination ||
+                                (currentDestination is Destination.JobDetails && destination == Destination.Jobs)
+                            ) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            destination.icon?.let { Icon(it, null, tint = tint) }
+                        },
+                        label = { Text(stringResource(destination.labelRes)) }
                     )
                 }
             }
@@ -268,28 +301,26 @@ private fun ScreenContent(
             viewModel = hiltViewModel(),
             onBack = onBack,
             onNavigateToSettings = { onNavigate(Destination.SettingsHub) },
-            onNavigateToAiSettings = { onNavigate(Destination.AiSettings) },
             onNavigateToProviders = { onNavigate(Destination.ProviderManagement) },
             onNavigateToNotifications = { onNavigate(Destination.Notifications) },
             onNavigateToAnalytics = { onNavigate(Destination.Analytics) },
-            onNavigateToRoadmap = { onNavigate(Destination.CareerRoadmap) },
             onNavigateToLearning = { onNavigate(Destination.PrepStudio) },
             onNavigateToSavedJobs = { onNavigate(Destination.SavedJobs) },
-            onNavigateToAiChat = { onNavigate(Destination.AiChat) },
             onNavigateToInterview = { onNavigate(Destination.PrepStudio) }
         )
         Destination.SettingsHub -> SettingsScreen(
             viewModel = hiltViewModel(),
             onBack = onBack,
-            onNavigateToAiSettings = { onNavigate(Destination.AiSettings) },
             onNavigateToProviders = { onNavigate(Destination.ProviderManagement) },
             onNavigateToAnalytics = { onNavigate(Destination.Analytics) },
             onNavigateToPrivacy = { onNavigate(Destination.PrivacyCenter) },
             onNavigateToAppearance = { onNavigate(Destination.Appearance) },
+            onNavigateToAbout = { onNavigate(Destination.About) },
             // Logout sets Unauthenticated directly — CheckAuth would still see
             // onboardingCompleted == true and keep the user authenticated.
             onSignOut = { authViewModel.onEvent(AuthenticationUiEvent.Logout) }
         )
+        Destination.About -> AboutScreen(onBack = onBack)
         Destination.Analytics -> AnalyticsScreen(
             viewModel = hiltViewModel<com.bangersoul.aivance.feature.analytics.AnalyticsViewModel>(),
             onBack = onBack
@@ -300,18 +331,18 @@ private fun ScreenContent(
             interviewViewModel = hiltViewModel<InterviewViewModel>(),
             onBack = onBack
         )
-        Destination.Ats -> AtsScreen(
+        is Destination.Ats -> AtsScreen(
             viewModel = hiltViewModel(),
             onNavigateBack = onBack,
-            onNavigateToCoverLetter = { onNavigate(Destination.CoverLetter) }
+            initialJobDescription = destination.jobDescription,
+            onNavigateToCoverLetter = { onNavigate(Destination.CoverLetter(jobId = null)) }
         )
-        Destination.CoverLetter -> CoverLetterScreen(
+        is Destination.CoverLetter -> CoverLetterScreen(
             viewModel = hiltViewModel(),
             onNavigateBack = onBack,
+            jobId = destination.jobId,
             onFindJobs = { onNavigate(Destination.Jobs) }
         )
-        Destination.Interview -> InterviewScreen(viewModel = hiltViewModel(), onBack = onBack)
-        Destination.AiChat -> AiChatScreen(viewModel = hiltViewModel(), onBack = onBack)
         Destination.SavedJobs -> SavedJobsScreen(
             viewModel = hiltViewModel(),
             onBack = onBack,
@@ -324,9 +355,9 @@ private fun ScreenContent(
             jobId = destination.jobId,
             onNavigateBack = onBack,
             onNavigateToRecruiters = { onNavigate(Destination.RecruiterDashboard(it)) },
-            onNavigateToCoverLetter = { onNavigate(Destination.CoverLetter) },
+            onNavigateToCoverLetter = { jobId -> onNavigate(Destination.CoverLetter(jobId = jobId)) },
             onNavigateToPipeline = { onNavigate(Destination.Pipeline) },
-            onNavigateToAts = { onNavigate(Destination.Ats) }
+            onNavigateToAts = { description -> onNavigate(Destination.Ats(jobDescription = description)) }
         )
         is Destination.RecruiterDashboard -> RecruiterDashboardScreen(
             viewModel = hiltViewModel<RecruiterViewModel>(),
@@ -354,25 +385,6 @@ private fun ScreenContent(
             viewModel = hiltViewModel<PrivacyViewModel>(),
             onBack = onBack
         )
-
-        // ── Legacy/secondary destinations ─────────────────────────────
-        Destination.Tracker -> TrackerScreen(viewModel = hiltViewModel(), onBack = onBack)
-        Destination.Settings -> SettingsScreen(
-            viewModel = hiltViewModel(),
-            onBack = onBack,
-            onNavigateToAiSettings = { onNavigate(Destination.AiSettings) },
-            onNavigateToProviders = { onNavigate(Destination.ProviderManagement) },
-            onNavigateToAnalytics = { onNavigate(Destination.Analytics) },
-            onNavigateToPrivacy = { onNavigate(Destination.PrivacyCenter) },
-            onNavigateToAppearance = { onNavigate(Destination.Appearance) },
-            onSignOut = { authViewModel.onEvent(AuthenticationUiEvent.Logout) }
-        )
-        Destination.AnalyticsDashboard -> AnalyticsScreen(
-            viewModel = hiltViewModel<com.bangersoul.aivance.feature.analytics.AnalyticsViewModel>(),
-            onBack = onBack
-        )
-        Destination.CareerRoadmap -> CareerRoadmapScreen(viewModel = hiltViewModel(), onBack = onBack)
-        Destination.LearningHub -> LearningHubScreen(viewModel = hiltViewModel(), onBack = onBack)
 
         else -> InvalidRouteScreen(onBack)
     }

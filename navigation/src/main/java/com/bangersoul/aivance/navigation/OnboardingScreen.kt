@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,8 +60,8 @@ fun OnboardingScreen(
     ) { state ->
         when (state) {
             is OnboardingUiState.ChooseAiProvider -> ProviderSelectionStep(
-                title = "Choose AI Provider",
-                description = "Select the intelligence that will power your resume analysis and interview prep.",
+                title = stringResource(R.string.choose_ai_provider),
+                description = stringResource(R.string.ai_provider_desc),
                 providers = state.providers,
                 onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectAiProvider(it)) },
                 onSkipAll = { viewModel.onEvent(OnboardingUiEvent.SkipAll) }
@@ -78,8 +79,8 @@ fun OnboardingScreen(
             )
 
             is OnboardingUiState.ChooseJobProvider -> ProviderSelectionStep(
-                title = "Choose Job Provider",
-                description = "Select where you want to fetch job listings and recruiter details from.",
+                title = stringResource(R.string.choose_job_provider),
+                description = stringResource(R.string.job_provider_desc),
                 providers = state.providers,
                 onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectJobProvider(it)) },
                 onSkipAll = { viewModel.onEvent(OnboardingUiEvent.SkipAll) }
@@ -97,8 +98,8 @@ fun OnboardingScreen(
             )
 
             is OnboardingUiState.ChooseEnrichmentProvider -> ProviderSelectionStep(
-                title = "Enrichment Service (Optional)",
-                description = "Find verified recruiter contacts and company intelligence. Highly recommended for outreach.",
+                title = stringResource(R.string.enrichment_optional),
+                description = stringResource(R.string.enrichment_desc),
                 providers = state.providers,
                 onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectEnrichmentProvider(it)) },
                 onSkip = { viewModel.onEvent(OnboardingUiEvent.SkipEnrichment) }
@@ -168,14 +169,14 @@ private fun ProviderSelectionStep(
         }
         if (onSkip != null) {
             TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-                Text("Skip for now")
+                Text(stringResource(R.string.skip_for_now))
             }
         } else {
             TextButton(onClick = onSkipAll, modifier = Modifier.fillMaxWidth()) {
-                Text("Skip All — I'll configure later")
+                Text(stringResource(R.string.skip_all))
             }
             Text(
-                "You can configure providers later in Settings.",
+                stringResource(R.string.configure_later),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -225,11 +226,11 @@ private fun ProviderConfigStep(
             if (isValidating) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
             } else {
-                Text("Validate & Continue", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.validate_continue), fontWeight = FontWeight.Bold)
             }
         }
         TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("Back")
+            Text(stringResource(R.string.back))
         }
     }
 }
@@ -276,14 +277,14 @@ private fun OnboardingSummaryStep(
     ) {
         Icon(Icons.Rounded.CheckCircle, null, Modifier.size(80.dp), tint = Color(0xFF4CAF50))
         Spacer(Modifier.height(32.dp))
-        Text("All Set!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.all_set), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(24.dp))
 
-        SummaryItem(label = "AI Engine", value = aiProvider)
+        SummaryItem(label = stringResource(R.string.ai_engine), value = aiProvider)
         Spacer(Modifier.height(12.dp))
-        SummaryItem(label = "Job Source", value = jobProvider)
+        SummaryItem(label = stringResource(R.string.job_source), value = jobProvider)
         Spacer(Modifier.height(12.dp))
-        SummaryItem(label = "Enrichment", value = enrichmentProvider ?: "Not Configured")
+        SummaryItem(label = stringResource(R.string.enrichment), value = enrichmentProvider ?: stringResource(R.string.not_configured))
 
         Spacer(Modifier.height(48.dp))
         Button(
@@ -291,7 +292,7 @@ private fun OnboardingSummaryStep(
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text("Go to Dashboard", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.go_to_dashboard), fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,14 +51,11 @@ fun ProfileScreen(
     onBack: () -> Unit = {},
     onNavigateToInterview: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToAiSettings: () -> Unit = {},
     onNavigateToProviders: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAnalytics: () -> Unit = {},
-    onNavigateToRoadmap: () -> Unit = {},
     onNavigateToLearning: () -> Unit = {},
-    onNavigateToSavedJobs: () -> Unit = {},
-    onNavigateToAiChat: () -> Unit = {}
+    onNavigateToSavedJobs: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -75,7 +73,7 @@ fun ProfileScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         AivanceTopBar(
-            title = "Profile",
+            title = stringResource(R.string.profile_title),
             onBack = onBack,
             actions = {
                 val state = uiState as? ProfileUiState.Success
@@ -84,7 +82,7 @@ fun ProfileScreen(
                         TextButton(
                             onClick = { viewModel.onEvent(ProfileUiEvent.ToggleEdit) }
                         ) {
-                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         TextButton(
                             onClick = { viewModel.onEvent(ProfileUiEvent.SaveProfile) },
@@ -93,7 +91,7 @@ fun ProfileScreen(
                             if (state.isSaving) {
                                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             } else {
-                                Text("Save", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.save), fontWeight = FontWeight.Bold)
                             }
                         }
                     } else {
@@ -103,7 +101,7 @@ fun ProfileScreen(
                         ) {
                             Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Edit", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.edit), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -121,14 +119,11 @@ fun ProfileScreen(
                 onPickPhoto = { photoPicker.launch("image/*") },
                 onNavigateToInterview = onNavigateToInterview,
                 onNavigateToSettings = onNavigateToSettings,
-                onNavigateToAiSettings = onNavigateToAiSettings,
                 onNavigateToProviders = onNavigateToProviders,
                 onNavigateToNotifications = onNavigateToNotifications,
                 onNavigateToAnalytics = onNavigateToAnalytics,
-                onNavigateToRoadmap = onNavigateToRoadmap,
                 onNavigateToLearning = onNavigateToLearning,
-                onNavigateToSavedJobs = onNavigateToSavedJobs,
-                onNavigateToAiChat = onNavigateToAiChat
+                onNavigateToSavedJobs = onNavigateToSavedJobs
             )
             else -> {}
         }
@@ -143,14 +138,11 @@ private fun ProfileContent(
     onPickPhoto: () -> Unit,
     onNavigateToInterview: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToAiSettings: () -> Unit,
     onNavigateToProviders: () -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToAnalytics: () -> Unit,
-    onNavigateToRoadmap: () -> Unit,
     onNavigateToLearning: () -> Unit,
-    onNavigateToSavedJobs: () -> Unit,
-    onNavigateToAiChat: () -> Unit
+    onNavigateToSavedJobs: () -> Unit
 ) {
     val isEditing = state.isEditing
     val skills = state.skills.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -182,7 +174,7 @@ private fun ProfileContent(
                         if (!photoUrl.isNullOrBlank()) {
                             AsyncImage(
                                 model = photoUrl,
-                                contentDescription = "Profile photo",
+                                contentDescription = stringResource(R.string.profile_photo_desc),
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
@@ -203,7 +195,7 @@ private fun ProfileContent(
                             ) {
                                 Icon(
                                     Icons.Rounded.PhotoCamera,
-                                    contentDescription = "Change photo",
+                                    contentDescription = stringResource(R.string.change_photo),
                                     tint = AivanceTheme.colors.onAccent,
                                     modifier = Modifier.padding(7.dp)
                                 )
@@ -213,14 +205,14 @@ private fun ProfileContent(
 
                     Spacer(Modifier.height(14.dp))
                     Text(
-                        state.fullName.ifBlank { "Your Name" },
+                        state.fullName.ifBlank { stringResource(R.string.your_name_placeholder) },
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
                     val designation = buildString {
-                        append(state.currentRole.ifBlank { "Add your current role" })
-                        if (state.company.isNotBlank()) append(" at ").append(state.company)
+                        append(state.currentRole.ifBlank { stringResource(R.string.add_current_role) })
+                        if (state.company.isNotBlank()) append(stringResource(R.string.designation_at)).append(state.company)
                     }
                     Text(
                         designation,
@@ -230,7 +222,7 @@ private fun ProfileContent(
                     )
                     if (isEditing) {
                         Text(
-                            "Tap the camera to change your photo",
+                            stringResource(R.string.tap_camera_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.padding(top = 6.dp)
@@ -241,7 +233,7 @@ private fun ProfileContent(
         }
 
         // ── Personal ───────────────────────────────────────────────────────
-        item { SectionHeader(title = "Personal") }
+        item { SectionHeader(title = stringResource(R.string.personal_section)) }
         item {
             DashboardCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -251,7 +243,7 @@ private fun ProfileContent(
                     OutlinedTextField(
                         value = state.fullName,
                         onValueChange = { onEvent(ProfileUiEvent.UpdateFullName(it)) },
-                        label = { Text("Full Name") },
+                        label = { Text(stringResource(R.string.full_name)) },
                         enabled = isEditing,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -259,17 +251,17 @@ private fun ProfileContent(
                     OutlinedTextField(
                         value = state.email,
                         onValueChange = {},
-                        label = { Text("Email") },
+                        label = { Text(stringResource(R.string.email)) },
                         enabled = false,
                         readOnly = true,
                         leadingIcon = { Icon(Icons.Rounded.Lock, null, modifier = Modifier.size(18.dp)) },
-                        supportingText = { Text("Email is linked to your account and cannot be changed.") },
+                        supportingText = { Text(stringResource(R.string.email_locked)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = state.phone,
                         onValueChange = { onEvent(ProfileUiEvent.UpdatePhone(it)) },
-                        label = { Text("Phone (optional)") },
+                        label = { Text(stringResource(R.string.phone_optional)) },
                         enabled = isEditing,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth()
@@ -279,7 +271,7 @@ private fun ProfileContent(
                         OutlinedTextField(
                             value = formatDate(state.dateOfBirth),
                             onValueChange = {},
-                            label = { Text("Date of Birth") },
+                            label = { Text(stringResource(R.string.date_of_birth)) },
                             enabled = false,
                             readOnly = true,
                             modifier = Modifier.weight(1f)
@@ -294,7 +286,7 @@ private fun ProfileContent(
                     OutlinedTextField(
                         value = state.linkedinUrl,
                         onValueChange = { onEvent(ProfileUiEvent.UpdateLinkedIn(it)) },
-                        label = { Text("LinkedIn URL (optional)") },
+                        label = { Text(stringResource(R.string.linkedin_optional)) },
                         enabled = isEditing,
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.None),
@@ -303,7 +295,7 @@ private fun ProfileContent(
                     OutlinedTextField(
                         value = state.githubUrl,
                         onValueChange = { onEvent(ProfileUiEvent.UpdateGithub(it)) },
-                        label = { Text("GitHub URL (optional)") },
+                        label = { Text(stringResource(R.string.github_optional)) },
                         enabled = isEditing,
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = KeyboardCapitalization.None),
@@ -314,7 +306,7 @@ private fun ProfileContent(
         }
 
         // ── Career ─────────────────────────────────────────────────────────
-        item { SectionHeader(title = "Career") }
+        item { SectionHeader(title = stringResource(R.string.career_section)) }
         item {
             DashboardCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -324,7 +316,7 @@ private fun ProfileContent(
                     OutlinedTextField(
                         value = state.currentRole,
                         onValueChange = { onEvent(ProfileUiEvent.UpdateCurrentRole(it)) },
-                        label = { Text("Current Role") },
+                        label = { Text(stringResource(R.string.current_role)) },
                         enabled = isEditing,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -332,7 +324,7 @@ private fun ProfileContent(
                     OutlinedTextField(
                         value = state.company,
                         onValueChange = { onEvent(ProfileUiEvent.UpdateCompany(it)) },
-                        label = { Text("Company") },
+                        label = { Text(stringResource(R.string.company)) },
                         enabled = isEditing,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -340,7 +332,7 @@ private fun ProfileContent(
                     OutlinedTextField(
                         value = state.targetRole,
                         onValueChange = { onEvent(ProfileUiEvent.UpdateTargetRole(it)) },
-                        label = { Text("Target Role") },
+                        label = { Text(stringResource(R.string.target_role)) },
                         enabled = isEditing,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -353,9 +345,9 @@ private fun ProfileContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Years of Experience", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Text(stringResource(R.string.years_experience), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                             Text(
-                                "${state.experienceYears} yrs",
+                                stringResource(R.string.years_short, state.experienceYears),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = AivanceTheme.colors.accent
@@ -371,10 +363,10 @@ private fun ProfileContent(
                     }
 
                     // Skills chips
-                    Text("Skills", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.skills), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     if (skills.isEmpty() && !isEditing) {
                         Text(
-                            "No skills added yet.",
+                            stringResource(R.string.no_skills),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -393,7 +385,7 @@ private fun ProfileContent(
                                         {
                                             Icon(
                                                 Icons.Rounded.Close,
-                                                contentDescription = "Remove $skill",
+                                                contentDescription = stringResource(R.string.remove_skill_desc, skill),
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -434,9 +426,9 @@ private fun ProfileContent(
                         }
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Settings", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.settings), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Notifications, privacy, providers & more",
+                            stringResource(R.string.settings_sub),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -448,32 +440,28 @@ private fun ProfileContent(
 
         // ── Quick access ───────────────────────────────────────────────────
         item {
-            SectionHeader(title = "Quick Access")
+            SectionHeader(title = stringResource(R.string.quick_access))
         }
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { ProfilePill("Saved Jobs", Icons.Rounded.BookmarkBorder, onNavigateToSavedJobs) }
-                item { ProfilePill("AI Chat", Icons.Rounded.Chat, onNavigateToAiChat) }
-                item { ProfilePill("Interview", Icons.Rounded.RecordVoiceOver, onNavigateToInterview) }
+                item { ProfilePill(stringResource(R.string.saved_jobs), Icons.Rounded.BookmarkBorder, onNavigateToSavedJobs) }
+                item { ProfilePill(stringResource(R.string.interview), Icons.Rounded.RecordVoiceOver, onNavigateToInterview) }
             }
         }
         item {
-            ProfileActionCard("Career Analytics", "KPIs, trends, and insights", Icons.Rounded.BarChart, onNavigateToAnalytics)
+            ProfileActionCard(stringResource(R.string.career_analytics), stringResource(R.string.career_analytics_sub), Icons.Rounded.BarChart, onNavigateToAnalytics)
         }
         item {
-            ProfileActionCard("Career Roadmap", "Step-by-step growth plan", Icons.Rounded.Route, onNavigateToRoadmap)
+            ProfileActionCard(stringResource(R.string.learning_hub), stringResource(R.string.learning_hub_sub), Icons.Rounded.School, onNavigateToLearning)
         }
         item {
-            ProfileActionCard("Learning Hub", "Skills and resources", Icons.Rounded.School, onNavigateToLearning)
+            ProfileActionCard(stringResource(R.string.notifications), stringResource(R.string.notifications_sub), Icons.Rounded.Notifications, onNavigateToNotifications)
         }
+        // Provider selection (AI / Job / Enrichment) lives in Provider
+        // Management alone — the legacy AI Configuration screen was removed so
+        // the dropdowns are never repeated in two places.
         item {
-            ProfileActionCard("Notifications", "Alerts and reminders", Icons.Rounded.Notifications, onNavigateToNotifications)
-        }
-        item {
-            ProfileActionCard("AI Configuration", "Models and parameters", Icons.Rounded.AutoAwesome, onNavigateToAiSettings)
-        }
-        item {
-            ProfileActionCard("Provider Management", "AI, job, and enrichment providers", Icons.Rounded.Tune, onNavigateToProviders)
+            ProfileActionCard(stringResource(R.string.provider_management), stringResource(R.string.provider_management_sub), Icons.Rounded.Tune, onNavigateToProviders)
         }
 
         item { Spacer(Modifier.height(16.dp)) }
@@ -498,10 +486,10 @@ private fun ProfileDatePickerButton(
                         datePickerState.selectedDateMillis?.let(onPicked)
                         showPicker = false
                     }
-                ) { Text("OK") }
+                ) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showPicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -511,7 +499,7 @@ private fun ProfileDatePickerButton(
     OutlinedButton(onClick = { showPicker = true }) {
         Icon(Icons.Rounded.CalendarMonth, null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text("Pick")
+        Text(stringResource(R.string.pick))
     }
 }
 
@@ -524,14 +512,14 @@ private fun AddSkillChip(onAdd: (String) -> Unit) {
         InputChip(
             selected = false,
             onClick = { adding = true },
-            label = { Text("+ Add") }
+            label = { Text(stringResource(R.string.add_skill)) }
         )
     } else {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                placeholder = { Text("Skill") },
+                placeholder = { Text(stringResource(R.string.skill_placeholder)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
@@ -543,7 +531,7 @@ private fun AddSkillChip(onAdd: (String) -> Unit) {
                 },
                 enabled = text.isNotBlank()
             ) {
-                Icon(Icons.Rounded.Add, contentDescription = "Add skill")
+                Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.add_skill_desc))
             }
         }
     }

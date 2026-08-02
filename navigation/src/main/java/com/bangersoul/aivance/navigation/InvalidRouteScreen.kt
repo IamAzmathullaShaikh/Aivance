@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,14 +42,14 @@ fun InvalidRouteScreen(
         )
 
         Text(
-            text = "Screen Not Found",
+            text = stringResource(R.string.screen_not_found),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
 
         Text(
-            text = "The screen you're looking for doesn't exist or timed out. Please go back and try again.",
+            text = stringResource(R.string.invalid_route_message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -58,7 +59,7 @@ fun InvalidRouteScreen(
             onClick = onBack,
             modifier = Modifier.padding(top = 24.dp)
         ) {
-            Text("Go Back")
+            Text(stringResource(R.string.go_back))
         }
     }
 }

@@ -15,12 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Route
-import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Card
@@ -48,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -63,9 +61,6 @@ import com.bangersoul.aivance.feature.profile.ProviderHealthStatus
 import com.bangersoul.aivance.feature.profile.ProviderManagementUiEvent
 import com.bangersoul.aivance.feature.profile.ProviderManagementUiState
 import com.bangersoul.aivance.feature.profile.AiSettingsViewModel
-import com.bangersoul.aivance.feature.profile.AnalyticsDashboardViewModel
-import com.bangersoul.aivance.feature.profile.CareerRoadmapViewModel
-import com.bangersoul.aivance.feature.profile.LearningHubViewModel
 import com.bangersoul.aivance.feature.profile.NotificationsViewModel
 import com.bangersoul.aivance.feature.profile.ProviderManagementViewModel
 
@@ -84,10 +79,10 @@ fun AiSettingsScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("AI Settings", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.ai_settings), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -101,27 +96,27 @@ fun AiSettingsScreen(
         ) {
             Icon(Icons.Rounded.Settings, null, tint = MaterialTheme.colorScheme.primary)
             Text(
-                "AI Configuration",
+                stringResource(R.string.ai_configuration),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
             when (uiState) {
                 is com.bangersoul.aivance.feature.profile.AiSettingsUiState.Loading -> {
-                    Text("Loading...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 is com.bangersoul.aivance.feature.profile.AiSettingsUiState.Success -> {
                     val state = uiState as com.bangersoul.aivance.feature.profile.AiSettingsUiState.Success
                     Text(
-                        "Provider: ${state.config.providerName}",
+                        stringResource(R.string.provider_format, state.config.providerName),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        "Model: ${state.config.selectedModel.ifEmpty { "Not set" }}",
+                        stringResource(R.string.model_format, state.config.selectedModel.ifEmpty { stringResource(R.string.not_set) }),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Status: ${state.connectionStatus.name}",
+                        stringResource(R.string.status_format, state.connectionStatus.name),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -165,15 +160,15 @@ fun ProviderManagementScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Providers", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.providers), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.onEvent(ProviderManagementUiEvent.Refresh) }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = "Refresh providers")
+                        Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.refresh_providers))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -189,7 +184,7 @@ fun ProviderManagementScreen(
                 ) {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(12.dp))
-                    Text("Loading providers…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.loading_providers), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             is ProviderManagementUiState.Error -> {
@@ -201,7 +196,7 @@ fun ProviderManagementScreen(
                     Text(state.message, color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(16.dp))
                     AivancePrimaryButton(
-                        text = "Retry",
+                        text = stringResource(R.string.retry),
                         onClick = { viewModel.onEvent(ProviderManagementUiEvent.Refresh) }
                     )
                 }
@@ -230,18 +225,18 @@ private fun ProviderManagementList(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { SectionLabel("AI Providers") }
+        item { SectionLabel(stringResource(R.string.section_ai_providers)) }
         items(aiProviders, key = { it.id }) { provider ->
             ProviderCard(provider, state, onEvent)
         }
         if (jobProviders.isNotEmpty()) {
-            item { SectionLabel("Job Providers") }
+            item { SectionLabel(stringResource(R.string.section_job_providers)) }
             items(jobProviders, key = { it.id }) { provider ->
                 ProviderCard(provider, state, onEvent)
             }
         }
         if (enrichmentProviders.isNotEmpty()) {
-            item { SectionLabel("Enrichment Providers") }
+            item { SectionLabel(stringResource(R.string.section_enrichment_providers)) }
             items(enrichmentProviders, key = { it.id }) { provider ->
                 ProviderCard(provider, state, onEvent)
             }
@@ -295,6 +290,26 @@ private fun ProviderCard(
                             maxLines = 2
                         )
                     }
+                    // Masked credential preview — never the full key.
+                    if (provider.apiKeyConfigured && provider.maskedApiKey.isNotBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Key,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = provider.maskedApiKey,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
                 ProviderHealthChip(provider.healthStatus)
             }
@@ -305,7 +320,7 @@ private fun ProviderCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    if (provider.isEnabled) "Enabled" else "Disabled",
+                    if (provider.isEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (provider.isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -319,7 +334,7 @@ private fun ProviderCard(
                 value = apiKeyDraft,
                 onValueChange = { onEvent(ProviderManagementUiEvent.SetApiKey(provider.id, it)) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(if (provider.apiKeyConfigured) "API Key (configured)" else "API Key") },
+                label = { Text(if (provider.apiKeyConfigured) stringResource(R.string.api_key_configured) else stringResource(R.string.api_key)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 trailingIcon = { Icon(Icons.Rounded.Key, contentDescription = null) }
@@ -331,13 +346,13 @@ private fun ProviderCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Model", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.3f))
+                    Text(stringResource(R.string.model), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(0.3f))
                     androidx.compose.material3.OutlinedButton(
                         onClick = { modelMenuOpen = true },
                         modifier = Modifier.weight(0.7f)
                     ) {
                         Text(
-                            provider.selectedModel.ifBlank { "Select…" },
+                            provider.selectedModel.ifBlank { stringResource(R.string.select) },
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             modifier = Modifier.weight(1f)
@@ -365,12 +380,12 @@ private fun ProviderCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 AivanceSecondaryButton(
-                    text = "Save",
+                    text = stringResource(R.string.save),
                     onClick = { onEvent(ProviderManagementUiEvent.SaveProvider(provider.id)) },
                     modifier = Modifier.weight(1f)
                 )
                 AivancePrimaryButton(
-                    text = if (state.testingProviderId == provider.id) "Testing…" else "Test",
+                    text = if (state.testingProviderId == provider.id) stringResource(R.string.testing) else stringResource(R.string.test),
                     onClick = { onEvent(ProviderManagementUiEvent.TestConnection(provider.id)) },
                     modifier = Modifier.weight(1f),
                     enabled = state.testingProviderId != provider.id
@@ -382,13 +397,13 @@ private fun ProviderCard(
 
 @Composable
 private fun ProviderHealthChip(status: ProviderHealthStatus) {
-    val (tone, label) = when (status) {
-        ProviderHealthStatus.HEALTHY -> BannerTone.SUCCESS to "Healthy"
-        ProviderHealthStatus.DEGRADED -> BannerTone.WARNING to "Degraded"
-        ProviderHealthStatus.UNHEALTHY -> BannerTone.ERROR to "Unhealthy"
-        ProviderHealthStatus.UNKNOWN -> BannerTone.INFO to "Unknown"
+    val (tone, labelRes) = when (status) {
+        ProviderHealthStatus.HEALTHY -> BannerTone.SUCCESS to R.string.healthy
+        ProviderHealthStatus.DEGRADED -> BannerTone.WARNING to R.string.degraded
+        ProviderHealthStatus.UNHEALTHY -> BannerTone.ERROR to R.string.unhealthy
+        ProviderHealthStatus.UNKNOWN -> BannerTone.INFO to R.string.unknown
     }
-    StatusChip(text = label, tone = tone)
+    StatusChip(text = stringResource(labelRes), tone = tone)
 }
 
 // ──────────────────────────────────────────────────
@@ -406,10 +421,10 @@ fun NotificationsScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Notifications", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.notifications), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -423,25 +438,25 @@ fun NotificationsScreen(
         ) {
             Icon(Icons.Rounded.Notifications, null, tint = MaterialTheme.colorScheme.primary)
             Text(
-                "Notifications",
+                stringResource(R.string.notifications),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
             when (uiState) {
                 is com.bangersoul.aivance.feature.profile.NotificationsUiState.Loading ->
-                    Text("Loading...")
+                    Text(stringResource(R.string.loading))
                 is com.bangersoul.aivance.feature.profile.NotificationsUiState.Success -> {
                     val state = uiState as com.bangersoul.aivance.feature.profile.NotificationsUiState.Success
-                    Text("${state.unreadCount} unread", style = MaterialTheme.typography.bodyMedium,
+                    Text(stringResource(R.string.unread_count, state.unreadCount), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.secondary)
                     if (state.notifications.isEmpty()) {
-                        Text("No notifications yet",
+                        Text(stringResource(R.string.no_notifications),
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(top = 24.dp))
                     }
                 }
                 is com.bangersoul.aivance.feature.profile.NotificationsUiState.Empty ->
-                    Text("No notifications yet", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.no_notifications), style = MaterialTheme.typography.bodyLarge)
                 is com.bangersoul.aivance.feature.profile.NotificationsUiState.Error ->
                     Text((uiState as com.bangersoul.aivance.feature.profile.NotificationsUiState.Error).message,
                         color = MaterialTheme.colorScheme.error)
@@ -450,123 +465,3 @@ fun NotificationsScreen(
     }
 }
 
-// Career Roadmap Screen
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CareerRoadmapScreen(
-    viewModel: CareerRoadmapViewModel,
-    onBack: () -> Unit = {}
-) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    AivanceScreen(
-        topBar = {
-            TopAppBar(
-                title = { Text("Career Roadmap", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        }
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(Icons.Rounded.Route, null, tint = MaterialTheme.colorScheme.primary)
-            Text("Career Roadmap", style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold)
-            when (uiState) {
-                is com.bangersoul.aivance.feature.profile.CareerRoadmapUiState.Idle -> {
-                    Text("Set your target role to get started.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                is com.bangersoul.aivance.feature.profile.CareerRoadmapUiState.Loading ->
-                    Text("Generating roadmap...")
-                is com.bangersoul.aivance.feature.profile.CareerRoadmapUiState.Success -> {
-                    val state = uiState as com.bangersoul.aivance.feature.profile.CareerRoadmapUiState.Success
-                    Text("Target: ${state.roadmap.targetRole}", fontWeight = FontWeight.Bold)
-                    Text("Progress: ${(state.progressPercent * 100).toInt()}%")
-                    state.roadmap.steps.forEach { step ->
-                        Text("• ${step.title} - ${if (step.isCompleted) "✅" else "☐"}")
-                    }
-                }
-                is com.bangersoul.aivance.feature.profile.CareerRoadmapUiState.Error ->
-                    Text((uiState as com.bangersoul.aivance.feature.profile.CareerRoadmapUiState.Error).message,
-                        color = MaterialTheme.colorScheme.error)
-            }
-        }
-    }
-}
-
-// ──────────────────────────────────────────────────
-// Learning Hub Screen
-// ──────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LearningHubScreen(
-    viewModel: LearningHubViewModel,
-    onBack: () -> Unit = {}
-) {
-    val uiState by viewModel.uiState.collectAsState()
-
-    AivanceScreen(
-        topBar = {
-            TopAppBar(
-                title = { Text("Learning Hub", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        }
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(Icons.Rounded.School, null, tint = MaterialTheme.colorScheme.primary)
-            Text("Learning Hub", style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold)
-            when (uiState) {
-                is com.bangersoul.aivance.feature.profile.LearningHubUiState.Idle -> {
-                    Text("Discover learning resources to level up your career.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                is com.bangersoul.aivance.feature.profile.LearningHubUiState.Loading ->
-                    Text("Loading resources...")
-                is com.bangersoul.aivance.feature.profile.LearningHubUiState.Success -> {
-                    val state = uiState as com.bangersoul.aivance.feature.profile.LearningHubUiState.Success
-                    Text("Recommended Skills:", fontWeight = FontWeight.Bold)
-                    state.recommendedSkills.forEach { skill ->
-                        Text("• $skill")
-                    }
-                    Spacer(module = Modifier.padding(vertical = 8.dp))
-                    Text("Resources:", fontWeight = FontWeight.Bold)
-                    state.suggestedResources.forEach { resource ->
-                        Text("• ${resource.title} (${resource.type.name})")
-                    }
-                }
-                is com.bangersoul.aivance.feature.profile.LearningHubUiState.Error ->
-                    Text((uiState as com.bangersoul.aivance.feature.profile.LearningHubUiState.Error).message,
-                        color = MaterialTheme.colorScheme.error)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Spacer(module: Modifier) {
-    androidx.compose.foundation.layout.Spacer(modifier = module)
-}

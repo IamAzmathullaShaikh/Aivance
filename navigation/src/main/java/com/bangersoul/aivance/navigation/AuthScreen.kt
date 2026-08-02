@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -94,16 +95,20 @@ fun AuthScreen(
         }
         Spacer(Modifier.height(20.dp))
         Text(
-            if (isCreateMode) "Create your account" else "Welcome back",
+            if (isCreateMode) {
+                stringResource(R.string.auth_create_account_title)
+            } else {
+                stringResource(R.string.auth_welcome_back_title)
+            },
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(8.dp))
         Text(
             if (isCreateMode) {
-                "Tell us a little about yourself to personalize your Career Operating System."
+                stringResource(R.string.auth_create_subtitle)
             } else {
-                "Sign in to continue your career journey."
+                stringResource(R.string.auth_signin_subtitle)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -118,14 +123,14 @@ fun AuthScreen(
                 onClick = { isCreateMode = false },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
             ) {
-                Text("Sign In")
+                Text(stringResource(R.string.auth_sign_in))
             }
             SegmentedButton(
                 selected = isCreateMode,
                 onClick = { isCreateMode = true },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
             ) {
-                Text("Create Account")
+                Text(stringResource(R.string.auth_create_account))
             }
         }
 
@@ -139,14 +144,14 @@ fun AuthScreen(
                 OutlinedTextField(
                     value = firstName,
                     onValueChange = { firstName = it },
-                    label = { Text("First Name") },
+                    label = { Text(stringResource(R.string.auth_first_name)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = lastName,
                     onValueChange = { lastName = it },
-                    label = { Text("Last Name") },
+                    label = { Text(stringResource(R.string.auth_last_name)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -157,8 +162,8 @@ fun AuthScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
-            placeholder = { Text("you@example.com") },
+            label = { Text(stringResource(R.string.auth_email)) },
+            placeholder = { Text(stringResource(R.string.auth_email_placeholder)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -173,8 +178,8 @@ fun AuthScreen(
             OutlinedTextField(
                 value = phone,
                 onValueChange = { phone = it },
-                label = { Text("Phone (optional)") },
-                placeholder = { Text("+1 555 000 1234") },
+                label = { Text(stringResource(R.string.auth_phone_optional)) },
+                placeholder = { Text(stringResource(R.string.auth_phone_placeholder)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth()
@@ -205,7 +210,7 @@ fun AuthScreen(
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Continue", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.auth_continue), fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -217,7 +222,7 @@ fun AuthScreen(
         ) {
             HorizontalDivider(modifier = Modifier.weight(1f))
             Text(
-                "  or  ",
+                stringResource(R.string.auth_or_separator),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -233,7 +238,7 @@ fun AuthScreen(
         ) {
             Icon(Icons.Rounded.GTranslate, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
-            Text("Continue with Google", fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.auth_google), fontWeight = FontWeight.Medium)
         }
 
         (uiState as? AuthUiState.Error)?.let { error ->
@@ -266,7 +271,7 @@ fun AuthScreen(
 
         Spacer(Modifier.height(16.dp))
         TextButton(onClick = onBackToWelcome) {
-            Text("Back", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.back), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -82,14 +82,14 @@ class AivanceNavGraphTest {
     fun deepLinkChatParsesCorrectly() {
         val uri = Uri.parse("aivance://chat")
         val dest = DeepLinkHandler.parseUri(uri)
-        assertTrue("Expected AiChat, got $dest", dest is Destination.AiChat)
+        assertTrue("Expected Assistant, got $dest", dest is Destination.Assistant)
     }
 
     @Test
     fun deepLinkInterviewParsesCorrectly() {
         val uri = Uri.parse("aivance://interview")
         val dest = DeepLinkHandler.parseUri(uri)
-        assertTrue("Expected Interview, got $dest", dest is Destination.Interview)
+        assertTrue("Expected PrepStudio, got $dest", dest is Destination.PrepStudio)
     }
 
     @Test
@@ -103,7 +103,7 @@ class AivanceNavGraphTest {
     fun deepLinkSettingsParsesCorrectly() {
         val uri = Uri.parse("aivance://settings")
         val dest = DeepLinkHandler.parseUri(uri)
-        assertTrue("Expected Settings, got $dest", dest is Destination.Settings)
+        assertTrue("Expected SettingsHub, got $dest", dest is Destination.SettingsHub)
     }
 
     @Test

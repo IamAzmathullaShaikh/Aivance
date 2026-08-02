@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -59,15 +60,20 @@ fun PrepStudioScreen(
     onBack: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Practice", "History", "Question Bank", "Learn")
+    val tabs = listOf(
+        stringResource(R.string.practice),
+        stringResource(R.string.history),
+        stringResource(R.string.question_bank),
+        stringResource(R.string.learn)
+    )
 
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Prep Studio", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.prep_studio), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
@@ -101,7 +107,7 @@ private fun PracticeTab(viewModel: InterviewViewModel) {
         is InterviewUiState.Idle -> PracticeHub(
             onStart = { r, c, t -> viewModel.onEvent(InterviewUiEvent.StartSession(r, c, t)) }
         )
-        is InterviewUiState.Preparing -> LoadingPanel("Starting your session…")
+        is InterviewUiState.Preparing -> LoadingPanel(stringResource(R.string.starting_session))
         is InterviewUiState.Active -> ActiveSessionPanel(
             state = state,
             onAnswer = { viewModel.onEvent(InterviewUiEvent.SubmitAnswer(it)) },
@@ -113,7 +119,7 @@ private fun PracticeTab(viewModel: InterviewViewModel) {
             onNewSession = { viewModel.onEvent(InterviewUiEvent.Reset) }
         )
         is InterviewUiState.Error -> AivanceEmptyState(
-            title = "Session failed",
+            title = stringResource(R.string.session_failed),
             description = state.message,
             icon = Icons.Rounded.ErrorOutline
         )
@@ -127,9 +133,9 @@ private fun PracticeHub(onStart: (String, String, String) -> Unit) {
     var type by remember { mutableStateOf("BEHAVIORAL") }
 
     val types = listOf(
-        "TECHNICAL" to "Technical",
-        "BEHAVIORAL" to "Behavioral",
-        "HR" to "HR & Culture"
+        "TECHNICAL" to stringResource(R.string.technical),
+        "BEHAVIORAL" to stringResource(R.string.behavioral),
+        "HR" to stringResource(R.string.hr_culture)
     )
 
     Column(
@@ -139,15 +145,15 @@ private fun PracticeHub(onStart: (String, String, String) -> Unit) {
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("New Practice Session", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.new_practice_session), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(
-            "AI-driven simulations tailored to your target role.",
+            stringResource(R.string.practice_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(Modifier.height(8.dp))
-        Text("Session type", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.session_type), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             types.forEach { (id, label) ->
                 FilterChip(
@@ -161,22 +167,22 @@ private fun PracticeHub(onStart: (String, String, String) -> Unit) {
         OutlinedTextField(
             value = role,
             onValueChange = { role = it },
-            label = { Text("Target role") },
-            placeholder = { Text("e.g. Senior Android Engineer") },
+            label = { Text(stringResource(R.string.target_role)) },
+            placeholder = { Text(stringResource(R.string.target_role_hint)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = company,
             onValueChange = { company = it },
-            label = { Text("Company (optional)") },
+            label = { Text(stringResource(R.string.company_optional)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(Modifier.height(8.dp))
         AivancePrimaryButton(
-            text = "Start Mock Interview",
+            text = stringResource(R.string.start_mock_interview),
             onClick = { onStart(role, company, type) },
             modifier = Modifier.fillMaxWidth(),
             enabled = role.isNotBlank()
@@ -228,7 +234,11 @@ private fun ActiveSessionPanel(
                 }
             }
             StatusChip(
-                text = if (total > 0) "Q${state.currentQuestionIndex + 1}/$total" else "Preparing",
+                text = if (total > 0) {
+                    stringResource(R.string.question_progress, state.currentQuestionIndex + 1, total)
+                } else {
+                    stringResource(R.string.preparing)
+                },
                 tone = BannerTone.INFO
             )
         }
@@ -248,24 +258,24 @@ private fun ActiveSessionPanel(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Question", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.question), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                     Text(q.text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                     if (q.category.isNotBlank()) StatusChip(text = q.category, tone = BannerTone.INFO)
                 }
             }
-        } ?: LoadingPanel("Preparing your questions…")
+        } ?: LoadingPanel(stringResource(R.string.preparing_questions))
 
         OutlinedTextField(
             value = answerText,
             onValueChange = { answerText = it },
-            label = { Text("Your answer") },
-            placeholder = { Text("Use the STAR method — situation, task, action, result…") },
+            label = { Text(stringResource(R.string.your_answer)) },
+            placeholder = { Text(stringResource(R.string.answer_hint)) },
             modifier = Modifier.fillMaxWidth().height(160.dp),
             enabled = !state.isSubmitting
         )
 
         AivancePrimaryButton(
-            text = "Submit Answer",
+            text = stringResource(R.string.submit_answer),
             onClick = {
                 onAnswer(answerText)
                 answerText = ""
@@ -276,11 +286,11 @@ private fun ActiveSessionPanel(
 
         if (question != null) {
             OutlinedButton(onClick = onNext, modifier = Modifier.fillMaxWidth()) {
-                Text("Next Question")
+                Text(stringResource(R.string.next_question))
             }
         }
         TextButton(onClick = onComplete, modifier = Modifier.fillMaxWidth()) {
-            Text("End Session", color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.end_session), color = MaterialTheme.colorScheme.error)
         }
     }
 }
@@ -298,7 +308,7 @@ private fun SessionReviewPanel(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Session Review", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.session_review), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         if (feedback != null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -307,8 +317,8 @@ private fun SessionReviewPanel(
                 Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     ScoreGauge(score = feedback.overallScore, size = 100.dp)
                     Column {
-                        Text("Overall Performance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("AI evaluation of your answers", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.overall_performance), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.ai_evaluation), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -316,7 +326,7 @@ private fun SessionReviewPanel(
                 InsightCard(text = feedback.detailedSummary, icon = Icons.Rounded.Lightbulb)
             }
             if (feedback.strengths.isNotEmpty()) {
-                Text("Key Strengths", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.key_strengths), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 feedback.strengths.forEach { strength ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Rounded.CheckCircle, null, tint = AivanceTheme.colors.success, modifier = Modifier.size(18.dp))
@@ -326,14 +336,14 @@ private fun SessionReviewPanel(
             }
         } else {
             AivanceEmptyState(
-                title = "Analysis in progress",
-                description = "Detailed AI feedback will appear once evaluation completes.",
+                title = stringResource(R.string.analysis_in_progress),
+                description = stringResource(R.string.analysis_pending),
                 icon = Icons.Rounded.TrendingUp,
                 compact = true
             )
         }
         AivancePrimaryButton(
-            text = "Start a New Session",
+            text = stringResource(R.string.start_new_session),
             onClick = onNewSession,
             modifier = Modifier.fillMaxWidth()
         )
@@ -347,8 +357,8 @@ private fun HistoryTab(viewModel: InterviewViewModel) {
 
     if (history.isEmpty()) {
         AivanceEmptyState(
-            title = "No sessions yet",
-            description = "Complete a practice session and your progress will appear here.",
+            title = stringResource(R.string.no_sessions),
+            description = stringResource(R.string.no_sessions_desc),
             icon = Icons.Rounded.History
         )
         return
@@ -396,12 +406,12 @@ private fun HistoryTab(viewModel: InterviewViewModel) {
 private fun QuestionBankTab(viewModel: QuestionBankViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val categories = listOf(
-        "ALL" to "All",
-        "FAVORITES" to "★ Favorites",
-        "BEHAVIORAL" to "Behavioral",
-        "TECHNICAL" to "Technical",
-        "LEADERSHIP" to "Leadership",
-        "GENERAL" to "General"
+        "ALL" to stringResource(R.string.all),
+        "FAVORITES" to stringResource(R.string.favorites),
+        "BEHAVIORAL" to stringResource(R.string.behavioral),
+        "TECHNICAL" to stringResource(R.string.technical),
+        "LEADERSHIP" to stringResource(R.string.leadership),
+        "GENERAL" to stringResource(R.string.general)
     )
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -423,19 +433,19 @@ private fun QuestionBankTab(viewModel: QuestionBankViewModel) {
         }
 
         when (val state = uiState) {
-            is QuestionBankUiState.Loading -> LoadingPanel("Loading question bank…")
+            is QuestionBankUiState.Loading -> LoadingPanel(stringResource(R.string.loading_question_bank))
             is QuestionBankUiState.Error -> AivanceEmptyState(
-                title = "Couldn't load questions",
+                title = stringResource(R.string.load_questions_failed),
                 description = state.message,
                 icon = Icons.Rounded.ErrorOutline,
-                primaryActionText = "Try Again",
+                primaryActionText = stringResource(R.string.try_again),
                 onPrimaryAction = { viewModel.onEvent(QuestionBankUiEvent.Retry) }
             )
             is QuestionBankUiState.Content -> {
                 if (state.questions.isEmpty()) {
                     AivanceEmptyState(
-                        title = "No questions yet",
-                        description = "Practice sessions and saved questions will appear here.",
+                        title = stringResource(R.string.no_questions),
+                        description = stringResource(R.string.no_questions_desc),
                         icon = Icons.Rounded.MenuBook,
                         compact = true
                     )
@@ -494,7 +504,7 @@ private fun QuestionBankCard(
                 IconButton(onClick = onToggleFavorite) {
                     Icon(
                         if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                        contentDescription = if (isFavorite) "Remove favorite" else "Mark favorite",
+                        contentDescription = if (isFavorite) stringResource(R.string.remove_favorite) else stringResource(R.string.mark_favorite),
                         tint = if (isFavorite) AivanceTheme.colors.accent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -503,7 +513,7 @@ private fun QuestionBankCard(
             if (isIdealAnswerLoading) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text("Generating ideal answer…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.generating_ideal_answer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else if (idealAnswer != null) {
                 InsightCard(text = idealAnswer, icon = Icons.Rounded.Lightbulb)
@@ -520,7 +530,7 @@ private fun QuestionBankCard(
                 TextButton(onClick = onViewIdealAnswer) {
                     Icon(Icons.Rounded.AutoAwesome, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("View Ideal Answer")
+                    Text(stringResource(R.string.view_ideal_answer))
                 }
             }
         }
@@ -538,9 +548,9 @@ private fun LearnTab(viewModel: LearningHubViewModel) {
                 modifier = Modifier.fillMaxSize().padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text("Personalized Learning", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.personalized_learning), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(
-                    "Tell us your target role and we'll recommend skills to master and resources to get you there.",
+                    stringResource(R.string.learning_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -548,13 +558,13 @@ private fun LearnTab(viewModel: LearningHubViewModel) {
                 OutlinedTextField(
                     value = targetRole,
                     onValueChange = { targetRole = it },
-                    label = { Text("Target role") },
-                    placeholder = { Text("e.g. Senior Android Engineer") },
+                    label = { Text(stringResource(R.string.target_role)) },
+                    placeholder = { Text(stringResource(R.string.target_role_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 AivancePrimaryButton(
-                    text = if (uiState is LearningHubUiState.Loading) "Generating…" else "Generate Recommendations",
+                    text = if (uiState is LearningHubUiState.Loading) stringResource(R.string.generating) else stringResource(R.string.generate_recommendations),
                     onClick = {
                         viewModel.onEvent(
                             com.bangersoul.aivance.feature.profile.LearningHubUiEvent.GetRecommendations(
@@ -569,10 +579,10 @@ private fun LearnTab(viewModel: LearningHubViewModel) {
             }
         }
         is LearningHubUiState.Error -> AivanceEmptyState(
-            title = "Couldn't load resources",
+            title = stringResource(R.string.load_resources_failed),
             description = state.message,
             icon = Icons.Rounded.ErrorOutline,
-            primaryActionText = "Try Again",
+            primaryActionText = stringResource(R.string.try_again),
             onPrimaryAction = { viewModel.onEvent(com.bangersoul.aivance.feature.profile.LearningHubUiEvent.Reset) }
         )
         is LearningHubUiState.Success -> {
@@ -583,7 +593,7 @@ private fun LearnTab(viewModel: LearningHubViewModel) {
             ) {
                 if (state.recommendedSkills.isNotEmpty()) {
                     item {
-                        Text("Recommended Skills", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.recommended_skills), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     items(state.recommendedSkills) { skill ->
                         Card(
@@ -599,13 +609,13 @@ private fun LearnTab(viewModel: LearningHubViewModel) {
                 }
                 item {
                     Spacer(Modifier.height(8.dp))
-                    Text("Resources", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.resources), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 if (state.suggestedResources.isEmpty()) {
                     item {
                         AivanceEmptyState(
-                            title = "No resources yet",
-                            description = "Complete more of your profile to unlock personalized learning paths.",
+                            title = stringResource(R.string.no_resources),
+                            description = stringResource(R.string.no_resources_desc),
                             icon = Icons.Rounded.MenuBook,
                             compact = true
                         )
@@ -629,6 +639,6 @@ private fun LearnTab(viewModel: LearningHubViewModel) {
                 }
             }
         }
-        else -> LoadingPanel("Loading resources…")
+        else -> LoadingPanel(stringResource(R.string.loading_ellipsis))
     }
 }

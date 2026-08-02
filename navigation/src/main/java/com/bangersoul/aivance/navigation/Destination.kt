@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,11 +50,6 @@ sealed interface Destination : NavKey {
     }
 
     @Serializable
-    data object Tracker : Destination {
-        override val label = "Tracker"
-    }
-
-    @Serializable
     data object Jobs : Destination {
         override val label = "Jobs"
     }
@@ -64,23 +60,13 @@ sealed interface Destination : NavKey {
     }
 
     @Serializable
-    data object Ats : Destination {
+    data class Ats(val jobDescription: String? = null) : Destination {
         override val label = "ATS Scanner"
     }
 
     @Serializable
-    data object CoverLetter : Destination {
+    data class CoverLetter(val jobId: Long? = null) : Destination {
         override val label = "Cover Letter"
-    }
-
-    @Serializable
-    data object Interview : Destination {
-        override val label = "Interview"
-    }
-
-    @Serializable
-    data object AiChat : Destination {
-        override val label = "AI Chat"
     }
 
     @Serializable
@@ -96,21 +82,6 @@ sealed interface Destination : NavKey {
     @Serializable
     data object SavedJobs : Destination {
         override val label = "Saved Jobs"
-    }
-
-    @Serializable
-    data object CareerRoadmap : Destination {
-        override val label = "Career Roadmap"
-    }
-
-    @Serializable
-    data object LearningHub : Destination {
-        override val label = "Learning Hub"
-    }
-
-    @Serializable
-    data object Settings : Destination {
-        override val label = "Settings"
     }
 
     @Serializable
@@ -131,11 +102,6 @@ sealed interface Destination : NavKey {
     @Serializable
     data object Notifications : Destination {
         override val label = "Notifications"
-    }
-
-    @Serializable
-    data object AnalyticsDashboard : Destination {
-        override val label = "Analytics"
     }
 
     @Serializable
@@ -189,6 +155,12 @@ sealed interface Destination : NavKey {
         override val label = "Settings"
     }
 
+    /** About screen — contact, licenses, and how the app is made. */
+    @Serializable
+    data object About : Destination {
+        override val label = "About"
+    }
+
     companion object {
         /**
          * Bottom-navigation tabs of the Main graph. Profile is deliberately NOT
@@ -200,11 +172,10 @@ sealed interface Destination : NavKey {
         )
 
         val authenticatedDestinations = setOf(
-            Dashboard, Assistant, Resume, Tracker, Jobs, Profile,
-            Ats, CoverLetter, Interview, AiChat, SavedJobs,
-            CareerRoadmap, LearningHub, Settings, AiSettings,
-            ProviderManagement, Notifications, AnalyticsDashboard,
-            PrepStudio, Pipeline, Analytics, SettingsHub
+            Dashboard, Assistant, Resume, Jobs, Profile,
+            SavedJobs, AiSettings,
+            ProviderManagement, Notifications,
+            PrepStudio, Pipeline, Analytics, SettingsHub, About
         )
 
         val authDestinations = setOf(
@@ -226,7 +197,9 @@ fun Destination.isAuthenticatedDestination(): Boolean =
         this is Destination.CompanyDetail ||
         this is Destination.ResumeDetail ||
         this is Destination.JobDetails ||
-        this is Destination.RecruiterDashboard
+        this is Destination.RecruiterDashboard ||
+        this is Destination.Ats ||
+        this is Destination.CoverLetter
 
 val Destination.icon: ImageVector?
     get() = when (this) {
@@ -237,24 +210,17 @@ val Destination.icon: ImageVector?
         Destination.Dashboard -> Icons.Rounded.GridView
         Destination.Assistant -> Icons.Rounded.AutoAwesome
         Destination.Resume -> Icons.Rounded.Description
-        Destination.Tracker -> Icons.Rounded.Assessment
         Destination.Jobs -> Icons.Rounded.WorkOutline
         Destination.Profile -> Icons.Rounded.PersonOutline
-        Destination.Ats -> Icons.Rounded.Assessment
-        Destination.CoverLetter -> Icons.Rounded.Assignment
-        Destination.Interview -> Icons.Rounded.QuestionAnswer
-        Destination.AiChat -> Icons.Rounded.Chat
+        is Destination.Ats -> Icons.Rounded.Assessment
+        is Destination.CoverLetter -> Icons.Rounded.Assignment
         is Destination.JobDetails -> null
         is Destination.RecruiterDashboard -> Icons.Rounded.PersonSearch
         Destination.SavedJobs -> Icons.Rounded.BookmarkBorder
-        Destination.CareerRoadmap -> Icons.Rounded.Route
-        Destination.LearningHub -> Icons.Rounded.School
-        Destination.Settings -> Icons.Rounded.Settings
         Destination.Appearance -> Icons.Rounded.Palette
         Destination.AiSettings -> Icons.Rounded.AutoAwesome
         Destination.ProviderManagement -> Icons.Rounded.Tune
         Destination.Notifications -> Icons.Rounded.Notifications
-        Destination.AnalyticsDashboard -> Icons.Rounded.BarChart
         Destination.PrivacyCenter -> Icons.Rounded.PrivacyTip
         Destination.Auth -> null
         Destination.ProviderSetup -> null
@@ -264,4 +230,43 @@ val Destination.icon: ImageVector?
         is Destination.ResumeDetail -> null
         Destination.Analytics -> Icons.Rounded.BarChart
         Destination.SettingsHub -> Icons.Rounded.Settings
+        Destination.About -> Icons.Rounded.Info
+    }
+
+/**
+ * Localized label resource for each destination. The plain [Destination.label]
+ * stays as the stable English identifier (used by tests and logs), while this
+ * maps to a translatable string resource for the UI (bottom-nav labels,
+ * screen titles).
+ */
+val Destination.labelRes: Int
+    @StringRes get() = when (this) {
+        Destination.Splash -> R.string.dest_splash
+        Destination.Welcome -> R.string.dest_welcome
+        Destination.Login -> R.string.dest_login
+        Destination.Onboarding -> R.string.dest_onboarding
+        Destination.Dashboard -> R.string.dest_dashboard
+        Destination.Assistant -> R.string.dest_assistant
+        Destination.Resume -> R.string.dest_resume
+        Destination.Jobs -> R.string.dest_jobs
+        Destination.Profile -> R.string.dest_profile
+        is Destination.Ats -> R.string.dest_ats
+        is Destination.CoverLetter -> R.string.dest_cover_letter
+        is Destination.JobDetails -> R.string.dest_job_details
+        is Destination.RecruiterDashboard -> R.string.dest_recruiter_discovery
+        Destination.SavedJobs -> R.string.dest_saved_jobs
+        Destination.Appearance -> R.string.dest_appearance
+        Destination.AiSettings -> R.string.dest_ai_settings
+        Destination.ProviderManagement -> R.string.dest_providers
+        Destination.Notifications -> R.string.dest_notifications
+        Destination.PrivacyCenter -> R.string.dest_privacy
+        Destination.Auth -> R.string.dest_sign_in
+        Destination.ProviderSetup -> R.string.dest_provider_setup
+        Destination.PrepStudio -> R.string.dest_prep_studio
+        Destination.Pipeline -> R.string.dest_pipeline
+        is Destination.CompanyDetail -> R.string.dest_company
+        is Destination.ResumeDetail -> R.string.dest_resume_detail
+        Destination.Analytics -> R.string.dest_analytics
+        Destination.SettingsHub -> R.string.dest_settings
+        Destination.About -> R.string.dest_about
     }

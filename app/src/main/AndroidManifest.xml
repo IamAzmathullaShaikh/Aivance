@@ -67,17 +67,6 @@
                     android:pathPrefix="/" />
             </intent-filter>
 
-            <!-- Deep Link: career roadmap -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="aivance"
-                    android:host="roadmap"
-                    android:pathPrefix="/" />
-            </intent-filter>
-
             <!-- Deep Link: resume details -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

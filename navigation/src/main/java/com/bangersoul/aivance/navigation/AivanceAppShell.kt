@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
@@ -120,7 +121,7 @@ fun AivanceAppShell(
                                 },
                                 dismissButton = {
                                     androidx.compose.material3.TextButton(onClick = { dialogState = null }) {
-                                        androidx.compose.material3.Text("Cancel")
+                                        androidx.compose.material3.Text(stringResource(R.string.cancel))
                                     }
                                 }
                             )

@@ -10,9 +10,9 @@ import android.util.Log
  *
  * Supported URI patterns:
  *   aivance://jobs/{jobId}
- *   aivance://chat/{conversationId}
- *   aivance://interview/{sessionId}
- *   aivance://roadmap/{roadmapId}
+ *   aivance://chat/{conversationId}   → Assistant
+ *   aivance://interview/{sessionId}   → Prep Studio
+ *   aivance://settings                → Settings Hub
  *   aivance://resume/{resumeId}
  *   aivance://app (generic app open)
  */
@@ -73,13 +73,12 @@ object DeepLinkHandler {
                 Destination.JobDetails(jobId = jobId)
             }
             "chat" -> {
-                Destination.AiChat
+                // AI chat now lives in the Assistant surface.
+                Destination.Assistant
             }
             "interview" -> {
-                Destination.Interview
-            }
-            "roadmap" -> {
-                Destination.CareerRoadmap
+                // Interview practice was merged into Prep Studio.
+                Destination.PrepStudio
             }
             "resume" -> {
                 Destination.Resume
@@ -88,7 +87,7 @@ object DeepLinkHandler {
                 Destination.Dashboard
             }
             "settings" -> {
-                Destination.Settings
+                Destination.SettingsHub
             }
             "saved" -> {
                 Destination.SavedJobs
