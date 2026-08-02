@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bangersoul.aivance.core.designsystem.components.AivanceEmptyState
@@ -62,10 +63,10 @@ fun ResumeDetailScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Resume Detail", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.resume_detail_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -87,8 +88,8 @@ fun ResumeDetailScreen(
                     val resume = state.resume
                     if (resume == null) {
                         AivanceEmptyState(
-                            title = "Resume not found",
-                            description = "This resume may have been deleted.",
+                            title = stringResource(R.string.resume_not_found),
+                            description = stringResource(R.string.resume_not_found_desc),
                             icon = Icons.Rounded.Description
                         )
                     } else {
@@ -123,7 +124,7 @@ fun ResumeDetailScreen(
                                         }
                                         Spacer(Modifier.height(8.dp))
                                         Text(
-                                            "Created ${formatDate(resume.dateCreated)} · Modified ${formatDate(resume.lastModified)}",
+                                            stringResource(R.string.created_modified, formatDate(resume.dateCreated), formatDate(resume.lastModified)),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -132,13 +133,13 @@ fun ResumeDetailScreen(
                             }
 
                             item {
-                                Text("Versions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.versions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             }
                             if (state.versions.isEmpty()) {
                                 item {
                                     AivanceEmptyState(
-                                        title = "No versions",
-                                        description = "Save a new version from the Resume studio to track iterations.",
+                                        title = stringResource(R.string.no_versions),
+                                        description = stringResource(R.string.no_versions_desc),
                                         icon = Icons.Rounded.History,
                                         compact = true
                                     )
@@ -158,14 +159,14 @@ fun ResumeDetailScreen(
                                             Column(Modifier.weight(1f)) {
                                                 Text(version.versionName, fontWeight = FontWeight.SemiBold)
                                                 Text(
-                                                    "Modified ${formatDate(version.lastModified)}",
+                                                    stringResource(R.string.modified, formatDate(version.lastModified)),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                             if (version.id == resume.primaryVersionId) {
                                                 Text(
-                                                    "Primary",
+                                                    stringResource(R.string.primary),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.primary,
                                                     fontWeight = FontWeight.Bold

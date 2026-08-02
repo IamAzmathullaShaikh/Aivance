@@ -60,18 +60,28 @@ class ResumeLocalDataSourceImpl @Inject constructor(
     override fun getVersionsForResume(resumeId: Long): Flow<List<ResumeVersion>> {
         return resumeDao.getVersionsForResume(resumeId).map { versions ->
             versions.map { v ->
-                // This is a bit inefficient for a stream, better to use @Relation in Room
-                // but for now keeping it simple.
-                v.toDomain()
+                // Load the sections for each version so callers (the Resume
+                // Engine's import step in particular) receive a fully hydrated
+                // version instead of an empty-shell Preview.
+                v.toDomain(resumeDao.getSectionsForVersion(v.id).first())
             }
         }
     }
 
     override suspend fun saveVersion(version: ResumeVersion): Long {
-        val entity = version.toEntity()
-        val sections = version.sections.map { it.toEntity(version.id) }
-        resumeDao.updateVersionWithSections(entity, sections)
-        return entity.id
+        // Insert the version row first and capture the real (auto-generated)
+        // id when this is a brand-new version, then write the sections under
+        // THAT id. The previous path passed the pre-insert id (0) to
+        // updateVersionWithSections, orphaning every section on a new version.
+        val id = if (version.id == 0L) {
+            resumeDao.insertVersion(version.toEntity())
+        } else {
+            resumeDao.insertVersion(version.toEntity())
+            version.id
+        }
+        resumeDao.deleteSectionsForVersion(id)
+        resumeDao.insertSections(version.sections.map { it.toEntity(id) })
+        return id
     }
 
     override suspend fun deleteVersion(version: ResumeVersion) {

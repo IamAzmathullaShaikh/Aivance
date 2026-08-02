@@ -14,13 +14,16 @@ import com.bangersoul.aivance.core.domain.usecase.resume.ExportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ParseResumeUseCase
+import com.bangersoul.aivance.core.domain.usecase.resume.StreamImproveSectionUseCase
 import com.bangersoul.aivance.core.common.model.AtsResult
 import com.bangersoul.aivance.core.common.model.ResumeAnalysis
 import com.bangersoul.aivance.core.util.PdfExporter
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -41,6 +44,7 @@ class ResumeEngineViewModelTest {
     private val mockParse: ParseResumeUseCase = mockk()
     private val mockCalculateAts: CalculateATSScoreUseCase = mockk()
     private val mockImprove: ImproveResumeUseCase = mockk()
+    private val mockStreamImprove: StreamImproveSectionUseCase = mockk()
     private val mockExport: ExportResumeUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
     private val mockPdfExporter: PdfExporter = mockk()
@@ -61,7 +65,7 @@ class ResumeEngineViewModelTest {
 
     private fun createViewModel() = ResumeEngineViewModel(
         mockRepository, mockImport, mockParse, mockCalculateAts,
-        mockImprove, mockExport, mockTrackEvent, mockPdfExporter, mockDocxExporter
+        mockImprove, mockStreamImprove, mockExport, mockTrackEvent, mockPdfExporter, mockDocxExporter
     )
 
     @Before
@@ -216,13 +220,11 @@ class ResumeEngineViewModelTest {
     }
 
     @Test
-    fun `improve section adds suggestion and accept applies it`() = runTest {
+    fun `improve section streams suggestion and accept applies it`() = runTest {
         coEvery { mockImport.invoke(any()) } returns Result.Success(1L)
         coEvery { mockRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(version)))
         coEvery { mockRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
-        coEvery { mockImprove.invoke(any()) } returns Result.Success(
-            version.copy(sections = listOf(section.copy(content = "Improved content")))
-        )
+        every { mockStreamImprove.stream(any()) } returns flowOf("Improved", " content")
 
         val viewModel = createViewModel()
         viewModel.onEvent(ResumeEngineEvent.ImportFile(mockk<Uri>()))
@@ -235,11 +237,32 @@ class ResumeEngineViewModelTest {
 
         val optimizing = viewModel.state.value as ResumeEngineState.Optimizing
         assertEquals("Improved content", optimizing.suggestions["Experience"])
+        // Live streaming content is cleared once the full suggestion lands.
+        assertEquals(null, optimizing.streamingContent)
 
         viewModel.onEvent(ResumeEngineEvent.AcceptSuggestion("Experience"))
         val updated = viewModel.state.value as ResumeEngineState.Optimizing
         assertEquals("Improved content", updated.version.sections.first().content)
         assertTrue(updated.suggestions.isEmpty())
+    }
+
+    @Test
+    fun `improve section failure enters error`() = runTest {
+        coEvery { mockImport.invoke(any()) } returns Result.Success(1L)
+        coEvery { mockRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(version)))
+        coEvery { mockRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
+        every { mockStreamImprove.stream(any()) } returns flow { throw RuntimeException("AI down") }
+
+        val viewModel = createViewModel()
+        viewModel.onEvent(ResumeEngineEvent.ImportFile(mockk<Uri>()))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onEvent(ResumeEngineEvent.ContinueFromPreview)
+        viewModel.onEvent(ResumeEngineEvent.SkipAts)
+
+        viewModel.onEvent(ResumeEngineEvent.ImproveSection("Experience"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value is ResumeEngineState.Error)
     }
 
     @Test

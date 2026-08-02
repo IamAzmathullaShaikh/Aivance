@@ -64,8 +64,14 @@ class ResumeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun importResume(uri: Uri): CoreResult<Long> = runCatchingCore {
-        val fileName = uri.lastPathSegment ?: "Imported Resume"
-        val extension = fileName.substringAfterLast(".", "").lowercase()
+        val fileName = resolveDisplayName(uri) ?: uri.lastPathSegment ?: "Imported Resume"
+        var extension = fileName.substringAfterLast(".", "").lowercase()
+        if (extension.isBlank()) {
+            // Picker content:// URIs rarely expose the filename via lastPathSegment
+            // (they return an opaque numeric document id), so fall back to the MIME
+            // type when the resolved name has no extension.
+            extension = mimeTypeToExtension(context.contentResolver.getType(uri))
+        }
 
         val extractedText: String = when (extension) {
             "pdf" -> com.bangersoul.aivance.core.util.PdfTextExtractor.extractTextFromPdf(context, uri)
@@ -89,6 +95,33 @@ class ResumeRepositoryImpl @Inject constructor(
         parseResume(id)
 
         id
+    }
+
+    /**
+     * Resolves the real file name for a picker URI. content:// URIs hide the
+     * filename in ContentResolver metadata (OpenableColumns.DISPLAY_NAME);
+     * lastPathSegment alone is typically an opaque document id, which is why
+     * valid PDFs picked from the system picker were rejected as unsupported.
+     */
+    private fun resolveDisplayName(uri: Uri): String? {
+        return try {
+            context.contentResolver.query(
+                uri,
+                arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+                null, null, null
+            )?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun mimeTypeToExtension(mime: String?): String = when (mime?.lowercase()) {
+        "application/pdf" -> "pdf"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> "docx"
+        else -> ""
     }
 
     override suspend fun parseResume(resumeId: Long): CoreResult<Unit> = runCatchingCore {

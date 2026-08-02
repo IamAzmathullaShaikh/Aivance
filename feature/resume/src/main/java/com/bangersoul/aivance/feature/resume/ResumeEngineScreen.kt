@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -71,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bangersoul.aivance.core.common.model.ResumeAnalysis
@@ -90,7 +92,8 @@ import java.util.Locale
 private const val MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024L
 
 private val ENGINE_STEPS = listOf(
-    "Import", "Parsing", "Preview", "ATS", "Optimize", "Save", "Export"
+    R.string.step_import, R.string.step_parsing, R.string.step_preview,
+    R.string.step_ats, R.string.step_optimize, R.string.step_save, R.string.step_export
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -127,9 +130,9 @@ fun ResumeEngineScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Resume Engine", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.resume_engine_title), fontWeight = FontWeight.Bold)
                         Text(
-                            "Import → Optimize → Export",
+                            stringResource(R.string.resume_engine_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -140,7 +143,7 @@ fun ResumeEngineScreen(
                         if (state is ResumeEngineState.Import) onBack()
                         else viewModel.onEvent(ResumeEngineEvent.Back)
                     }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -181,6 +184,7 @@ fun ResumeEngineScreen(
                     is ResumeEngineState.Optimizing -> OptimizingStep(
                         version = current.version,
                         sectionInProgress = current.sectionInProgress,
+                        streamingContent = current.streamingContent,
                         suggestions = current.suggestions,
                         onImprove = { viewModel.onEvent(ResumeEngineEvent.ImproveSection(it)) },
                         onAccept = { viewModel.onEvent(ResumeEngineEvent.AcceptSuggestion(it)) },
@@ -276,7 +280,7 @@ private fun EngineStepper(currentStep: Int) {
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = label,
+                    text = stringResource(label),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                     color = if (isActive) MaterialTheme.colorScheme.primary
@@ -311,7 +315,7 @@ private fun ImportStep(
             if (uri != null) {
                 val (name, size) = resolveFileMeta(context, uri)
                 if (size != null && size > MAX_FILE_SIZE_BYTES) {
-                    sizeError = "File exceeds the 10MB limit."
+                    sizeError = context.getString(R.string.file_too_large)
                 } else {
                     sizeError = null
                     cameraNote = null
@@ -328,7 +332,7 @@ private fun ImportStep(
             if (uri != null) {
                 val (name, size) = resolveFileMeta(context, uri)
                 if (size != null && size > MAX_FILE_SIZE_BYTES) {
-                    sizeError = "File exceeds the 10MB limit."
+                    sizeError = context.getString(R.string.file_too_large)
                 } else {
                     sizeError = null
                     cameraNote = null
@@ -353,14 +357,14 @@ private fun ImportStep(
                             if (extracted.isNotBlank()) {
                                 onOcrTextExtracted(extracted)
                             } else {
-                                cameraNote = "No text found in the photo. Try a clearer image or use PDF/DOCX."
+                                cameraNote = context.getString(R.string.no_text_found)
                             }
                         }
                         .addOnFailureListener {
-                            cameraNote = "OCR failed: ${it.message ?: "unknown error"}. Use PDF/DOCX instead."
+                            cameraNote = context.getString(R.string.ocr_failed, it.message ?: context.getString(R.string.unknown_error))
                         }
                 } catch (e: Exception) {
-                    cameraNote = "Failed to load camera image for OCR: ${e.message}"
+                    cameraNote = context.getString(R.string.ocr_load_failed, e.message ?: context.getString(R.string.unknown_error))
                 }
             }
         }
@@ -371,9 +375,9 @@ private fun ImportStep(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("Step 1 — Import", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.import_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                "Pick a PDF or DOCX resume, or scan a new one. Files up to 10MB.",
+                stringResource(R.string.import_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -382,7 +386,7 @@ private fun ImportStep(
         item {
             ImportOptionCard(
                 icon = Icons.Rounded.Description,
-                title = "Pick PDF",
+                title = stringResource(R.string.pick_pdf),
                 subtitle = "application/pdf",
                 onClick = {
                     sizeError = null
@@ -393,8 +397,8 @@ private fun ImportStep(
         item {
             ImportOptionCard(
                 icon = Icons.Rounded.DocumentScanner,
-                title = "Pick DOCX",
-                subtitle = "Word documents",
+                title = stringResource(R.string.pick_docx),
+                subtitle = stringResource(R.string.docx_subtitle),
                 onClick = {
                     sizeError = null
                     docxLauncher.launch(
@@ -408,8 +412,8 @@ private fun ImportStep(
         item {
             ImportOptionCard(
                 icon = Icons.Rounded.PhotoCamera,
-                title = "Scan with Camera",
-                subtitle = "Capture a resume with your camera",
+                title = stringResource(R.string.scan_camera),
+                subtitle = stringResource(R.string.scan_camera_subtitle),
                 onClick = {
                     sizeError = null
                     val file = File(context.cacheDir, "camera_resume_${System.currentTimeMillis()}.jpg")
@@ -438,7 +442,7 @@ private fun ImportStep(
                         Column {
                             Text(selectedName ?: "", fontWeight = FontWeight.SemiBold)
                             Text(
-                                if (selectedSize != null) formatFileSize(selectedSize!!) else "Size unknown",
+                                if (selectedSize != null) formatFileSize(selectedSize!!) else stringResource(R.string.size_unknown),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -449,7 +453,7 @@ private fun ImportStep(
                             selectedSize = null
                             cameraNote = null
                         }) {
-                            Icon(Icons.Rounded.Close, contentDescription = "Remove file")
+                            Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.remove_file))
                         }
                     }
                 }
@@ -475,7 +479,7 @@ private fun ImportStep(
         item {
             Spacer(Modifier.height(8.dp))
             AivancePrimaryButton(
-                text = "Continue",
+                text = stringResource(R.string.continue_button),
                 onClick = { selectedUri?.let(onFileImported) },
                 modifier = Modifier.fillMaxWidth(),
                 icon = Icons.Rounded.FileUpload,
@@ -483,7 +487,7 @@ private fun ImportStep(
             )
             Spacer(Modifier.height(8.dp))
             AivanceSecondaryButton(
-                text = "Cancel",
+                text = stringResource(R.string.cancel),
                 onClick = onExit,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -506,7 +510,7 @@ private fun resolveFileMeta(context: android.content.Context, uri: Uri): FileMet
         }
     }
     return FileMeta(
-        name ?: uri.lastPathSegment ?: "Imported resume",
+        name ?: uri.lastPathSegment ?: context.getString(R.string.imported_resume),
         size
     )
 }
@@ -563,10 +567,10 @@ private fun ParsingStep(progress: Float) {
             progress = { animated.value }
         )
         Spacer(Modifier.height(24.dp))
-        Text("Parsing your resume…", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.parsing_resume), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Extracting sections and structure",
+            stringResource(R.string.extracting_sections),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -593,15 +597,15 @@ private fun PreviewStep(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("Step 3 — Preview", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.preview_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                "Found ${version.sections.size} sections. Tap a section to expand and edit its raw text.",
+                stringResource(R.string.preview_subtitle, version.sections.size),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(8.dp))
             StatusChip(
-                text = "${version.sections.size} sections detected",
+                text = stringResource(R.string.sections_detected, version.sections.size),
                 tone = BannerTone.SUCCESS
             )
             Spacer(Modifier.height(8.dp))
@@ -628,7 +632,7 @@ private fun PreviewStep(
                         }) {
                             Icon(
                                 if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                contentDescription = if (isExpanded) "Collapse" else "Expand"
+                                contentDescription = if (isExpanded) stringResource(R.string.collapse) else stringResource(R.string.expand)
                             )
                         }
                     }
@@ -647,7 +651,7 @@ private fun PreviewStep(
         item {
             Spacer(Modifier.height(8.dp))
             AivancePrimaryButton(
-                text = "Looks good, continue",
+                text = stringResource(R.string.looks_good),
                 onClick = onContinue,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -666,9 +670,9 @@ private fun AtsScanStep(
     onSkip: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Step 4 — ATS Scan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.ats_scan_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(
-            "Paste the job description to check your match.",
+            stringResource(R.string.ats_scan_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -676,19 +680,19 @@ private fun AtsScanStep(
         OutlinedTextField(
             value = jdText,
             onValueChange = onJdTextChange,
-            label = { Text("Job Description") },
+            label = { Text(stringResource(R.string.job_description)) },
             modifier = Modifier.fillMaxWidth().height(280.dp),
-            placeholder = { Text("Company requirements, skills, responsibilities…") }
+            placeholder = { Text(stringResource(R.string.jd_placeholder)) }
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Needs at least 50 characters. ATS score recalculates on demand.",
+            stringResource(R.string.ats_hint),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.weight(1f))
         AivancePrimaryButton(
-            text = "Run ATS Scan",
+            text = stringResource(R.string.run_ats_scan),
             onClick = onRunScan,
             modifier = Modifier.fillMaxWidth(),
             icon = Icons.Rounded.Search,
@@ -696,7 +700,7 @@ private fun AtsScanStep(
         )
         Spacer(Modifier.height(8.dp))
         AivanceSecondaryButton(
-            text = "Skip ATS Scan",
+            text = stringResource(R.string.skip_ats_scan),
             onClick = onSkip,
             modifier = Modifier.fillMaxWidth()
         )
@@ -718,7 +722,7 @@ private fun AtsResultStep(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text("ATS Match Report", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.ats_match_report), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -731,12 +735,12 @@ private fun AtsResultStep(
                 ) {
                     ScoreGauge(score = score, size = 100.dp)
                     Column {
-                        Text("Overall ATS Score", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.overall_ats_score), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         StatusChip(
                             text = when {
-                                score > 80 -> "Ready to apply"
-                                score > 50 -> "Needs improvement"
-                                else -> "Weak match"
+                                score > 80 -> stringResource(R.string.ready_to_apply)
+                                score > 50 -> stringResource(R.string.needs_improvement)
+                                else -> stringResource(R.string.weak_match)
                             },
                             tone = when {
                                 score > 80 -> BannerTone.SUCCESS
@@ -750,11 +754,11 @@ private fun AtsResultStep(
         }
 
         item {
-            Text("Keywords", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.keywords), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             if (analysis.matchingKeywords.isEmpty() && analysis.missingKeywords.isEmpty()) {
                 Text(
-                    "No keyword analysis available.",
+                    stringResource(R.string.no_keyword_analysis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -771,7 +775,7 @@ private fun AtsResultStep(
 
         if (analysis.suggestions.isNotEmpty()) {
             item {
-                Text("Improvement Suggestions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.improvement_suggestions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
             }
             items(analysis.suggestions) { suggestion ->
@@ -791,7 +795,7 @@ private fun AtsResultStep(
         item {
             Spacer(Modifier.height(8.dp))
             AivancePrimaryButton(
-                text = "Continue to Optimization",
+                text = stringResource(R.string.continue_to_optimization),
                 onClick = onContinue,
                 modifier = Modifier.fillMaxWidth(),
                 icon = Icons.Rounded.AutoAwesome
@@ -807,6 +811,7 @@ private fun AtsResultStep(
 private fun OptimizingStep(
     version: ResumeVersion,
     sectionInProgress: String?,
+    streamingContent: String?,
     suggestions: Map<String, String>,
     onImprove: (String) -> Unit,
     onAccept: (String) -> Unit,
@@ -824,9 +829,9 @@ private fun OptimizingStep(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text("Step 5 — AI Optimization", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.optimize_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
-                "Improve each section with AI, then accept or discard the suggestion.",
+                stringResource(R.string.optimize_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -855,7 +860,7 @@ private fun OptimizingStep(
                             IconButton(onClick = { onImprove(section.title) }) {
                                 Icon(
                                     Icons.Rounded.AutoAwesome,
-                                    contentDescription = "Improve with AI",
+                                    contentDescription = stringResource(R.string.improve_with_ai),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -864,11 +869,16 @@ private fun OptimizingStep(
 
                     if (isImproving) {
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Improving with AI…",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // Live token stream — the section's improved text as it arrives.
+                        if (!streamingContent.isNullOrEmpty()) {
+                            StreamingOptimizationText(streamingContent)
+                        } else {
+                            Text(
+                                stringResource(R.string.improving_with_ai),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     } else {
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -885,7 +895,7 @@ private fun OptimizingStep(
                             ) {
                                 Column(Modifier.padding(12.dp)) {
                                     Text(
-                                        "AI suggestion",
+                                        stringResource(R.string.ai_suggestion),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.Bold
@@ -895,12 +905,12 @@ private fun OptimizingStep(
                                     Spacer(Modifier.height(8.dp))
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         AivancePrimaryButton(
-                                            text = "Accept",
+                                            text = stringResource(R.string.accept),
                                             onClick = { onAccept(section.title) },
                                             icon = Icons.Rounded.Check
                                         )
                                         AivanceSecondaryButton(
-                                            text = "Discard",
+                                            text = stringResource(R.string.discard),
                                             onClick = { onDiscard(section.title) },
                                             icon = Icons.Rounded.Close
                                         )
@@ -918,19 +928,47 @@ private fun OptimizingStep(
             OutlinedTextField(
                 value = versionName,
                 onValueChange = { versionName = it },
-                label = { Text("Version name (optional)") },
-                placeholder = { Text("e.g. v2 — ${SimpleDateFormat("MMM d", Locale.getDefault()).format(Date())}") },
+                label = { Text(stringResource(R.string.version_name_optional)) },
+                placeholder = {
+                    Text(stringResource(R.string.version_name_placeholder, SimpleDateFormat("MMM d", Locale.getDefault()).format(Date())))
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
             AivancePrimaryButton(
-                text = "Save Version & Continue",
+                text = stringResource(R.string.save_version_continue),
                 onClick = { onSave(versionName) },
                 modifier = Modifier.fillMaxWidth(),
                 icon = Icons.Rounded.Save
             )
             Spacer(Modifier.height(48.dp))
         }
+    }
+}
+
+/** Live streaming text with a blinking caret (real token stream). */
+@Composable
+private fun StreamingOptimizationText(content: String) {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "optimizeCaret")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(420),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "optimizeCaretAlpha"
+    )
+    Row {
+        Text(
+            text = content,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "▌",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+        )
     }
 }
 
@@ -962,10 +1000,10 @@ private fun SavingStep() {
     ) {
         CircularProgressIndicator(modifier = Modifier.size(48.dp), strokeWidth = 5.dp)
         Spacer(Modifier.height(16.dp))
-        Text("Saving version…", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.saving_version), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Storing the optimized version in your library",
+            stringResource(R.string.storing_version),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -989,32 +1027,32 @@ private fun ExportStep(
             Column(Modifier.padding(20.dp)) {
                 Icon(Icons.Rounded.Check, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
                 Spacer(Modifier.height(8.dp))
-                Text("Version saved!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.version_saved), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    "\"$versionName\" is ready to export.",
+                    stringResource(R.string.version_ready_export, versionName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
         Spacer(Modifier.height(24.dp))
-        Text("Step 7 — Export", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.export_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
         AivancePrimaryButton(
-            text = "Export as PDF",
+            text = stringResource(R.string.export_as_pdf),
             onClick = onExportPdf,
             modifier = Modifier.fillMaxWidth(),
             icon = Icons.Rounded.FileDownload
         )
         Spacer(Modifier.height(8.dp))
         AivanceSecondaryButton(
-            text = "Export as DOCX",
+            text = stringResource(R.string.export_as_docx),
             onClick = onExportDocx,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(16.dp))
         AivancePrimaryButton(
-            text = "Done",
+            text = stringResource(R.string.done),
             onClick = onDone,
             modifier = Modifier.fillMaxWidth()
         )
@@ -1039,7 +1077,7 @@ private fun ErrorStep(
     ) {
         Icon(Icons.Rounded.Close, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(16.dp))
-        Text("$step failed", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.step_failed, step), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text(
             message,
@@ -1049,13 +1087,13 @@ private fun ErrorStep(
         )
         Spacer(Modifier.height(24.dp))
         if (canRetry) {
-            AivancePrimaryButton(text = "Retry", onClick = onRetry, modifier = Modifier.fillMaxWidth())
+            AivancePrimaryButton(text = stringResource(R.string.retry), onClick = onRetry, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            AivanceSecondaryButton(text = "Back", onClick = onBack, modifier = Modifier.fillMaxWidth())
+            AivanceSecondaryButton(text = stringResource(R.string.back), onClick = onBack, modifier = Modifier.fillMaxWidth())
         } else {
             // For ATS/Optimization/Save failures Retry would only step back, so
             // surface a single honest "Back" action instead.
-            AivancePrimaryButton(text = "Back", onClick = onBack, modifier = Modifier.fillMaxWidth())
+            AivancePrimaryButton(text = stringResource(R.string.back), onClick = onBack, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -1068,7 +1106,7 @@ private fun shareResumePdf(context: android.content.Context, uri: Uri) {
         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     if (shareIntent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(android.content.Intent.createChooser(shareIntent, "Export Resume"))
+        context.startActivity(android.content.Intent.createChooser(shareIntent, context.getString(R.string.export_resume)))
     }
 }
 
@@ -1094,7 +1132,7 @@ private fun shareResumeFile(context: android.content.Context, text: String, file
         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     if (shareIntent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(android.content.Intent.createChooser(shareIntent, "Export Resume"))
+        context.startActivity(android.content.Intent.createChooser(shareIntent, context.getString(R.string.export_resume)))
     }
 }
 

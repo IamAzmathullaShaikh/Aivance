@@ -22,6 +22,8 @@ import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeRequest
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ParseResumeUseCase
+import com.bangersoul.aivance.core.domain.usecase.resume.StreamImproveSectionRequest
+import com.bangersoul.aivance.core.domain.usecase.resume.StreamImproveSectionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +57,10 @@ sealed interface ResumeEngineState {
         val version: ResumeVersion,
         val jdText: String = "",
         val sectionInProgress: String? = null,
+        /** Live token stream for the section currently being improved — rendered
+         *  with a typewriter effect inside the section card. Cleared once the
+         *  full suggestion lands in [suggestions]. */
+        val streamingContent: String? = null,
         val suggestions: Map<String, String> = emptyMap()
     ) : ResumeEngineState
     data class Saving(val resume: Resume, val version: ResumeVersion) : ResumeEngineState
@@ -102,6 +108,7 @@ class ResumeEngineViewModel @Inject constructor(
     private val parseResumeUseCase: ParseResumeUseCase,
     private val calculateATSScoreUseCase: CalculateATSScoreUseCase,
     private val improveResumeUseCase: ImproveResumeUseCase,
+    private val streamImproveSectionUseCase: StreamImproveSectionUseCase,
     private val exportResumeUseCase: ExportResumeUseCase,
     private val trackEventUseCase: TrackEventUseCase,
     private val pdfExporter: PdfExporter,
@@ -211,7 +218,30 @@ class ResumeEngineViewModel @Inject constructor(
             val resume = (resumeRepository.getResumeById(resumeId).firstOrNull() as? Result.Success)?.data
                 ?: Resume(id = resumeId, name = "Imported Resume")
             if (version == null) {
-                enterError("Parsing", "No resume sections were found in the file.")
+                // The parser now guarantees at least a heuristic section, but
+                // stay resilient: if no version exists (e.g. extraction produced
+                // nothing) fall back to a single Summary section of the raw text
+                // rather than dead-ending the user on a parsing error.
+                val rawText = resume.rawText
+                if (rawText.isNullOrBlank()) {
+                    enterError("Parsing", "No resume sections were found in the file.")
+                    return@launch
+                }
+                val fallback = ResumeVersion(
+                    resumeId = resumeId,
+                    versionName = "Imported Content",
+                    sections = listOf(
+                        ResumeSection(
+                            sectionType = "summary",
+                            title = "Summary",
+                            content = rawText.trim(),
+                            sectionOrder = 0
+                        )
+                    )
+                )
+                workingVersion = fallback
+                _state.value = ResumeEngineState.Preview(resume, fallback)
+                trackEventUseCase(TrackEventRequest("resume_engine_parsed"))
                 return@launch
             }
             workingVersion = version
@@ -291,28 +321,34 @@ class ResumeEngineViewModel @Inject constructor(
     private fun improveSection(sectionTitle: String) {
         val current = _state.value as? ResumeEngineState.Optimizing ?: return
         if (current.sectionInProgress != null) return
-        _state.value = current.copy(sectionInProgress = sectionTitle)
+        _state.value = current.copy(sectionInProgress = sectionTitle, streamingContent = "")
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest("resume_engine_improve"))
-            val result = improveResumeUseCase(
-                ImproveResumeRequest(
-                    resumeId = current.resume.id,
-                    versionId = current.version.id,
-                    jobDescription = current.jdText.ifBlank { null },
-                    feedback = "Focus on making the '${sectionTitle}' section stronger and more impactful."
-                )
-            )
-            val latest = _state.value as? ResumeEngineState.Optimizing ?: return@launch
-            when (result) {
-                is Result.Success -> {
-                    val improvedSection = result.data.sections.firstOrNull { it.title == sectionTitle }
-                    val improvedContent = improvedSection?.content ?: return@launch
+            var full = ""
+            try {
+                streamImproveSectionUseCase.stream(
+                    StreamImproveSectionRequest(
+                        resumeId = current.resume.id,
+                        versionId = current.version.id,
+                        sectionTitle = sectionTitle,
+                        jobDescription = current.jdText.ifBlank { null },
+                        feedback = "Focus on making the '${sectionTitle}' section stronger and more impactful."
+                    )
+                ).collect { chunk ->
+                    full += chunk
+                    val latest = _state.value as? ResumeEngineState.Optimizing ?: return@collect
                     _state.value = latest.copy(
-                        sectionInProgress = null,
-                        suggestions = latest.suggestions + (sectionTitle to improvedContent)
+                        streamingContent = full
                     )
                 }
-                is Result.Failure -> enterError("Optimization", result.error.message)
+                val latest = _state.value as? ResumeEngineState.Optimizing ?: return@launch
+                _state.value = latest.copy(
+                    sectionInProgress = null,
+                    streamingContent = null,
+                    suggestions = latest.suggestions + (sectionTitle to full)
+                )
+            } catch (e: Exception) {
+                enterError("Optimization", e.message ?: "AI optimization failed")
             }
         }
     }
