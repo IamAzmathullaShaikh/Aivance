@@ -14,6 +14,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bangersoul.aivance.MainActivity
+import com.bangersoul.aivance.R
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
@@ -53,7 +54,6 @@ class UploadManager @Inject constructor(
 ) {
     companion object {
         private const val CHANNEL_ID = "uploads"
-        private const val CHANNEL_NAME = "File Uploads"
         private const val NOTIFICATION_ID_BASE = 2000
         private const val BUFFER_SIZE = 8192
         private const val MIN_PROGRESS_INTERVAL_MS = 500L
@@ -61,9 +61,9 @@ class UploadManager @Inject constructor(
 
     init {
         val channel = NotificationChannel(
-            CHANNEL_ID, CHANNEL_NAME,
+            CHANNEL_ID, context.getString(R.string.worker_uploads_channel_name),
             NotificationManager.IMPORTANCE_LOW
-        ).apply { description = "Upload progress notifications" }
+        ).apply { description = context.getString(R.string.worker_uploads_channel_desc) }
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(channel)
     }
@@ -79,7 +79,7 @@ class UploadManager @Inject constructor(
         serverUrl: String,
         uri: Uri,
         contentType: String = "application/pdf",
-        title: String = "Uploading file"
+        title: String = context.getString(R.string.worker_upload_title)
     ): UploadResult = withContext(Dispatchers.IO) {
         val notifId = NOTIFICATION_ID_BASE + UUID.randomUUID().hashCode().ushr(1) % 1000
         val notificationManager = NotificationManagerCompat.from(context)
@@ -94,7 +94,7 @@ class UploadManager @Inject constructor(
         try {
             val contentResolver: ContentResolver = context.contentResolver
             val inputStream: InputStream = contentResolver.openInputStream(uri)
-                ?: return@withContext UploadResult.Failure("Cannot open file")
+                ?: return@withContext UploadResult.Failure(context.getString(R.string.worker_upload_cannot_open))
 
             val fileBytes = inputStream.readBytes()
             inputStream.close()
@@ -167,7 +167,7 @@ class UploadManager @Inject constructor(
             return@withContext if (response.isSuccessful) {
                 val successNotif = NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.stat_sys_upload_done)
-                    .setContentTitle("Upload Complete")
+                    .setContentTitle(context.getString(R.string.worker_upload_complete))
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .build()
@@ -187,8 +187,8 @@ class UploadManager @Inject constructor(
             } else {
                 val errorNotif = NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.stat_notify_error)
-                    .setContentTitle("Upload Failed")
-                    .setContentText("Server error: ${response.code}")
+                    .setContentTitle(context.getString(R.string.worker_upload_failed))
+                    .setContentText(context.getString(R.string.worker_upload_server_error, response.code))
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .build()
@@ -204,15 +204,15 @@ class UploadManager @Inject constructor(
                         Timber.w(e, "Failed to post failure notification")
                     }
                 }
-                UploadResult.Failure("HTTP ${response.code}: ${response.message}")
+                UploadResult.Failure(context.getString(R.string.worker_upload_http_error, response.code, response.message))
             }
 
         } catch (e: Exception) {
             Timber.e(e, "Upload failed")
             val errorNotif = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_notify_error)
-                .setContentTitle("Upload Failed")
-                .setContentText(e.message ?: "Unknown error")
+                .setContentTitle(context.getString(R.string.worker_upload_failed))
+                .setContentText(e.message ?: context.getString(R.string.worker_unknown_error))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .build()

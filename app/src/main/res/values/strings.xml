@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">Aivance</string>
+
+    <!-- DownloadManager worker -->
+    <string name="worker_downloads_channel_name">File Downloads</string>
+    <string name="worker_downloads_channel_desc">Download progress notifications</string>
+    <string name="worker_download_title">Downloading file</string>
+    <string name="worker_download_complete">Download Complete</string>
+    <string name="worker_download_failed">Download Failed</string>
+    <string name="worker_unknown_error">Unknown error</string>
+
+    <!-- UploadManager worker -->
+    <string name="worker_uploads_channel_name">File Uploads</string>
+    <string name="worker_uploads_channel_desc">Upload progress notifications</string>
+    <string name="worker_upload_title">Uploading file</string>
+    <string name="worker_upload_complete">Upload Complete</string>
+    <string name="worker_upload_failed">Upload Failed</string>
+    <string name="worker_upload_cannot_open">Cannot open file</string>
+    <string name="worker_upload_server_error">Server error: %1$d</string>
+    <string name="worker_upload_http_error">HTTP %1$d: %2$s</string>
+
+    <!-- FollowUpWorker -->
+    <string name="worker_followup_title">Follow-up Reminder</string>
+    <string name="worker_followup_message">It\'s been 3 days since you applied to %1$s. Consider following up!</string>
 </resources>

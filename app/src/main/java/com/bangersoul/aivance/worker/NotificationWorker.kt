@@ -11,6 +11,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import com.bangersoul.aivance.MainActivity
+import com.bangersoul.aivance.R
 import com.bangersoul.aivance.core.util.NotificationHelper
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -47,7 +48,7 @@ class NotificationWorker @AssistedInject constructor(
             ?.let { try { NotificationType.valueOf(it) } catch (_: Exception) { null } }
             ?: return ListenableWorker.Result.failure()
 
-        val title = inputData.getString(EXTRA_TITLE) ?: "Aivance"
+        val title = inputData.getString(EXTRA_TITLE) ?: appContext.getString(R.string.app_name)
         val message = inputData.getString(EXTRA_MESSAGE) ?: ""
         val deepLinkUri = inputData.getString(EXTRA_DEEP_LINK)
 

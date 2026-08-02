@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
+import com.bangersoul.aivance.R
 import com.bangersoul.aivance.core.database.dao.TrackerDao
 import com.bangersoul.aivance.core.util.NotificationHelper
 import dagger.assisted.Assisted
@@ -35,8 +36,8 @@ class FollowUpWorker @AssistedInject constructor(
             if (isStale) {
                 notificationHelper.showFollowUpNotification(
                     id = app.application.id.toInt(),
-                    title = "Follow-up Reminder",
-                    message = "It's been 3 days since you applied to ${app.job.company.name}. Consider following up!"
+                    title = applicationContext.getString(R.string.worker_followup_title),
+                    message = applicationContext.getString(R.string.worker_followup_message, app.job.company.name)
                 )
             }
         }

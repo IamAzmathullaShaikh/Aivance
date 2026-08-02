@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Aivance</string>
+
+    <!-- DownloadManager worker -->
+    <string name="worker_downloads_channel_name">फ़ाइल डाउनलोड</string>
+    <string name="worker_downloads_channel_desc">डाउनलोड प्रगति सूचनाएं</string>
+    <string name="worker_download_title">फ़ाइल डाउनलोड हो रही है</string>
+    <string name="worker_download_complete">डाउनलोड पूर्ण</string>
+    <string name="worker_download_failed">डाउनलोड विफल</string>
+    <string name="worker_unknown_error">अज्ञात त्रुटि</string>
+
+    <!-- UploadManager worker -->
+    <string name="worker_uploads_channel_name">फ़ाइल अपलोड</string>
+    <string name="worker_uploads_channel_desc">अपलोड प्रगति सूचनाएं</string>
+    <string name="worker_upload_title">फ़ाइल अपलोड हो रही है</string>
+    <string name="worker_upload_complete">अपलोड पूर्ण</string>
+    <string name="worker_upload_failed">अपलोड विफल</string>
+    <string name="worker_upload_cannot_open">फ़ाइल नहीं खोल सकते</string>
+    <string name="worker_upload_server_error">सर्वर त्रुटि: %1$d</string>
+    <string name="worker_upload_http_error">HTTP %1$d: %2$s</string>
+
+    <!-- FollowUpWorker -->
+    <string name="worker_followup_title">फ़ॉलो-अप अनुस्मारक</string>
+    <string name="worker_followup_message">%1$s में आवेदन किए 3 दिन हो गए हैं। फ़ॉलो-अप करने पर विचार करें!</string>
+</resources>

@@ -10,6 +10,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bangersoul.aivance.MainActivity
+import com.bangersoul.aivance.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.Manifest
 import androidx.core.content.ContextCompat
@@ -39,7 +40,6 @@ class DownloadManager @Inject constructor(
 ) {
     companion object {
         private const val CHANNEL_ID = "downloads"
-        private const val CHANNEL_NAME = "File Downloads"
         private const val NOTIFICATION_ID_BASE = 1000
         private const val BUFFER_SIZE = 8192
     }
@@ -47,9 +47,9 @@ class DownloadManager @Inject constructor(
     init {
         // minSdk is 26, so NotificationChannel is always available.
         val channel = NotificationChannel(
-            CHANNEL_ID, CHANNEL_NAME,
+            CHANNEL_ID, context.getString(R.string.worker_downloads_channel_name),
             NotificationManager.IMPORTANCE_LOW
-        ).apply { description = "Download progress notifications" }
+        ).apply { description = context.getString(R.string.worker_downloads_channel_desc) }
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(channel)
     }
@@ -67,7 +67,7 @@ class DownloadManager @Inject constructor(
     suspend fun downloadFile(
         url: String,
         fileName: String? = null,
-        title: String = "Downloading file"
+        title: String = context.getString(R.string.worker_download_title)
     ): File? = withContext(Dispatchers.IO) {
         val notifId = NOTIFICATION_ID_BASE + UUID.randomUUID().hashCode().ushr(1) % 1000
         val notificationManager = NotificationManagerCompat.from(context)
@@ -123,7 +123,7 @@ class DownloadManager @Inject constructor(
             // Success notification
             val successNotification = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
-                .setContentTitle("Download Complete")
+                .setContentTitle(context.getString(R.string.worker_download_complete))
                 .setContentText(safeFileName)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
@@ -141,8 +141,8 @@ class DownloadManager @Inject constructor(
             Timber.e(e, "Download failed: %s", url)
             val errorNotification = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_notify_error)
-                .setContentTitle("Download Failed")
-                .setContentText(e.message ?: "Unknown error")
+                .setContentTitle(context.getString(R.string.worker_download_failed))
+                .setContentText(e.message ?: context.getString(R.string.worker_unknown_error))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .build()
