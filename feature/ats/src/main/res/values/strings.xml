@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">Back</string>
+    <string name="ats_intelligence_title">ATS Intelligence</string>
+    <string name="analyzing_match">Analyzing match…</string>
+    <string name="analyzing_sub">Tokens stream in live from your AI provider — the structured report appears when the analysis completes.</string>
+    <string name="waiting_response">Waiting for response…</string>
+    <string name="export_ats_report">Export ATS Report</string>
+    <string name="select_resume_analyze">Select Resume to Analyze</string>
+    <string name="import_resume_first">Import a resume from the Resume tab first.</string>
+    <string name="target_job">Target Job</string>
+    <string name="analyzing_against">Analyzing against: %1$s (%2$s)</string>
+    <string name="paste_job_description">Paste Job Description</string>
+    <string name="jd_placeholder">Company requirements, skills, responsibilities...</string>
+    <string name="auto_score_hint">Score updates automatically as you type (pauses briefly after each change).</string>
+    <string name="start_match_analysis">Start Match Analysis</string>
+    <string name="match_report">Match Report</string>
+    <string name="export_report">Export report</string>
+    <string name="new_scan">New Scan</string>
+    <string name="overall_ats_score">Overall ATS Score</string>
+    <string name="match_probability">%1$d%% Match Probability</string>
+    <string name="section_scores">Section Scores</string>
+    <string name="keyword_gap_analysis">Keyword Gap Analysis</string>
+    <string name="optimization_suggestions">Optimization Suggestions</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+    <string name="generate_tailored_cover_letter">Generate Tailored Cover Letter</string>
+</resources>

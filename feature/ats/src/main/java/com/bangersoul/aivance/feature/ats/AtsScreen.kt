@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -73,13 +74,22 @@ import java.io.File
 fun AtsScreen(
     viewModel: AtsViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToCoverLetter: () -> Unit = {}
+    onNavigateToCoverLetter: () -> Unit = {},
+    initialJobDescription: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val resumes by viewModel.resumes.collectAsState()
     val jdText by viewModel.jdText.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Prefill the JD when arriving from Job Details (the "AI Compatibility
+    // Check" button) so the user can scan against this job immediately.
+    LaunchedEffect(initialJobDescription) {
+        if (!initialJobDescription.isNullOrBlank()) {
+            viewModel.onEvent(AtsUiEvent.UpdateJobDescription(initialJobDescription))
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -94,10 +104,10 @@ fun AtsScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("ATS Intelligence", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.ats_intelligence_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -126,6 +136,7 @@ fun AtsScreen(
                         onAnalyze = { viewModel.onEvent(AtsUiEvent.Analyze(it)) },
                         onBack = { viewModel.onEvent(AtsUiEvent.Reset) }
                     )
+                    is AtsUiState.Analyzing -> AtsAnalyzingContent(streamingText = state.streamingText)
                     is AtsUiState.DisplayReport -> AtsReportContent(
                         report = state.report,
                         onNewScan = { viewModel.onEvent(AtsUiEvent.Reset) },
@@ -144,6 +155,37 @@ fun AtsScreen(
     }
 }
 
+/**
+ * Live streaming preview while the AI runs the analysis. Shows the raw tokens
+ * as they arrive with a pulsing caret, then the report card replaces it on
+ * completion.
+ */
+@Composable
+private fun AtsAnalyzingContent(streamingText: String) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            Text(stringResource(R.string.analyzing_match), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        Text(
+            stringResource(R.string.analyzing_sub),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        DashboardCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = streamingText.ifEmpty { stringResource(R.string.waiting_response) },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
+
 /** Writes [text] to a cache file and fires a share sheet so the report can be exported. */
 private fun shareReport(context: Context, text: String) {
     val file = File(context.cacheDir, "ats_report.txt")
@@ -156,7 +198,7 @@ private fun shareReport(context: Context, text: String) {
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     if (shareIntent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(Intent.createChooser(shareIntent, "Export ATS Report"))
+        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.export_ats_report)))
     }
 }
 
@@ -166,11 +208,11 @@ private fun ResumeSelectionStep(
     onSelect: (Resume, ResumeVersion) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-        Text("Select Resume to Analyze", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.select_resume_analyze), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
         if (resumes.isEmpty()) {
             Text(
-                "Import a resume from the Resume tab first.",
+                stringResource(R.string.import_resume_first),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -209,31 +251,31 @@ private fun JobDescriptionInputStep(
     onBack: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-        Text("Target Job", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text("Analyzing against: $resumeName ($versionName)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+        Text(stringResource(R.string.target_job), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.analyzing_against, resumeName, versionName), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(
             value = jdText,
             onValueChange = onJdTextChange,
-            label = { Text("Paste Job Description") },
+            label = { Text(stringResource(R.string.paste_job_description)) },
             modifier = Modifier.fillMaxWidth().height(300.dp),
-            placeholder = { Text("Company requirements, skills, responsibilities...") }
+            placeholder = { Text(stringResource(R.string.jd_placeholder)) }
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Score updates automatically as you type (pauses briefly after each change).",
+            stringResource(R.string.auto_score_hint),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.weight(1f))
         ActionButton(
-            text = "Start Match Analysis",
+            text = stringResource(R.string.start_match_analysis),
             onClick = { onAnalyze(jdText) },
             modifier = Modifier.fillMaxWidth(),
             enabled = jdText.length > 50
         )
         ActionButton(
-            text = "Back",
+            text = stringResource(R.string.back),
             onClick = onBack,
             modifier = Modifier.fillMaxWidth(),
             containerColor = Color.Transparent,
@@ -258,13 +300,13 @@ private fun AtsReportContent(
     ) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Match Report", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.match_report), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Row {
                     IconButton(onClick = onExportReport) {
-                        Icon(Icons.Rounded.FileDownload, contentDescription = "Export report")
+                        Icon(Icons.Rounded.FileDownload, contentDescription = stringResource(R.string.export_report))
                     }
                     ActionButton(
-                        text = "New Scan",
+                        text = stringResource(R.string.new_scan),
                         onClick = onNewScan,
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -278,15 +320,15 @@ private fun AtsReportContent(
                 Row(Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                     ScoreGauge(score = report.overallScore, size = 100.dp)
                     Column {
-                        Text("Overall ATS Score", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("${report.matchPercentage}% Match Probability", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.overall_ats_score), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.match_probability, report.matchPercentage), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
         }
 
         item {
-            Text("Section Scores", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.section_scores), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             report.sectionScores.forEach { (name, score) ->
                 Column(Modifier.padding(vertical = 4.dp)) {
@@ -306,7 +348,7 @@ private fun AtsReportContent(
         }
 
         item {
-            Text("Keyword Gap Analysis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.keyword_gap_analysis), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 report.matchedKeywords.forEach { KeywordChip(text = it, isMatched = true) }
@@ -315,7 +357,7 @@ private fun AtsReportContent(
         }
 
         item {
-            Text("Optimization Suggestions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.optimization_suggestions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
         }
 
@@ -347,7 +389,7 @@ private fun AtsReportContent(
                             }
                             Icon(
                                 imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                contentDescription = if (expanded) "Collapse" else "Expand",
+                                contentDescription = if (expanded) stringResource(R.string.collapse) else stringResource(R.string.expand),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -366,7 +408,7 @@ private fun AtsReportContent(
         item {
             Spacer(Modifier.height(32.dp))
             ActionButton(
-                text = "Generate Tailored Cover Letter",
+                text = stringResource(R.string.generate_tailored_cover_letter),
                 onClick = onGenerateCoverLetter,
                 modifier = Modifier.fillMaxWidth(),
                 icon = Icons.Rounded.HistoryEdu

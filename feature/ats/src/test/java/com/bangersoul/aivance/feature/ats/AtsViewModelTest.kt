@@ -5,11 +5,12 @@ import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.AtsStreamEvent
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.ats.AnalyzeJobDescriptionUseCase
-import com.bangersoul.aivance.core.domain.usecase.ats.PerformAtsAnalysisUseCase
+import com.bangersoul.aivance.core.domain.usecase.ats.StreamAtsAnalysisUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -34,7 +35,7 @@ class AtsViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val mockResumeRepository: ResumeRepository = mockk()
     private val mockAnalyzeJd: AnalyzeJobDescriptionUseCase = mockk()
-    private val mockPerformAts: PerformAtsAnalysisUseCase = mockk()
+    private val mockStreamAts: StreamAtsAnalysisUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: AtsViewModel
@@ -55,7 +56,7 @@ class AtsViewModelTest {
     }
 
     private fun createViewModel() =
-        AtsViewModel(mockResumeRepository, mockAnalyzeJd, mockPerformAts, mockTrackEvent)
+        AtsViewModel(mockResumeRepository, mockAnalyzeJd, mockStreamAts, mockTrackEvent)
 
     @Test
     fun `initial state is SelectingResume`() {
@@ -77,10 +78,14 @@ class AtsViewModelTest {
         "knowledge of coroutines, Hilt, Room, and CI/CD pipelines."
 
     @Test
-    fun `analyze success transitions to DisplayReport`() = runTest(testDispatcher) {
+    fun `analyze success streams chunks then transitions to DisplayReport`() = runTest(testDispatcher) {
         coEvery { mockAnalyzeJd.invoke(any()) } returns Result.Success(99L)
-        coEvery { mockPerformAts.invoke(any()) } returns Result.Success(
-            AtsReport(resumeVersionId = 1L, jobDescriptionId = 99L, overallScore = 85, matchPercentage = 80)
+        coEvery { mockStreamAts.invoke(any()) } returns flowOf(
+            AtsStreamEvent.Chunk("{\"overallScore\":85,"),
+            AtsStreamEvent.Chunk("\"matchPercentage\":80}"),
+            AtsStreamEvent.Completed(
+                AtsReport(resumeVersionId = 1L, jobDescriptionId = 99L, overallScore = 85, matchPercentage = 80)
+            )
         )
 
         viewModel = createViewModel()
@@ -95,8 +100,42 @@ class AtsViewModelTest {
     }
 
     @Test
+    fun `analyze streams chunks into Analyzing state before completion`() = runTest(testDispatcher) {
+        coEvery { mockAnalyzeJd.invoke(any()) } returns Result.Success(99L)
+        // Only chunks, no terminal event — the state should stay Analyzing.
+        coEvery { mockStreamAts.invoke(any()) } returns flowOf(
+            AtsStreamEvent.Chunk("token1 "),
+            AtsStreamEvent.Chunk("token2")
+        )
+
+        viewModel = createViewModel()
+        viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
+        viewModel.onEvent(AtsUiEvent.Analyze(longJd))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is AtsUiState.Analyzing)
+        assertEquals("token1 token2", (state as AtsUiState.Analyzing).streamingText)
+    }
+
+    @Test
     fun `analyze failure transitions to Error`() = runTest(testDispatcher) {
         coEvery { mockAnalyzeJd.invoke(any()) } returns Result.Failure(DomainError("AI parsing failed"))
+
+        viewModel = createViewModel()
+        viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
+        viewModel.onEvent(AtsUiEvent.Analyze(longJd))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value is AtsUiState.Error)
+    }
+
+    @Test
+    fun `stream failure transitions to Error`() = runTest(testDispatcher) {
+        coEvery { mockAnalyzeJd.invoke(any()) } returns Result.Success(99L)
+        coEvery { mockStreamAts.invoke(any()) } returns flowOf(
+            AtsStreamEvent.Failed("Provider unreachable")
+        )
 
         viewModel = createViewModel()
         viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))

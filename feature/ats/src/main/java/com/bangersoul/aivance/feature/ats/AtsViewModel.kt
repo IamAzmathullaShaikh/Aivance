@@ -6,12 +6,13 @@ import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.AtsStreamEvent
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.ats.AnalyzeJobDescriptionUseCase
 import com.bangersoul.aivance.core.domain.usecase.ats.AtsAnalysisRequest
-import com.bangersoul.aivance.core.domain.usecase.ats.PerformAtsAnalysisUseCase
+import com.bangersoul.aivance.core.domain.usecase.ats.StreamAtsAnalysisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -32,7 +33,9 @@ import javax.inject.Inject
 sealed interface AtsUiState {
     data object SelectingResume : AtsUiState
     data class InputJobDescription(val resume: Resume, val selectedVersion: ResumeVersion) : AtsUiState
-    data object Analyzing : AtsUiState
+
+    /** Live analysis — [streamingText] grows token-by-token as the AI responds. */
+    data class Analyzing(val streamingText: String = "") : AtsUiState
     data class DisplayReport(val report: AtsReport) : AtsUiState
     data class Error(val message: String) : AtsUiState
 }
@@ -42,7 +45,7 @@ sealed interface AtsUiState {
 class AtsViewModel @Inject constructor(
     private val resumeRepository: ResumeRepository,
     private val analyzeJobDescriptionUseCase: AnalyzeJobDescriptionUseCase,
-    private val performAtsAnalysisUseCase: PerformAtsAnalysisUseCase,
+    private val streamAtsAnalysisUseCase: StreamAtsAnalysisUseCase,
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
@@ -69,9 +72,10 @@ class AtsViewModel @Inject constructor(
      * either the selected resume version OR the job description changes:
      * the two inputs are combined, a JD under 50 chars is ignored, and the
      * pair is debounced 800ms after the last keystroke before re-running the
-     * full parse → match pipeline.
+     * full parse → match pipeline. Tokens stream into [AtsUiState.Analyzing]
+     * so the user sees the analysis as it happens.
      */
-    private val analysisFlow: Flow<Result<AtsReport>> =
+    private val analysisFlow: Flow<AtsStreamEvent> =
         combine(_selectedVersionId, _jdText) { versionId, jd ->
             if (versionId != null && jd.length > 50) Pair(versionId, jd) else null
         }
@@ -79,7 +83,7 @@ class AtsViewModel @Inject constructor(
             .debounce(800)
             .flatMapLatest { (versionId, jd) ->
                 flow {
-                    _uiState.value = AtsUiState.Analyzing
+                    _uiState.value = AtsUiState.Analyzing("")
                     trackEventUseCase(TrackEventRequest("ats_analyze_start"))
 
                     // Step 1: Parse the job description into a structured model.
@@ -93,23 +97,30 @@ class AtsViewModel @Inject constructor(
                         }
                     }
 
-                    // Step 2: Run the match analysis against the selected version.
+                    // Step 2: Stream the match analysis against the selected version.
                     val resumeId = currentResume?.id ?: return@flow
-                    emit(performAtsAnalysisUseCase(AtsAnalysisRequest(resumeId, versionId, jdId)))
+                    streamAtsAnalysisUseCase(AtsAnalysisRequest(resumeId, versionId, jdId))
+                        .collect { emit(it) }
                 }
             }
 
     init {
         loadResumes()
         viewModelScope.launch {
-            analysisFlow.collect { result ->
-                when (result) {
-                    is Result.Success -> {
-                        _uiState.value = AtsUiState.DisplayReport(result.data)
+            analysisFlow.collect { event ->
+                when (event) {
+                    is AtsStreamEvent.Chunk -> {
+                        val current = _uiState.value
+                        if (current is AtsUiState.Analyzing) {
+                            _uiState.value = current.copy(streamingText = current.streamingText + event.text)
+                        }
+                    }
+                    is AtsStreamEvent.Completed -> {
+                        _uiState.value = AtsUiState.DisplayReport(event.report)
                         trackEventUseCase(TrackEventRequest("ats_analyze_success"))
                     }
-                    is Result.Failure -> {
-                        _uiState.value = AtsUiState.Error("Analysis failed: ${result.error.message}")
+                    is AtsStreamEvent.Failed -> {
+                        _uiState.value = AtsUiState.Error("Analysis failed: ${event.message}")
                     }
                 }
             }
@@ -122,7 +133,9 @@ class AtsViewModel @Inject constructor(
             is AtsUiEvent.SelectResumeVersion -> {
                 currentResume = event.resume
                 _selectedVersionId.value = event.version.id
-                _jdText.value = ""
+                if (_jdText.value.isBlank()) {
+                    _jdText.value = ""
+                }
                 _uiState.value = AtsUiState.InputJobDescription(event.resume, event.version)
             }
             is AtsUiEvent.UpdateJobDescription -> {

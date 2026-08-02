@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">वापस</string>
+    <string name="ats_intelligence_title">ATS इंटेलिजेंस</string>
+    <string name="analyzing_match">मिलान का विश्लेषण हो रहा है…</string>
+    <string name="analyzing_sub">टोकन आपके AI प्रदाता से लाइव स्ट्रीम होते हैं — विश्लेषण पूरा होने पर संरचित रिपोर्ट दिखाई देती है।</string>
+    <string name="waiting_response">प्रतिक्रिया की प्रतीक्षा…</string>
+    <string name="export_ats_report">ATS रिपोर्ट निर्यात करें</string>
+    <string name="select_resume_analyze">विश्लेषण के लिए रिज़्यूमे चुनें</string>
+    <string name="import_resume_first">पहले रिज़्यूमे टैब से रिज़्यूमे आयात करें।</string>
+    <string name="target_job">लक्ष्य नौकरी</string>
+    <string name="analyzing_against">इसके विरुद्ध विश्लेषण: %1$s (%2$s)</string>
+    <string name="paste_job_description">नौकरी विवरण पेस्ट करें</string>
+    <string name="jd_placeholder">कंपनी की आवश्यकताएं, कौशल, जिम्मेदारियां...</string>
+    <string name="auto_score_hint">टाइप करते ही स्कोर स्वचालित रूप से अपडेट होता है (प्रत्येक बदलाव के बाद थोड़ी देर रुकता है)।</string>
+    <string name="start_match_analysis">मिलान विश्लेषण शुरू करें</string>
+    <string name="match_report">मिलान रिपोर्ट</string>
+    <string name="export_report">रिपोर्ट निर्यात करें</string>
+    <string name="new_scan">नया स्कैन</string>
+    <string name="overall_ats_score">समग्र ATS स्कोर</string>
+    <string name="match_probability">%1$d%% मिलान संभावना</string>
+    <string name="section_scores">अनुभाग स्कोर</string>
+    <string name="keyword_gap_analysis">कीवर्ड अंतर विश्लेषण</string>
+    <string name="optimization_suggestions">अनुकूलन सुझाव</string>
+    <string name="collapse">संक्षिप्त करें</string>
+    <string name="expand">विस्तारित करें</string>
+    <string name="generate_tailored_cover_letter">अनुरूप कवर लेटर बनाएं</string>
+</resources>
