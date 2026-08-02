@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">वापस</string>
+    <string name="cover_letter_intelligence_title">कवर लेटर इंटेलिजेंस</string>
+    <string name="export_cover_letter">कवर लेटर निर्यात करें</string>
+    <string name="no_cover_letter_yet">अभी कोई कवर लेटर नहीं</string>
+    <string name="no_cover_letter_desc">तैयार, भेजने योग्य अनुरूप पत्र पाने के लिए नौकरी की सूची से एक बनाएं।</string>
+    <string name="find_jobs">नौकरियां खोजें</string>
+    <string name="copy_all">सभी कॉपी करें</string>
+    <string name="export">निर्यात करें</string>
+    <string name="save_edits">संपादन सहेजें</string>
+    <string name="edit">संपादित करें</string>
+    <string name="generating_letter">आपका पत्र तैयार हो रहा है…</string>
+    <string name="save_changes">परिवर्तन सहेजें</string>
+    <string name="edit_section">%1$s संपादित करें</string>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="back">Back</string>
+    <string name="cover_letter_intelligence_title">Cover Letter Intelligence</string>
+    <string name="export_cover_letter">Export Cover Letter</string>
+    <string name="no_cover_letter_yet">No Cover Letter Yet</string>
+    <string name="no_cover_letter_desc">Generate one from a job listing to get a tailored, ready-to-send letter.</string>
+    <string name="find_jobs">Find Jobs</string>
+    <string name="copy_all">Copy all</string>
+    <string name="export">Export</string>
+    <string name="save_edits">Save edits</string>
+    <string name="edit">Edit</string>
+    <string name="generating_letter">Generating your letter…</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="edit_section">Edit %1$s</string>
+</resources>

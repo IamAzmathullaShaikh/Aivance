@@ -1,18 +1,23 @@
 package com.bangersoul.aivance.feature.coverletter
 
 import com.bangersoul.aivance.core.common.model.CoverLetter
+import com.bangersoul.aivance.core.common.model.Resume
+import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.CoverLetterRepository
+import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.GenerateCoverLetterUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.RegenerateCoverLetterSectionUseCase
+import com.bangersoul.aivance.core.domain.usecase.coverletter.StreamGenerateCoverLetterUseCase
 import com.bangersoul.aivance.core.util.PdfExporter
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -29,7 +34,9 @@ class CoverLetterViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val mockRepository: CoverLetterRepository = mockk()
+    private val mockResumeRepository: ResumeRepository = mockk()
     private val mockGenerateUseCase: GenerateCoverLetterUseCase = mockk()
+    private val mockStreamGenerateUseCase: StreamGenerateCoverLetterUseCase = mockk()
     private val mockRegenerateSectionUseCase: RegenerateCoverLetterSectionUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
     private val mockPdfExporter: PdfExporter = mockk()
@@ -59,7 +66,9 @@ class CoverLetterViewModelTest {
 
     private fun createViewModel() = CoverLetterViewModel(
         mockRepository,
+        mockResumeRepository,
         mockGenerateUseCase,
+        mockStreamGenerateUseCase,
         mockRegenerateSectionUseCase,
         mockTrackEvent,
         mockPdfExporter
@@ -72,8 +81,8 @@ class CoverLetterViewModelTest {
     }
 
     @Test
-    fun `successful generation loads letter into Success state`() = runTest(testDispatcher) {
-        coEvery { mockGenerateUseCase.invoke(any()) } returns Result.Success(1L)
+    fun `successful generation streams tokens then loads letter`() = runTest(testDispatcher) {
+        every { mockStreamGenerateUseCase.stream(any()) } returns flowOf("Hello ", "Tech Corp")
 
         viewModel = createViewModel()
 
@@ -87,7 +96,7 @@ class CoverLetterViewModelTest {
 
     @Test
     fun `generation failure shows error`() = runTest(testDispatcher) {
-        coEvery { mockGenerateUseCase.invoke(any()) } returns Result.Failure(DomainError("Generation failed"))
+        every { mockStreamGenerateUseCase.stream(any()) } returns flow { throw RuntimeException("Generation failed") }
 
         viewModel = createViewModel()
 

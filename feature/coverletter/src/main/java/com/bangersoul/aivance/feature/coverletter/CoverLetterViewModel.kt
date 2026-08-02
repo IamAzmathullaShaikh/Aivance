@@ -7,6 +7,7 @@ import com.bangersoul.aivance.core.common.model.CoverLetter
 import com.bangersoul.aivance.core.common.model.CoverLetterVersion
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.CoverLetterRepository
+import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.util.PdfExporter
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
@@ -14,9 +15,11 @@ import com.bangersoul.aivance.core.domain.usecase.coverletter.GenerateCoverLette
 import com.bangersoul.aivance.core.domain.usecase.coverletter.GenerateCoverLetterUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.RegenerateCoverLetterSectionUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.RegenerateSectionRequest
+import com.bangersoul.aivance.core.domain.usecase.coverletter.StreamGenerateCoverLetterUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +34,9 @@ sealed interface CoverLetterUiState {
         val coverLetter: CoverLetter? = null,
         val selectedVersion: CoverLetterVersion? = null,
         val isGenerating: Boolean = false,
+        /** Live token stream while a letter is being generated — rendered with
+         *  a typewriter effect. Cleared once the full letter is persisted. */
+        val streamingContent: String? = null,
         val isEditing: Boolean = false,
         /** Section index → draft text, populated when the user enters edit mode.
          *  Keyed by index (not section id) because freshly generated sections can
@@ -49,6 +55,12 @@ sealed interface CoverLetterUiEvent {
     ) : CoverLetterUiEvent
 
     data class RegenerateSection(val versionId: Long, val sectionType: String) : CoverLetterUiEvent
+
+    /**
+     * Auto-generates a tailored letter for [jobId] using the user's primary
+     * resume — fired when the screen is opened from Job Details.
+     */
+    data class GenerateForJob(val jobId: Long) : CoverLetterUiEvent
     data object Load : CoverLetterUiEvent
 
     /** Toggles between read-only and inline-edit mode. */
@@ -68,7 +80,9 @@ sealed interface CoverLetterUiEffect {
 @HiltViewModel
 class CoverLetterViewModel @Inject constructor(
     private val coverLetterRepository: CoverLetterRepository,
+    private val resumeRepository: ResumeRepository,
     private val generateCoverLetterUseCase: GenerateCoverLetterUseCase,
+    private val streamGenerateCoverLetterUseCase: StreamGenerateCoverLetterUseCase,
     private val regenerateCoverLetterSectionUseCase: RegenerateCoverLetterSectionUseCase,
     private val trackEventUseCase: TrackEventUseCase,
     private val pdfExporter: PdfExporter
@@ -83,6 +97,7 @@ class CoverLetterViewModel @Inject constructor(
     fun onEvent(event: CoverLetterUiEvent) {
         when (event) {
             is CoverLetterUiEvent.Generate -> generate(event)
+            is CoverLetterUiEvent.GenerateForJob -> generateForJob(event.jobId)
             is CoverLetterUiEvent.RegenerateSection -> regenerateSection(event)
             CoverLetterUiEvent.Load -> load()
             CoverLetterUiEvent.ToggleEdit -> toggleEdit()
@@ -90,6 +105,41 @@ class CoverLetterViewModel @Inject constructor(
             CoverLetterUiEvent.SaveEdits -> saveEdits()
             CoverLetterUiEvent.CopyAll -> copyAll()
             CoverLetterUiEvent.Export -> export()
+        }
+    }
+
+    /**
+     * Resolves the user's primary resume + version and generates a tailored
+     * letter for [jobId]. Surfaces a snackbar (instead of hanging on Loading)
+     * when no resume exists yet.
+     */
+    private fun generateForJob(jobId: Long) {
+        viewModelScope.launch {
+            _uiState.value = CoverLetterUiState.Loading
+            trackEventUseCase(TrackEventRequest("cover_letter_generate_for_job"))
+
+            val resumesResult = resumeRepository.getResumes().first()
+            val resume = (resumesResult as? Result.Success)?.data?.firstOrNull()
+            val version = resume?.versions
+                ?.firstOrNull { it.id == resume.primaryVersionId }
+                ?: resume?.versions?.firstOrNull()
+
+            if (resume == null || version == null) {
+                _uiState.value = CoverLetterUiState.Idle
+                _effects.send(
+                    CoverLetterUiEffect.ShowSnackbar("Import a resume first to generate a cover letter")
+                )
+                return@launch
+            }
+
+            generate(
+                CoverLetterUiEvent.Generate(
+                    resumeId = resume.id,
+                    versionId = version.id,
+                    jobId = jobId,
+                    recruiterId = null
+                )
+            )
         }
     }
 
@@ -122,20 +172,31 @@ class CoverLetterViewModel @Inject constructor(
             _uiState.value = CoverLetterUiState.Loading
             trackEventUseCase(TrackEventRequest("cover_letter_generate_start"))
 
-            val result = generateCoverLetterUseCase(
-                GenerateCoverLetterRequest(
+            // Live-reactive state while tokens stream in.
+            _uiState.value = CoverLetterUiState.Success(
+                isGenerating = true,
+                streamingContent = ""
+            )
+
+            try {
+                val request = GenerateCoverLetterRequest(
                     resumeId = event.resumeId,
                     resumeVersionId = event.versionId,
                     jobId = event.jobId,
                     recruiterId = event.recruiterId
                 )
-            )
-
-            if (result is Result.Success) {
+                var full = ""
+                streamGenerateCoverLetterUseCase.stream(request).collect { chunk ->
+                    full += chunk
+                    _uiState.value = CoverLetterUiState.Success(
+                        isGenerating = true,
+                        streamingContent = full
+                    )
+                }
                 load()
-            } else {
+            } catch (e: Exception) {
                 _uiState.value = CoverLetterUiState.Error(
-                    (result as? Result.Failure)?.error?.message ?: "Generation failed"
+                    e.message?.takeIf { it.isNotBlank() } ?: "Generation failed"
                 )
             }
         }

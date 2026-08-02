@@ -7,6 +7,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Save
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -62,6 +66,7 @@ import com.bangersoul.aivance.core.designsystem.components.DashboardCard
 fun CoverLetterScreen(
     viewModel: CoverLetterViewModel,
     onNavigateBack: () -> Unit,
+    jobId: Long? = null,
     onFindJobs: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -69,8 +74,14 @@ fun CoverLetterScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
-        viewModel.onEvent(CoverLetterUiEvent.Load)
+    LaunchedEffect(jobId) {
+        // Arriving from Job Details carries a cached DB job id → auto-generate
+        // a tailored letter from the primary resume. Plain opens just load.
+        if (jobId != null) {
+            viewModel.onEvent(CoverLetterUiEvent.GenerateForJob(jobId))
+        } else {
+            viewModel.onEvent(CoverLetterUiEvent.Load)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -86,10 +97,10 @@ fun CoverLetterScreen(
     AivanceScreen(
         topBar = {
             TopAppBar(
-                title = { Text("Cover Letter Intelligence", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.cover_letter_intelligence_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -109,6 +120,7 @@ fun CoverLetterScreen(
                     is CoverLetterUiState.Success -> CoverLetterEditorContent(
                         version = state.selectedVersion ?: state.coverLetter?.versions?.firstOrNull(),
                         isGenerating = state.isGenerating,
+                        streamingContent = state.streamingContent,
                         isEditing = state.isEditing,
                         sectionDrafts = state.sectionDrafts,
                         onToggleEdit = { viewModel.onEvent(CoverLetterUiEvent.ToggleEdit) },
@@ -139,7 +151,7 @@ private fun sharePdf(context: Context, uri: Uri) {
         putExtra(Intent.EXTRA_STREAM, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    val chooser = Intent.createChooser(shareIntent, "Export Cover Letter")
+    val chooser = Intent.createChooser(shareIntent, context.getString(R.string.export_cover_letter))
     if (shareIntent.resolveActivity(context.packageManager) != null) {
         context.startActivity(chooser)
     }
@@ -156,13 +168,13 @@ private fun CoverLetterEmptyContent(
     ) {
         Icon(Icons.Rounded.Description, null, Modifier.size(80.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
         Spacer(Modifier.height(24.dp))
-        Text("No Cover Letter Yet", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Generate one from a job listing to get a tailored, ready-to-send letter.",
+        Text(stringResource(R.string.no_cover_letter_yet), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.no_cover_letter_desc),
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Spacer(Modifier.height(16.dp))
         AivancePrimaryButton(
-            text = "Find Jobs",
+            text = stringResource(R.string.find_jobs),
             onClick = onFindJobs
         )
     }
@@ -172,6 +184,7 @@ private fun CoverLetterEmptyContent(
 private fun CoverLetterEditorContent(
     version: CoverLetterVersion?,
     isGenerating: Boolean,
+    streamingContent: String?,
     isEditing: Boolean,
     sectionDrafts: Map<Int, String>,
     onToggleEdit: () -> Unit,
@@ -181,24 +194,29 @@ private fun CoverLetterEditorContent(
     onExport: () -> Unit,
     onRegenerate: (Long) -> Unit
 ) {
-    if (version == null) return
+    val isStreaming = streamingContent != null && version == null
+    if (version == null && !isStreaming) return
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(version.versionName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                version?.versionName.orEmpty(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
             Row {
                 IconButton(onClick = onCopyAll) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy all")
+                    Icon(Icons.Rounded.ContentCopy, contentDescription = stringResource(R.string.copy_all))
                 }
                 IconButton(onClick = onExport) {
-                    Icon(Icons.Rounded.FileDownload, contentDescription = "Export")
+                    Icon(Icons.Rounded.FileDownload, contentDescription = stringResource(R.string.export))
                 }
                 IconButton(
                     onClick = { if (isEditing) onSaveEdits() else onToggleEdit() }
                 ) {
                     Icon(
                         if (isEditing) Icons.Rounded.Save else Icons.Rounded.Edit,
-                        contentDescription = if (isEditing) "Save edits" else "Edit"
+                        contentDescription = if (isEditing) stringResource(R.string.save_edits) else stringResource(R.string.edit)
                     )
                 }
             }
@@ -210,8 +228,33 @@ private fun CoverLetterEditorContent(
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp))
         }
 
+        // Live streaming preview while the letter is being generated.
+        if (isStreaming) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text(
+                                stringResource(R.string.generating_letter),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            StreamingLetterText(streamingContent.orEmpty())
+                        }
+                    }
+                }
+            }
+            return
+        }
+
+        val sections = version?.sections.orEmpty()
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            itemsIndexed(version.sections) { index, section ->
+            itemsIndexed(sections) { index, section ->
                 SectionCard(
                     title = section.title,
                     content = if (isEditing) {
@@ -221,13 +264,13 @@ private fun CoverLetterEditorContent(
                     },
                     isEditing = isEditing,
                     onContentChange = { onUpdateSection(index, it) },
-                    onRegenerate = { onRegenerate(version.id) }
+                    onRegenerate = { version?.id?.let(onRegenerate) }
                 )
             }
             if (isEditing) {
                 item {
                     ActionButton(
-                        text = "Save Changes",
+                        text = stringResource(R.string.save_changes),
                         onClick = onSaveEdits,
                         modifier = Modifier.fillMaxWidth(),
                         icon = Icons.Rounded.Save
@@ -236,6 +279,32 @@ private fun CoverLetterEditorContent(
             }
             item { Spacer(Modifier.height(80.dp)) }
         }
+    }
+}
+
+/** Live token stream rendered with a blinking caret (typewriter effect). */
+@Composable
+private fun StreamingLetterText(content: String) {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "clCaret")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            animation = androidx.compose.animation.core.tween(420),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "clCaretAlpha"
+    )
+    Row {
+        Text(
+            text = content,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "▌",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+        )
     }
 }
 
@@ -264,7 +333,7 @@ private fun SectionCard(
                     value = content,
                     onValueChange = onContentChange,
                     modifier = Modifier.fillMaxWidth().height(180.dp),
-                    label = { Text("Edit ${title.lowercase()}") }
+                    label = { Text(stringResource(R.string.edit_section, title.lowercase())) }
                 )
             } else {
                 Text(content, style = MaterialTheme.typography.bodyMedium)
