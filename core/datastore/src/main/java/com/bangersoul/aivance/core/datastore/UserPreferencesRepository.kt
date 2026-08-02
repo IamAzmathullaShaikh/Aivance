@@ -12,6 +12,13 @@ interface UserPreferencesRepository {
     suspend fun updateThemeConfig(themeConfig: ThemeConfig)
     suspend fun updateAccentSeed(accentSeed: String)
     suspend fun updateDynamicColor(enabled: Boolean)
+    suspend fun updateJobAlertsEnabled(enabled: Boolean)
+    suspend fun updateInterviewRemindersEnabled(enabled: Boolean)
+    suspend fun updateFollowUpRemindersEnabled(enabled: Boolean)
+
+    /** Persists the signed-in user's session identity so Splash can auto-login. */
+    suspend fun updateSession(userId: String?, email: String? = null, firstName: String? = null)
+    suspend fun clearSession()
 }
 
 @Singleton
@@ -48,6 +55,40 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     override suspend fun updateDynamicColor(enabled: Boolean) {
         dataStore.updateData {
             it.copy(dynamicColor = enabled)
+        }
+    }
+
+    override suspend fun updateJobAlertsEnabled(enabled: Boolean) {
+        dataStore.updateData {
+            it.copy(jobAlertsEnabled = enabled)
+        }
+    }
+
+    override suspend fun updateInterviewRemindersEnabled(enabled: Boolean) {
+        dataStore.updateData {
+            it.copy(interviewRemindersEnabled = enabled)
+        }
+    }
+
+    override suspend fun updateFollowUpRemindersEnabled(enabled: Boolean) {
+        dataStore.updateData {
+            it.copy(followUpRemindersEnabled = enabled)
+        }
+    }
+
+    override suspend fun updateSession(userId: String?, email: String?, firstName: String?) {
+        dataStore.updateData {
+            it.copy(
+                userId = userId,
+                userEmail = email,
+                userFirstName = firstName
+            )
+        }
+    }
+
+    override suspend fun clearSession() {
+        dataStore.updateData {
+            it.copy(userId = null, userEmail = null, userFirstName = null)
         }
     }
 }

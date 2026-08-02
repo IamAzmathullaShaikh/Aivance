@@ -31,9 +31,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
-import com.bangersoul.aivance.core.designsystem.components.ActionButton
-import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
-import com.bangersoul.aivance.core.designsystem.theme.DarkAccent
 import com.bangersoul.aivance.feature.profile.OnboardingUiEvent
 import com.bangersoul.aivance.feature.profile.OnboardingUiState
 import com.bangersoul.aivance.feature.profile.OnboardingViewModel
@@ -52,16 +49,21 @@ fun OnboardingScreen(
     AnimatedContent(
         targetState = uiState,
         transitionSpec = { fadeIn() togetherWith fadeOut() },
+        // Key by the step type, not the whole state object: typing into a config
+        // field updates `config` on the same step, which must recompose the
+        // existing text field in place instead of tearing down the composition
+        // and restarting the fade every keystroke. The tear-down dropped the
+        // IME session on real devices, making a pasted API key vanish.
+        contentKey = { it::class },
         label = "OnboardingTransition"
     ) { state ->
         when (state) {
-            OnboardingUiState.Welcome -> WelcomeStep(onStart = { viewModel.onEvent(OnboardingUiEvent.Start) })
-
             is OnboardingUiState.ChooseAiProvider -> ProviderSelectionStep(
                 title = "Choose AI Provider",
                 description = "Select the intelligence that will power your resume analysis and interview prep.",
                 providers = state.providers,
-                onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectAiProvider(it)) }
+                onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectAiProvider(it)) },
+                onSkipAll = { viewModel.onEvent(OnboardingUiEvent.SkipAll) }
             )
 
             is OnboardingUiState.ConfigureAiProvider -> ProviderConfigStep(
@@ -79,7 +81,8 @@ fun OnboardingScreen(
                 title = "Choose Job Provider",
                 description = "Select where you want to fetch job listings and recruiter details from.",
                 providers = state.providers,
-                onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectJobProvider(it)) }
+                onSelect = { viewModel.onEvent(OnboardingUiEvent.SelectJobProvider(it)) },
+                onSkipAll = { viewModel.onEvent(OnboardingUiEvent.SkipAll) }
             )
 
             is OnboardingUiState.ConfigureJobProvider -> ProviderConfigStep(
@@ -128,40 +131,13 @@ fun OnboardingScreen(
 }
 
 @Composable
-private fun WelcomeStep(onStart: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(80.dp), tint = DarkAccent)
-        Spacer(Modifier.height(32.dp))
-        Text("Welcome to Aivance", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-        Text(
-            "Your AI-powered Career Operating System. Let's get your providers set up to begin.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(Modifier.height(48.dp))
-        Button(
-            onClick = onStart,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text("Get Started", fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
 private fun ProviderSelectionStep(
     title: String,
     description: String,
     providers: List<ProviderMetadata>,
     onSelect: (String) -> Unit,
-    onSkip: (() -> Unit)? = null
+    onSkip: (() -> Unit)? = null,
+    onSkipAll: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -194,6 +170,17 @@ private fun ProviderSelectionStep(
             TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
                 Text("Skip for now")
             }
+        } else {
+            TextButton(onClick = onSkipAll, modifier = Modifier.fillMaxWidth()) {
+                Text("Skip All — I'll configure later")
+            }
+            Text(
+                "You can configure providers later in Settings.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

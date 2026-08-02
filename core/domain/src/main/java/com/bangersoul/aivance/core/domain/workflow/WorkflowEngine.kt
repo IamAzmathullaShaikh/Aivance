@@ -4,27 +4,27 @@ import com.bangersoul.aivance.core.common.model.Application
 import com.bangersoul.aivance.core.common.model.TimelineEvent
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.runCatchingCore
+import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class WorkflowEngine @Inject constructor(
-    private val repository: ApplicationWorkflowRepository
+    private val repository: ApplicationWorkflowRepository,
+    private val analyticsRepository: AnalyticsRepository
 ) {
     suspend fun transitionTo(application: Application, nextStageId: String): CoreResult<Unit> = runCatchingCore {
         if (application.currentStageId == nextStageId) return@runCatchingCore
 
-        // 1. Validate transition (Rules can be added here)
-
-        // 2. Update Application
+        // 1. Update Application
         val updated = application.copy(
             currentStageId = nextStageId,
             lastModified = System.currentTimeMillis()
         )
         repository.saveApplication(updated)
 
-        // 3. Log to Timeline
+        // 2. Log to Timeline
         repository.addTimelineEvent(
             TimelineEvent(
                 applicationId = application.id,
@@ -35,6 +35,8 @@ class WorkflowEngine @Inject constructor(
             )
         )
 
-        // 4. Trigger Automations (via UseCase later)
+        // 3. Automations: refresh the analytics snapshot so pipeline changes
+        //    flow through to the dashboard career score + recommendations.
+        analyticsRepository.createSnapshot()
     }
 }

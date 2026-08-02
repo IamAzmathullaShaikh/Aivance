@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.worker
 
+import android.app.NotificationManager
 import android.content.Context
 import androidx.work.ListenableWorker
 import androidx.work.WorkManager
@@ -49,6 +50,9 @@ class WorkerTests {
         mockContext = mockk(relaxed = true) {
             every { getSystemService(any<Class<*>>()) } returns null
             every { getSystemService(any<String>()) } returns null
+            // UploadManager and DownloadManager both create NotificationChannels in
+            // their init blocks, so the notification service must return a mock.
+            every { getSystemService(Context.NOTIFICATION_SERVICE) } returns mockk<NotificationManager>(relaxed = true)
         }
         mockParams = mockk()
         mockConnectivityMonitor = mockk {
@@ -250,6 +254,8 @@ class WorkerTests {
 
     @Test
     fun downloadManager_initializesWithChannel() {
+        // DownloadManager's init block creates a NotificationChannel unconditionally
+        // (minSdk 26); the shared setup() stub provides the NotificationManager mock.
         val dm = DownloadManager(mockContext)
         assertNotNull(dm)
     }
@@ -258,6 +264,8 @@ class WorkerTests {
 
     @Test
     fun uploadManager_initializesWithChannel() {
+        // UploadManager's init block creates a NotificationChannel; the shared
+        // setup() stub provides the NotificationManager mock.
         val um = UploadManager(mockContext, mockk())
         assertNotNull(um)
     }

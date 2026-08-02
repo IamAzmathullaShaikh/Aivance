@@ -78,7 +78,8 @@ fun InterviewScreen(
             label = "InterviewTransition"
         ) { state ->
             when (state) {
-                InterviewUiState.Idle -> InterviewPracticeHub(
+                is InterviewUiState.Idle -> InterviewPracticeHub(
+                    history = state.history,
                     onStart = { r, c, t -> viewModel.onEvent(InterviewUiEvent.StartSession(r, c, t)) }
                 )
                 is InterviewUiState.Active -> MockInterviewSession(
@@ -107,6 +108,7 @@ private data class SessionType(
 
 @Composable
 private fun InterviewPracticeHub(
+    history: List<InterviewSession> = emptyList(),
     onStart: (String, String, String) -> Unit
 ) {
     var role by remember { mutableStateOf("") }
@@ -212,6 +214,58 @@ private fun InterviewPracticeHub(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
+
+        if (history.isNotEmpty()) {
+            Spacer(Modifier.height(32.dp))
+            Text("Learning History", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(12.dp))
+            history.take(5).forEach { session ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    shape = AivanceTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            if (session.isCompleted) Icons.Rounded.CheckCircle else Icons.Rounded.RecordVoiceOver,
+                            null,
+                            tint = if (session.isCompleted) AivanceTheme.colors.success else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                session.targetRole,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                buildString {
+                                    append(session.type.replace('_', ' '))
+                                    if (session.companyName.isNotBlank()) append(" · ").append(session.companyName)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        val feedbackScore = session.feedback?.overallScore
+                        if (feedbackScore != null) {
+                            Text(
+                                "$feedbackScore",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = AivanceTheme.colors.accent
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(48.dp))
     }
 }

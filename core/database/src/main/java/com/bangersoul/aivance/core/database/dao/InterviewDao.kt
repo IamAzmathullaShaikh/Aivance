@@ -35,6 +35,15 @@ interface InterviewDao {
     @Query("SELECT * FROM interview_questions WHERE sessionId = :sessionId")
     fun getQuestionsForSession(sessionId: Long): Flow<List<InterviewQuestionEntity>>
 
+    @Query("SELECT * FROM interview_questions WHERE sessionId IS NULL ORDER BY id")
+    fun getLibraryQuestions(): Flow<List<InterviewQuestionEntity>>
+
+    @Query("SELECT * FROM interview_questions WHERE sessionId IS NULL AND isFavorite = 1 ORDER BY id")
+    fun getFavoriteQuestions(): Flow<List<InterviewQuestionEntity>>
+
+    @Query("UPDATE interview_questions SET isFavorite = :isFavorite WHERE id = :questionId")
+    suspend fun setFavorite(questionId: Long, isFavorite: Boolean)
+
     @Query("SELECT * FROM interview_questions WHERE id = :id")
     suspend fun getQuestionById(id: Long): InterviewQuestionEntity?
 

@@ -1,10 +1,14 @@
 package com.bangersoul.aivance.feature.ats
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -19,24 +23,29 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Analytics
-import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.HistoryEdu
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.PriorityHigh
-import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,8 +54,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
@@ -55,21 +66,40 @@ import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
 import com.bangersoul.aivance.core.designsystem.components.DashboardCard
 import com.bangersoul.aivance.core.designsystem.components.KeywordChip
 import com.bangersoul.aivance.core.designsystem.components.ScoreGauge
-import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AtsScreen(
     viewModel: AtsViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToCoverLetter: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val resumes by viewModel.resumes.collectAsState()
+    val jdText by viewModel.jdText.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is AtsUiEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+                is AtsUiEffect.NavigateToCoverLetter -> onNavigateToCoverLetter()
+                is AtsUiEffect.ExportReport -> shareReport(context, effect.text)
+            }
+        }
+    }
 
     AivanceScreen(
         topBar = {
             TopAppBar(
                 title = { Text("ATS Intelligence", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
@@ -77,29 +107,56 @@ fun AtsScreen(
         error = (uiState as? AtsUiState.Error)?.message,
         onRetry = { viewModel.onEvent(AtsUiEvent.Reset) }
     ) {
-        AnimatedContent(
-            targetState = uiState,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "AtsStateTransition"
-        ) { state ->
-            when (state) {
-                AtsUiState.SelectingResume -> ResumeSelectionStep(
-                    resumes = resumes,
-                    onSelect = { r, v -> viewModel.onEvent(AtsUiEvent.SelectResumeVersion(r, v)) }
-                )
-                is AtsUiState.InputJobDescription -> JobDescriptionInputStep(
-                    resumeName = state.resume.name,
-                    versionName = state.selectedVersion.versionName,
-                    onAnalyze = { viewModel.onEvent(AtsUiEvent.Analyze(it)) },
-                    onBack = { viewModel.onEvent(AtsUiEvent.Reset) }
-                )
-                is AtsUiState.DisplayReport -> AtsReportContent(
-                    report = state.report,
-                    onNewScan = { viewModel.onEvent(AtsUiEvent.Reset) }
-                )
-                else -> {}
+        Box(Modifier.fillMaxSize()) {
+            AnimatedContent(
+                targetState = uiState,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "AtsStateTransition"
+            ) { state ->
+                when (state) {
+                    AtsUiState.SelectingResume -> ResumeSelectionStep(
+                        resumes = resumes,
+                        onSelect = { r, v -> viewModel.onEvent(AtsUiEvent.SelectResumeVersion(r, v)) }
+                    )
+                    is AtsUiState.InputJobDescription -> JobDescriptionInputStep(
+                        jdText = jdText,
+                        resumeName = state.resume.name,
+                        versionName = state.selectedVersion.versionName,
+                        onJdTextChange = { viewModel.onEvent(AtsUiEvent.UpdateJobDescription(it)) },
+                        onAnalyze = { viewModel.onEvent(AtsUiEvent.Analyze(it)) },
+                        onBack = { viewModel.onEvent(AtsUiEvent.Reset) }
+                    )
+                    is AtsUiState.DisplayReport -> AtsReportContent(
+                        report = state.report,
+                        onNewScan = { viewModel.onEvent(AtsUiEvent.Reset) },
+                        onGenerateCoverLetter = { viewModel.onEvent(AtsUiEvent.GenerateCoverLetter) },
+                        onExportReport = { viewModel.onEvent(AtsUiEvent.ExportReport) }
+                    )
+                    else -> {}
+                }
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
+    }
+}
+
+/** Writes [text] to a cache file and fires a share sheet so the report can be exported. */
+private fun shareReport(context: Context, text: String) {
+    val file = File(context.cacheDir, "ats_report.txt")
+    file.writeText(text)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_TEXT, text)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    if (shareIntent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(Intent.createChooser(shareIntent, "Export ATS Report"))
     }
 }
 
@@ -111,20 +168,28 @@ private fun ResumeSelectionStep(
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Text("Select Resume to Analyze", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(resumes) { resume ->
-                resume.versions.forEach { version ->
-                    Card(
-                        onClick = { onSelect(resume, version) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Description, null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.width(16.dp))
-                            Column {
-                                Text(resume.name, fontWeight = FontWeight.Bold)
-                                Text(version.versionName, style = MaterialTheme.typography.bodySmall)
+        if (resumes.isEmpty()) {
+            Text(
+                "Import a resume from the Resume tab first.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(resumes) { resume ->
+                    resume.versions.forEach { version ->
+                        Card(
+                            onClick = { onSelect(resume, version) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        ) {
+                            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.Description, null, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(16.dp))
+                                Column {
+                                    Text(resume.name, fontWeight = FontWeight.Bold)
+                                    Text(version.versionName, style = MaterialTheme.typography.bodySmall)
+                                }
                             }
                         }
                     }
@@ -136,22 +201,29 @@ private fun ResumeSelectionStep(
 
 @Composable
 private fun JobDescriptionInputStep(
+    jdText: String,
     resumeName: String,
     versionName: String,
+    onJdTextChange: (String) -> Unit,
     onAnalyze: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    var jdText by remember { mutableStateOf("") }
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Text("Target Job", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text("Analyzing against: $resumeName ($versionName)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(
             value = jdText,
-            onValueChange = { jdText = it },
+            onValueChange = onJdTextChange,
             label = { Text("Paste Job Description") },
             modifier = Modifier.fillMaxWidth().height(300.dp),
             placeholder = { Text("Company requirements, skills, responsibilities...") }
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Score updates automatically as you type (pauses briefly after each change).",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.weight(1f))
         ActionButton(
@@ -174,8 +246,12 @@ private fun JobDescriptionInputStep(
 @Composable
 private fun AtsReportContent(
     report: AtsReport,
-    onNewScan: () -> Unit
+    onNewScan: () -> Unit,
+    onGenerateCoverLetter: () -> Unit,
+    onExportReport: () -> Unit
 ) {
+    var expandedSections by remember { mutableStateOf<Set<String>>(emptySet()) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -183,7 +259,17 @@ private fun AtsReportContent(
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Match Report", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                ActionButton(text = "New Scan", onClick = onNewScan, containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row {
+                    IconButton(onClick = onExportReport) {
+                        Icon(Icons.Rounded.FileDownload, contentDescription = "Export report")
+                    }
+                    ActionButton(
+                        text = "New Scan",
+                        onClick = onNewScan,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
@@ -230,22 +316,48 @@ private fun AtsReportContent(
 
         item {
             Text("Optimization Suggestions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
         }
 
-        items(report.optimizationTips) { tip ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-            ) {
-                Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Icon(
-                        imageVector = if (tip.priority == "HIGH") Icons.Rounded.PriorityHigh else Icons.Rounded.Lightbulb,
-                        contentDescription = null,
-                        tint = if (tip.priority == "HIGH") Color(0xFFF44336) else Color(0xFFFFC107)
-                    )
+        // Group tips by category so each category is an expandable accordion section.
+        val grouped = report.optimizationTips.groupBy { it.category }
+        grouped.forEach { (category, tips) ->
+            item {
+                val expanded = category in expandedSections
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
                     Column {
-                        Text(tip.category, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Text(tip.description, style = MaterialTheme.typography.bodyMedium)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { expandedSections = if (expanded) expandedSections - category else expandedSections + category }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Icon(
+                                    imageVector = if (tips.any { it.priority == "HIGH" }) Icons.Rounded.PriorityHigh else Icons.Rounded.Lightbulb,
+                                    contentDescription = null,
+                                    tint = if (tips.any { it.priority == "HIGH" }) Color(0xFFF44336) else Color(0xFFFFC107)
+                                )
+                                Text(category, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                            Icon(
+                                imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = if (expanded) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (expanded) {
+                            tips.forEach { tip ->
+                                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                    Text(tip.description, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -253,7 +365,12 @@ private fun AtsReportContent(
 
         item {
             Spacer(Modifier.height(32.dp))
-            ActionButton(text = "Generate Tailored Cover Letter", onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth())
+            ActionButton(
+                text = "Generate Tailored Cover Letter",
+                onClick = onGenerateCoverLetter,
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Rounded.HistoryEdu
+            )
             Spacer(Modifier.height(48.dp))
         }
     }

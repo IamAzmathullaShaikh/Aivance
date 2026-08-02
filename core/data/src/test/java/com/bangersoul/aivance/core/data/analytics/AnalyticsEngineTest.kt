@@ -267,8 +267,8 @@ class AnalyticsEngineTest {
         val values = FeatureCategory.values()
         // AUTH, ONBOARDING, DASHBOARD, RESUME, ATS, COVER_LETTER, INTERVIEW, AI_CHAT,
         // JOB_SEARCH, JOB_TRACKER, CAREER_ROADMAP, LEARNING_HUB, PROFILE, SETTINGS,
-        // PROVIDERS, NOTIFICATIONS, ANALYTICS = 17
-        assertEquals(17, values.size)
+        // PROVIDERS, NOTIFICATIONS, ANALYTICS, GENERAL = 18
+        assertEquals(18, values.size)
         assertTrue(values.contains(FeatureCategory.AUTH))
         assertTrue(values.contains(FeatureCategory.RESUME))
         assertTrue(values.contains(FeatureCategory.ANALYTICS))

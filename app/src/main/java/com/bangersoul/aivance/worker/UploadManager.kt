@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.worker
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -69,7 +70,11 @@ class UploadManager @Inject constructor(
 
     /**
      * Uploads a file from the given [uri] to [serverUrl] with throttled progress notifications.
+     *
+     * Every notify() call below is guarded by an explicit POST_NOTIFICATIONS
+     * runtime check, so the lint MissingPermission warning is a false positive.
      */
+    @SuppressLint("MissingPermission")
     suspend fun uploadFile(
         serverUrl: String,
         uri: Uri,

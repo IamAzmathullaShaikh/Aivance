@@ -5,6 +5,8 @@ import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
+import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCase
@@ -30,6 +32,8 @@ class JobDetailsViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val mockGetJobDetails: GetJobDetailsUseCase = mockk()
     private val mockToggleBookmark: ToggleJobBookmarkUseCase = mockk()
+    private val mockJobRepository: JobRepository = mockk()
+    private val mockApplicationWorkflowRepository: ApplicationWorkflowRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private val sampleJob = JobListing(
@@ -46,6 +50,8 @@ class JobDetailsViewModelTest {
         savedStateHandle = SavedStateHandle(mapOf("jobId" to jobId)),
         getJobDetailsUseCase = mockGetJobDetails,
         toggleJobBookmarkUseCase = mockToggleBookmark,
+        jobRepository = mockJobRepository,
+        applicationWorkflowRepository = mockApplicationWorkflowRepository,
         trackEventUseCase = mockTrackEvent
     )
 
@@ -71,12 +77,31 @@ class JobDetailsViewModelTest {
 
     @Test
     fun `error state when jobId is empty`() = runTest {
+        // The screen drives the load via load() because the custom back stack does
+        // not seed SavedStateHandle; an empty ID must surface the validation error.
         val viewModel = createViewModel(jobId = "")
+        viewModel.load("")
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertTrue(state is JobDetailsUiState.Error)
         assertEquals("Job ID not provided", (state as JobDetailsUiState.Error).message)
+    }
+
+    @Test
+    fun `load with a different jobId reloads details`() = runTest {
+        val secondJob = sampleJob.copy(id = "job_2", title = "iOS Engineer")
+        coEvery { mockGetJobDetails.invoke("job_2") } returns Result.Success(secondJob)
+
+        val viewModel = createViewModel(jobId = "job_1")
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.load("job_2")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is JobDetailsUiState.Success)
+        assertEquals("iOS Engineer", (state as JobDetailsUiState.Success).job.title)
+        coVerify { mockGetJobDetails.invoke("job_2") }
     }
 
     @Test

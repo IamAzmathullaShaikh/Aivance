@@ -1,11 +1,18 @@
 package com.bangersoul.aivance.feature.dashboard
 
 import app.cash.turbine.test
+import com.bangersoul.aivance.core.common.model.JobListing
+import com.bangersoul.aivance.core.common.model.UserProfile
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
+import com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCase
 import com.bangersoul.aivance.feature.dashboard.domain.DashboardData
 import com.bangersoul.aivance.feature.dashboard.domain.DashboardRepository
+import com.bangersoul.aivance.feature.dashboard.domain.JobRecommendation
+import com.bangersoul.aivance.feature.dashboard.domain.RecentActivity
 import com.bangersoul.aivance.feature.dashboard.domain.ResumeStatus
+import com.bangersoul.aivance.feature.dashboard.domain.UpcomingInterview
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -28,7 +35,9 @@ import java.time.LocalDate
 class DashboardViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val mockRepository: DashboardRepository = mockk()
+    private val mockDashboardRepository: DashboardRepository = mockk()
+    private val mockJobRepository: JobRepository = mockk()
+    private val mockLoadProfile: LoadProfileUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: DashboardViewModel
@@ -38,13 +47,45 @@ class DashboardViewModelTest {
         resumeStatus = ResumeStatus(fileName = "resume.pdf", uploadedDate = LocalDate.now()),
         atsScore = 85,
         activeApplications = 5,
-        interviewPrepStatus = "Scheduled"
+        interviewPrepStatus = "Scheduled",
+        careerScore = 78,
+        upcomingInterviews = listOf(
+            UpcomingInterview(id = "1", company = "Google", role = "Android Engineer", dateTime = "Fri 10:00")
+        ),
+        jobRecommendations = listOf(
+            JobRecommendation(id = "1", title = "Senior Android Engineer", company = "Acme")
+        ),
+        recentActivity = listOf(
+            RecentActivity(id = "1", description = "Applied to Acme", date = LocalDate.now())
+        )
+    )
+
+    private fun job(id: String) = JobListing(
+        id = id,
+        title = "Android Engineer",
+        company = "Acme",
+        description = "desc",
+        url = "https://acme.com/jobs",
+        sourceProvider = "test"
     )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { mockTrackEvent.invoke(any()) } returns Result.Success(Unit)
+        every { mockDashboardRepository.getDashboardData() } returns MutableStateFlow(sampleData())
+        every { mockJobRepository.getSavedJobs() } returns MutableStateFlow(
+            Result.Success(listOf(job("1"), job("2"), job("3")))
+        )
+        every { mockLoadProfile.invoke() } returns MutableStateFlow(
+            Result.Success(
+                UserProfile(
+                    fullName = "Azmath Shaik",
+                    email = "azmath@aivance.com",
+                    targetRole = "Software Engineer"
+                )
+            )
+        )
     }
 
     @After
@@ -52,39 +93,45 @@ class DashboardViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun createViewModel() = DashboardViewModel(
+        mockDashboardRepository,
+        mockJobRepository,
+        mockLoadProfile,
+        mockTrackEvent
+    )
+
     @Test
-    fun `initial state becomes Loading`() {
-        every { mockRepository.getDashboardData() } returns MutableStateFlow(sampleData())
+    fun `initial state is loading`() {
+        viewModel = createViewModel()
 
-        viewModel = DashboardViewModel(mockRepository, mockTrackEvent)
-
-        assertTrue(viewModel.uiState.value is DashboardUiState.Loading)
+        assertTrue(viewModel.uiState.value.isLoading)
     }
 
     @Test
-    fun `repository emits data then state becomes Success`() = runTest(testDispatcher) {
-        every { mockRepository.getDashboardData() } returns MutableStateFlow(sampleData())
-
-        viewModel = DashboardViewModel(mockRepository, mockTrackEvent)
+    fun `aggregates real data into career HQ state`() = runTest(testDispatcher) {
+        viewModel = createViewModel()
 
         viewModel.uiState.test {
-            // Skip initial Loading
+            // Skip the initial Loading emission
             skipItems(1)
-            val successState = awaitItem()
-            assertTrue(successState is DashboardUiState.Success)
-            val success = successState as DashboardUiState.Success
-            assertEquals(85, success.recentAtsScore)
-            assertEquals(5, success.activeApplicationCount)
-            assertEquals(0.75f, success.profileCompletionPercent)
+            val state = awaitItem()
+
+            assertTrue(!state.isLoading)
+            assertEquals(78, state.careerScore)
+            assertEquals(85, state.atsScore)
+            assertEquals(5, state.activeApplications)
+            assertEquals(3, state.savedJobs)
+            assertEquals("Fri 10:00", state.nextInterview)
+            assertEquals("Software Engineer", state.userDesignation)
+            assertTrue(state.greeting.contains("Azmath"))
+            assertEquals(1, state.recentActivity.size)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
     fun `navigation events send correct effects`() = runTest(testDispatcher) {
-        every { mockRepository.getDashboardData() } returns MutableStateFlow(sampleData())
-
-        viewModel = DashboardViewModel(mockRepository, mockTrackEvent)
+        viewModel = createViewModel()
 
         viewModel.onEvent(DashboardUiEvent.NavigateToResume)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -99,9 +146,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `refresh triggers track event`() = runTest(testDispatcher) {
-        every { mockRepository.getDashboardData() } returns MutableStateFlow(sampleData())
-
-        viewModel = DashboardViewModel(mockRepository, mockTrackEvent)
+        viewModel = createViewModel()
 
         viewModel.onEvent(DashboardUiEvent.Refresh)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -111,9 +156,7 @@ class DashboardViewModelTest {
 
     @Test
     fun `settings event opens settings`() = runTest(testDispatcher) {
-        every { mockRepository.getDashboardData() } returns MutableStateFlow(sampleData())
-
-        viewModel = DashboardViewModel(mockRepository, mockTrackEvent)
+        viewModel = createViewModel()
 
         viewModel.onEvent(DashboardUiEvent.NavigateToSettings)
         testDispatcher.scheduler.advanceUntilIdle()

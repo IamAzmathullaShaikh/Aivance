@@ -3,14 +3,19 @@ package com.bangersoul.aivance.feature.assistant
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.Result
-import com.bangersoul.aivance.core.domain.repository.AssistantConversation
 import com.bangersoul.aivance.core.domain.repository.AssistantRepository
 import com.bangersoul.aivance.core.domain.usecase.assistant.AssistantRequest
 import com.bangersoul.aivance.core.domain.usecase.assistant.GetAssistantResponseUseCase
+import com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCase
+import com.bangersoul.aivance.sdk.core.ProviderStatus
+import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,14 +35,58 @@ data class AssistantChatMessage(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+/** Compact provider state for the Assistant status bar. */
+data class ProviderStatusUi(
+    val isReady: Boolean = false,
+    val providerName: String? = null,
+    val statusLabel: String = "No provider configured"
+)
+
 @HiltViewModel
 class AssistantViewModel @Inject constructor(
     private val assistantRepository: AssistantRepository,
-    private val getAssistantResponseUseCase: GetAssistantResponseUseCase
+    private val getAssistantResponseUseCase: GetAssistantResponseUseCase,
+    private val providerManager: ProviderManager,
+    private val loadProfileUseCase: LoadProfileUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AssistantUiState>(AssistantUiState.Idle)
     val uiState: StateFlow<AssistantUiState> = _uiState.asStateFlow()
+
+    private val readyStatuses = setOf(
+        ProviderStatus.Ready,
+        ProviderStatus.Active,
+        ProviderStatus.Healthy
+    )
+
+    /**
+     * Reactive provider bar state: the best currently-ready AI provider's name
+     * and status, or an unconfigured prompt when none is available.
+     */
+    val providerStatus: StateFlow<ProviderStatusUi> = providerManager.providerStatuses
+        .map { statuses ->
+            val ready = statuses.entries.firstOrNull { (_, status) -> status in readyStatuses }
+            if (ready != null) {
+                ProviderStatusUi(
+                    isReady = true,
+                    providerName = friendlyName(ready.key),
+                    statusLabel = ready.value.name.replaceFirstChar { it.uppercase() }
+                )
+            } else {
+                ProviderStatusUi(isReady = false)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProviderStatusUi())
+
+    /** The user's first name for the personalized greeting header. */
+    val userName: StateFlow<String> = loadProfileUseCase.invoke()
+        .map { result ->
+            (result as? Result.Success)?.data?.fullName
+                ?.trim()
+                ?.substringBefore(' ')
+                .orEmpty()
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
     private var currentConversationId = "main_session"
 
@@ -63,7 +112,9 @@ class AssistantViewModel @Inject constructor(
                 assistantRepository.saveMessage(currentConversationId, "ASSISTANT", result.data)
                 _uiState.value = AssistantUiState.Chatting(messages + aiMsg, isTyping = false)
             } else {
-                _uiState.value = AssistantUiState.Error("AI failed to respond")
+                _uiState.value = AssistantUiState.Error(
+                    (result as? Result.Failure)?.error?.message ?: "AI failed to respond"
+                )
             }
         }
     }
@@ -74,4 +125,9 @@ class AssistantViewModel @Inject constructor(
     fun retry() {
         lastUserMessage?.let { sendMessage(it) }
     }
+
+    private fun friendlyName(providerId: String): String =
+        providerId.split('_', '-').filter { it.isNotBlank() }.joinToString(" ") {
+            it.replaceFirstChar { c -> c.uppercase() }
+        }
 }

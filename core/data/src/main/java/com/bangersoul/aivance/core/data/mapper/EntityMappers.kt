@@ -375,7 +375,8 @@ fun InterviewQuestionEntity.toDomain(): InterviewQuestion {
         category = category,
         difficulty = difficulty,
         expectedKeyPoints = expectedKeyPoints?.split(",") ?: emptyList(),
-        idealAnswer = idealAnswer
+        idealAnswer = idealAnswer,
+        isFavorite = isFavorite
     )
 }
 
@@ -387,7 +388,8 @@ fun InterviewQuestion.toEntity(sessionId: Long?): InterviewQuestionEntity {
         category = category,
         difficulty = difficulty,
         expectedKeyPoints = expectedKeyPoints.joinToString(","),
-        idealAnswer = idealAnswer
+        idealAnswer = idealAnswer,
+        isFavorite = isFavorite
     )
 }
 
@@ -619,6 +621,12 @@ fun UserProfileEntity.toDomain(): UserProfile {
         email = email,
         phone = phone ?: "",
         targetRole = targetRole ?: "",
+        currentRole = currentRole ?: "",
+        company = company ?: "",
+        linkedinUrl = linkedinUrl ?: "",
+        githubUrl = githubUrl ?: "",
+        dateOfBirth = dateOfBirth,
+        profilePictureUrl = profilePictureUrl,
         bio = bio ?: "",
         location = location ?: "",
         skills = skills,
@@ -633,11 +641,17 @@ fun UserProfile.toEntity(): UserProfileEntity {
         name = fullName,
         email = email,
         phone = phone,
+        currentRole = currentRole,
         skills = skills,
         targetRole = targetRole,
         bio = bio,
         location = location,
         experienceYears = experienceYears,
+        profilePictureUrl = profilePictureUrl,
+        company = company,
+        linkedinUrl = linkedinUrl,
+        githubUrl = githubUrl,
+        dateOfBirth = dateOfBirth,
         createdDate = createdDate
     )
 }

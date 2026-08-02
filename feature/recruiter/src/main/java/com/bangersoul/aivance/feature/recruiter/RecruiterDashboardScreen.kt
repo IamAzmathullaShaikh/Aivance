@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,9 +47,16 @@ import androidx.compose.material.icons.rounded.PersonSearch
 @Composable
 fun RecruiterDashboardScreen(
     viewModel: RecruiterViewModel,
+    jobId: String,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // The custom back stack passes the destination's job ID here directly (it does
+    // not populate SavedStateHandle), so drive the load from the destination arg.
+    LaunchedEffect(jobId) {
+        viewModel.load(jobId)
+    }
 
     AivanceScreen(
         topBar = {

@@ -1,11 +1,15 @@
 package com.bangersoul.aivance.feature.dashboard.data
 
+import com.bangersoul.aivance.core.database.dao.AnalyticsDao
 import com.bangersoul.aivance.core.database.dao.AtsDao
+import com.bangersoul.aivance.core.database.dao.ResumeDao
 import com.bangersoul.aivance.core.database.dao.TrackerDao
+import com.bangersoul.aivance.core.domain.analytics.CareerScoreEngine
 import com.bangersoul.aivance.feature.dashboard.domain.CareerInsight
 import com.bangersoul.aivance.feature.dashboard.domain.DashboardData
 import com.bangersoul.aivance.feature.dashboard.domain.DashboardRepository
 import com.bangersoul.aivance.feature.dashboard.domain.DashboardTask
+import com.bangersoul.aivance.feature.dashboard.domain.JobRecommendation
 import com.bangersoul.aivance.feature.dashboard.domain.RecentActivity
 import com.bangersoul.aivance.feature.dashboard.domain.ResumeStatus
 import com.bangersoul.aivance.feature.dashboard.domain.UpcomingInterview
@@ -20,13 +24,19 @@ import javax.inject.Inject
 
 class DashboardRepositoryImpl @Inject constructor(
     private val trackerDao: TrackerDao,
-    private val atsDao: AtsDao
+    private val atsDao: AtsDao,
+    private val resumeDao: ResumeDao,
+    private val analyticsDao: AnalyticsDao,
+    private val careerScoreEngine: CareerScoreEngine
 ) : DashboardRepository {
 
     override fun getDashboardData(): Flow<DashboardData> = combine(
         trackerDao.getApplications(),
-        atsDao.getAtsResults()
-    ) { applications, atsResults ->
+        atsDao.getAtsResults(),
+        resumeDao.getResumes(),
+        analyticsDao.getSnapshots(),
+        analyticsDao.getActiveRecommendations()
+    ) { applications, atsResults, resumes, snapshots, recommendations ->
         val latestAts = atsResults.firstOrNull()
         val active = applications.filter {
             !it.application.status.equals("REJECTED", ignoreCase = true) &&
@@ -71,7 +81,62 @@ class DashboardRepositoryImpl @Inject constructor(
         val appliedThisWeek = applications.count { it.application.dateApplied >= weekStart }
 
         val atsScore = latestAts?.score ?: 0
+
+        // Career score: prefer the analytics snapshot (computed by the engine with
+        // full context), otherwise compute a composite from real ATS + pipeline data.
+        val snapshotScore = snapshots.firstOrNull()?.careerScore
+        val compositeScore = careerScoreEngine.calculateCompositeScore(
+            latestAtsReports = atsResults.map { legacy ->
+                com.bangersoul.aivance.core.common.model.AtsReport(
+                    resumeVersionId = legacy.resumeId,
+                    jobDescriptionId = 0,
+                    overallScore = legacy.score,
+                    matchPercentage = legacy.score,
+                    matchedKeywords = legacy.matchedKeywords.split(",").filter { it.isNotBlank() },
+                    missingKeywords = legacy.missingKeywords.split(",").filter { it.isNotBlank() }
+                )
+            },
+            recruiters = emptyList(),
+            applicationCount = active.size
+        )["OVERALL"] ?: 0
+        val careerScore = snapshotScore ?: compositeScore
+
+        // Real resume status from the uploaded resume (if any)
+        val latestResume = resumes.firstOrNull()
+        val resumeStatus = ResumeStatus(
+            fileName = latestResume?.fileName ?: "No resume yet",
+            uploadedDate = latestResume?.let {
+                Instant.ofEpochMilli(it.lastModified).atZone(ZoneId.systemDefault()).toLocalDate()
+            } ?: LocalDate.now()
+        )
+
+        // Profile completion from real signals (no hardcoded placeholder)
+        val profileCompletion = listOf(
+            if (latestResume != null) 30 else 0,          // resume uploaded
+            if (atsScore > 0) 25 else 0,                   // ATS analyzed
+            if (active.isNotEmpty()) 20 else 0,            // pipeline active
+            if (recommendations.isNotEmpty()) 15 else 0,   // recommendations generated
+            if (snapshots.isNotEmpty()) 10 else 0          // analytics snapshot exists
+        ).sum().coerceIn(0, 100)
+
+        // AI-generated recommendations surfaced from the analytics subsystem
+        val jobRecommendations = recommendations.map { rec ->
+            JobRecommendation(
+                id = rec.id.toString(),
+                title = rec.title,
+                company = rec.category.replaceFirstChar { it.uppercase() }
+            )
+        }
+
         val insights = buildList {
+            if (careerScore > 0) {
+                add(
+                    CareerInsight(
+                        id = "career",
+                        text = "Your career score is $careerScore — driven by ATS readiness, active applications, and engagement."
+                    )
+                )
+            }
             if (atsScore > 0) {
                 add(
                     CareerInsight(
@@ -92,18 +157,23 @@ class DashboardRepositoryImpl @Inject constructor(
                     )
                 )
             }
+            if (jobRecommendations.isNotEmpty()) {
+                add(
+                    CareerInsight(
+                        id = "recs",
+                        text = "${jobRecommendations.size} AI-generated opportunities are waiting for you."
+                    )
+                )
+            }
         }
 
         DashboardData(
-            profileCompletion = 85,
-            resumeStatus = ResumeStatus(
-                fileName = "Resume",
-                uploadedDate = LocalDate.now()
-            ),
+            profileCompletion = profileCompletion,
+            resumeStatus = resumeStatus,
             atsScore = atsScore,
             activeApplications = active.size,
-            interviewPrepStatus = "Ready to start",
-            jobRecommendations = emptyList(),
+            interviewPrepStatus = if (interviews.isNotEmpty()) "Interviews scheduled" else "Ready to start",
+            jobRecommendations = jobRecommendations,
             recentActivity = applications.take(3).map {
                 RecentActivity(
                     id = it.application.id.toString(),
@@ -128,7 +198,8 @@ class DashboardRepositoryImpl @Inject constructor(
             } else {
                 emptyList()
             },
-            insights = insights
+            insights = insights,
+            careerScore = careerScore
         )
     }
 }

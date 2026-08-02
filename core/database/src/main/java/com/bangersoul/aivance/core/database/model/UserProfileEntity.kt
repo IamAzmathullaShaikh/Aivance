@@ -21,5 +21,9 @@ data class UserProfileEntity(
     val location: String? = null,
     val experienceYears: Int = 0,
     val profilePictureUrl: String? = null,
+    val company: String? = null,
+    val linkedinUrl: String? = null,
+    val githubUrl: String? = null,
+    val dateOfBirth: Long? = null,
     val createdDate: Long = System.currentTimeMillis()
 )

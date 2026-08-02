@@ -8,7 +8,21 @@ data class UserPreferences(
     val themeConfig: ThemeConfig = ThemeConfig.FOLLOW_SYSTEM,
     val accentSeed: String = "INDIGO",
     val dynamicColor: Boolean = true,
-    val geminiApiKey: String? = null
+    val geminiApiKey: String? = null,
+
+    /** Notification preferences (Settings Hub toggles). */
+    val jobAlertsEnabled: Boolean = true,
+    val interviewRemindersEnabled: Boolean = true,
+    val followUpRemindersEnabled: Boolean = true,
+
+    /**
+     * Persisted identity-provider subject for the v2 auth flow. SplashScreen
+     * uses this to auto-login returning users without re-hitting the provider
+     * on every cold start.
+     */
+    val userId: String? = null,
+    val userEmail: String? = null,
+    val userFirstName: String? = null
 )
 
 enum class ThemeConfig {

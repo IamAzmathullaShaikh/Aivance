@@ -7,9 +7,11 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.InterviewRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -45,6 +47,10 @@ class InterviewViewModelTest {
             mockRepository.startSession(any(), any(), any(), any(), any(), any())
         } returns Result.Success(sampleSession)
         coEvery { mockRepository.generateQuestions(any(), any()) } returns Result.Success(Unit)
+        // History is loaded in init — provide an empty session list by default.
+        every { mockRepository.getSessions() } returns flowOf(Result.Success(emptyList()))
+        every { mockRepository.getQuestions(any()) } returns flowOf(Result.Success(emptyList()))
+        every { mockRepository.getSessionById(any()) } returns flowOf(Result.Success(sampleSession))
     }
 
     @After
@@ -117,5 +123,19 @@ class InterviewViewModelTest {
         viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
         viewModel.onEvent(InterviewUiEvent.Reset)
         assertTrue(viewModel.uiState.value is InterviewUiState.Idle)
+    }
+
+    @Test
+    fun `load history populates Idle state with past sessions`() = runTest(testDispatcher) {
+        every { mockRepository.getSessions() } returns flowOf(
+            Result.Success(listOf(sampleSession.copy(isCompleted = true)))
+        )
+
+        viewModel = InterviewViewModel(mockRepository, mockTrackEvent)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is InterviewUiState.Idle)
+        assertEquals(1, (state as InterviewUiState.Idle).history.size)
     }
 }

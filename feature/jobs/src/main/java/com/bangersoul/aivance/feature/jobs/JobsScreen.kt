@@ -33,7 +33,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun JobsScreen(
     viewModel: JobsViewModel,
-    onNavigateToDetails: (String) -> Unit
+    onNavigateToDetails: (String) -> Unit,
+    onNavigateToSavedJobs: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
@@ -96,7 +97,9 @@ fun JobsScreen(
                         jobs = state.jobs,
                         isSearching = state.isSearching,
                         onJobClick = onNavigateToDetails,
-                        onBookmarkClick = { viewModel.onEvent(JobsUiEvent.ToggleBookmark(it)) }
+                        onBookmarkClick = { viewModel.onEvent(JobsUiEvent.ToggleBookmark(it)) },
+                        onRefresh = { viewModel.onEvent(JobsUiEvent.Refresh) },
+                        onSavedJobs = onNavigateToSavedJobs
                     )
                     else -> {}
                 }
@@ -128,7 +131,9 @@ private fun JobDiscoveryList(
     jobs: List<JobListing>,
     isSearching: Boolean,
     onJobClick: (String) -> Unit,
-    onBookmarkClick: (String) -> Unit
+    onBookmarkClick: (String) -> Unit,
+    onRefresh: () -> Unit,
+    onSavedJobs: () -> Unit
 ) {
     if (jobs.isEmpty()) {
         AivanceEmptyState(
@@ -140,9 +145,9 @@ private fun JobDiscoveryList(
             },
             icon = Icons.Rounded.WorkOff,
             primaryActionText = "Refresh",
-            onPrimaryAction = { /* viewModel event wired via parent */ },
+            onPrimaryAction = onRefresh,
             secondaryActionText = "Saved Jobs",
-            onSecondaryAction = {}
+            onSecondaryAction = onSavedJobs
         )
     } else {
         LazyColumn(

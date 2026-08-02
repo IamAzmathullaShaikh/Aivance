@@ -11,20 +11,20 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApifyApi {
-    @POST("v2/acts/{actorId}/runs")
+    @POST("acts/{actorId}/runs")
     suspend fun runActor(
         @Path("actorId") actorId: String,
         @Query("token") token: String,
         @Body input: JsonObject
     ): Response<ApifyActorRunResponse>
 
-    @GET("v2/actor-runs/{runId}")
+    @GET("actor-runs/{runId}")
     suspend fun getActorRun(
         @Path("runId") runId: String,
         @Query("token") token: String
     ): Response<ApifyActorRunResponse>
 
-    @GET("v2/datasets/{datasetId}/items")
+    @GET("datasets/{datasetId}/items")
     suspend fun getDatasetItems(
         @Path("datasetId") datasetId: String,
         @Query("token") token: String,

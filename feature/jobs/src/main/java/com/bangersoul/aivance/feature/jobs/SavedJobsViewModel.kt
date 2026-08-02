@@ -87,9 +87,14 @@ class SavedJobsViewModel @Inject constructor(
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest(eventName = "saved_jobs_remove"))
             val result = toggleJobBookmarkUseCase(jobId)
-            if (result is Result.Success) {
-                _effects.send(SavedJobsUiEffect.ShowSnackbar("Job removed from saved"))
-                loadSavedJobs()
+            when (result) {
+                is Result.Success -> {
+                    _effects.send(SavedJobsUiEffect.ShowSnackbar("Job removed from saved"))
+                    loadSavedJobs()
+                }
+                is Result.Failure -> {
+                    _effects.send(SavedJobsUiEffect.ShowSnackbar(result.error.message ?: "Failed to remove job"))
+                }
             }
         }
     }

@@ -70,7 +70,7 @@ object UseCaseModule {
     fun provideUpdateProfileUseCase(repo: UserRepository): UpdateProfileUseCase = UpdateProfileUseCase(repo)
 
     @Provides @Singleton
-    fun provideTrackEventUseCase(repo: AnalyticsRepository): TrackEventUseCase = TrackEventUseCase(repo)
+    fun provideTrackEventUseCase(engine: com.bangersoul.aivance.core.domain.analytics.AnalyticsEngine): TrackEventUseCase = TrackEventUseCase(engine)
 
     @Provides @Singleton
     fun provideGenerateUsageReportUseCase(repo: AnalyticsRepository): GenerateUsageReportUseCase = GenerateUsageReportUseCase(repo)

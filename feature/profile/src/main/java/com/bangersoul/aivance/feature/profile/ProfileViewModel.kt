@@ -32,10 +32,19 @@ sealed interface ProfileUiState {
         val profile: UserProfile? = null,
         val fullName: String = "",
         val email: String = "",
+        val phone: String = "",
+        val currentRole: String = "",
+        val company: String = "",
+        val linkedinUrl: String = "",
+        val githubUrl: String = "",
+        val dateOfBirth: Long? = null,
+        val profilePictureUrl: String? = null,
         val targetRole: String = "",
         val skills: String = "",
         val experienceYears: Int = 0,
         val apiKey: String = "",
+        val isEditing: Boolean = false,
+        val isDirty: Boolean = false,
         val isSaving: Boolean = false
     ) : ProfileUiState
     data class Error(val message: String) : ProfileUiState
@@ -44,10 +53,18 @@ sealed interface ProfileUiState {
 sealed interface ProfileUiEvent {
     data class UpdateFullName(val name: String) : ProfileUiEvent
     data class UpdateEmail(val email: String) : ProfileUiEvent
+    data class UpdatePhone(val phone: String) : ProfileUiEvent
+    data class UpdateCurrentRole(val role: String) : ProfileUiEvent
+    data class UpdateCompany(val company: String) : ProfileUiEvent
+    data class UpdateLinkedIn(val url: String) : ProfileUiEvent
+    data class UpdateGithub(val url: String) : ProfileUiEvent
+    data class UpdateDateOfBirth(val date: Long?) : ProfileUiEvent
+    data class UpdateProfilePicture(val url: String?) : ProfileUiEvent
     data class UpdateTargetRole(val role: String) : ProfileUiEvent
     data class UpdateSkills(val skills: String) : ProfileUiEvent
     data class UpdateExperience(val years: Int) : ProfileUiEvent
     data class UpdateApiKey(val key: String) : ProfileUiEvent
+    data object ToggleEdit : ProfileUiEvent
     data object SaveProfile : ProfileUiEvent
     data object DeleteProfile : ProfileUiEvent
     data object LoadProfile : ProfileUiEvent
@@ -78,12 +95,20 @@ class ProfileViewModel @Inject constructor(
 
     fun onEvent(event: ProfileUiEvent) {
         when (event) {
-            is ProfileUiEvent.UpdateFullName -> updateField { it.copy(fullName = event.name) }
-            is ProfileUiEvent.UpdateEmail -> updateField { it.copy(email = event.email) }
-            is ProfileUiEvent.UpdateTargetRole -> updateField { it.copy(targetRole = event.role) }
-            is ProfileUiEvent.UpdateSkills -> updateField { it.copy(skills = event.skills) }
-            is ProfileUiEvent.UpdateExperience -> updateField { it.copy(experienceYears = event.years) }
+            is ProfileUiEvent.UpdateFullName -> updateField { it.copy(fullName = event.name, isDirty = true) }
+            is ProfileUiEvent.UpdateEmail -> updateField { it.copy(email = event.email, isDirty = true) }
+            is ProfileUiEvent.UpdatePhone -> updateField { it.copy(phone = event.phone, isDirty = true) }
+            is ProfileUiEvent.UpdateCurrentRole -> updateField { it.copy(currentRole = event.role, isDirty = true) }
+            is ProfileUiEvent.UpdateCompany -> updateField { it.copy(company = event.company, isDirty = true) }
+            is ProfileUiEvent.UpdateLinkedIn -> updateField { it.copy(linkedinUrl = event.url, isDirty = true) }
+            is ProfileUiEvent.UpdateGithub -> updateField { it.copy(githubUrl = event.url, isDirty = true) }
+            is ProfileUiEvent.UpdateDateOfBirth -> updateField { it.copy(dateOfBirth = event.date, isDirty = true) }
+            is ProfileUiEvent.UpdateProfilePicture -> updateField { it.copy(profilePictureUrl = event.url, isDirty = true) }
+            is ProfileUiEvent.UpdateTargetRole -> updateField { it.copy(targetRole = event.role, isDirty = true) }
+            is ProfileUiEvent.UpdateSkills -> updateField { it.copy(skills = event.skills, isDirty = true) }
+            is ProfileUiEvent.UpdateExperience -> updateField { it.copy(experienceYears = event.years, isDirty = true) }
             is ProfileUiEvent.UpdateApiKey -> updateApiKey(event.key)
+            ProfileUiEvent.ToggleEdit -> toggleEdit()
             ProfileUiEvent.SaveProfile -> saveProfile()
             ProfileUiEvent.DeleteProfile -> deleteProfile()
             ProfileUiEvent.LoadProfile -> loadProfile()
@@ -102,6 +127,13 @@ class ProfileViewModel @Inject constructor(
                                 profile = profile,
                                 fullName = profile.fullName,
                                 email = profile.email,
+                                phone = profile.phone,
+                                currentRole = profile.currentRole,
+                                company = profile.company,
+                                linkedinUrl = profile.linkedinUrl,
+                                githubUrl = profile.githubUrl,
+                                dateOfBirth = profile.dateOfBirth,
+                                profilePictureUrl = profile.profilePictureUrl,
                                 targetRole = profile.targetRole,
                                 skills = profile.skills.joinToString(", "),
                                 experienceYears = profile.experienceYears
@@ -118,6 +150,17 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    private fun toggleEdit() {
+        val current = _uiState.value as? ProfileUiState.Success ?: return
+        if (current.isEditing) {
+            // Leaving edit mode without saving discards the local edits by
+            // reloading the persisted profile.
+            loadProfile()
+        } else {
+            _uiState.value = current.copy(isEditing = true, isDirty = false)
+        }
+    }
+
     private fun saveProfile() {
         val currentState = _uiState.value as? ProfileUiState.Success ?: return
         if (currentState.fullName.isBlank()) {
@@ -131,14 +174,21 @@ class ProfileViewModel @Inject constructor(
             val request = UpdateProfileRequest(
                 fullName = currentState.fullName,
                 email = currentState.email,
+                phone = currentState.phone,
                 targetRole = currentState.targetRole,
+                currentRole = currentState.currentRole,
+                company = currentState.company,
+                linkedinUrl = currentState.linkedinUrl,
+                githubUrl = currentState.githubUrl,
+                dateOfBirth = currentState.dateOfBirth,
+                profilePictureUrl = currentState.profilePictureUrl,
                 skills = currentState.skills.split(",").map { it.trim() }.filter { it.isNotEmpty() },
                 experienceYears = currentState.experienceYears
             )
             val result = updateProfileUseCase(request)
             when (result) {
                 is Result.Success -> {
-                    _uiState.value = currentState.copy(isSaving = false)
+                    _uiState.value = currentState.copy(isSaving = false, isDirty = false, isEditing = false)
                     sendEffect(ProfileUiEffect.ShowSnackbar("Profile saved"))
                 }
                 is Result.Failure -> {

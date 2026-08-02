@@ -2,6 +2,8 @@ package com.bangersoul.aivance.feature.profile
 
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.datastore.UserPreferences
+import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.ExportSettingsUseCase
@@ -10,7 +12,9 @@ import com.bangersoul.aivance.core.domain.usecase.settings.ResetSettingsUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.SaveSettingsUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -32,16 +36,18 @@ class SettingsViewModelTest {
     private val mockExportSettings: ExportSettingsUseCase = mockk()
     private val mockResetSettings: ResetSettingsUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
+    private val mockUserPreferences: UserPreferencesRepository = mockk()
 
     private fun createViewModel() = SettingsViewModel(
         mockLoadSettings, mockSaveSettings, mockExportSettings,
-        mockResetSettings, mockTrackEvent
+        mockResetSettings, mockTrackEvent, mockUserPreferences
     )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
+        every { mockUserPreferences.userPreferences } returns flowOf(UserPreferences())
     }
 
     @After

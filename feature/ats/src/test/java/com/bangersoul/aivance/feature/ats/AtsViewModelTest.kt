@@ -70,6 +70,12 @@ class AtsViewModelTest {
         assertTrue(viewModel.uiState.value is AtsUiState.InputJobDescription)
     }
 
+    // STEP 9 live-reactive scoring only fires once the JD exceeds 50 characters
+    // (the combine → debounce(800) pipeline is gated on jd.length > 50).
+    private val longJd = "Senior Android Engineer with 5+ years of experience building scalable " +
+        "mobile applications using Kotlin, Jetpack Compose, and Clean Architecture, with strong " +
+        "knowledge of coroutines, Hilt, Room, and CI/CD pipelines."
+
     @Test
     fun `analyze success transitions to DisplayReport`() = runTest(testDispatcher) {
         coEvery { mockAnalyzeJd.invoke(any()) } returns Result.Success(99L)
@@ -79,7 +85,7 @@ class AtsViewModelTest {
 
         viewModel = createViewModel()
         viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
-        viewModel.onEvent(AtsUiEvent.Analyze("Senior Android Engineer"))
+        viewModel.onEvent(AtsUiEvent.Analyze(longJd))
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -94,7 +100,7 @@ class AtsViewModelTest {
 
         viewModel = createViewModel()
         viewModel.onEvent(AtsUiEvent.SelectResumeVersion(sampleResume, sampleVersion))
-        viewModel.onEvent(AtsUiEvent.Analyze("Senior Android Engineer"))
+        viewModel.onEvent(AtsUiEvent.Analyze(longJd))
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is AtsUiState.Error)

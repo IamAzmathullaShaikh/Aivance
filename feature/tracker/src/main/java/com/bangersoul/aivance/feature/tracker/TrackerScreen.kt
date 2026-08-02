@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -23,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draganddrop.DragAndDropEvent
@@ -32,8 +35,12 @@ import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bangersoul.aivance.core.common.model.Application
 import com.bangersoul.aivance.core.common.model.ApplicationStage
+import com.bangersoul.aivance.core.common.model.TimelineEvent
 import com.bangersoul.aivance.core.designsystem.components.*
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun TrackerScreen(
@@ -41,31 +48,56 @@ fun TrackerScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        AivanceTopBar(title = "Career Pipeline", onBack = onBack)
-        AnimatedContent(
-            targetState = uiState,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "TrackerTransition"
-        ) { state ->
-            when (state) {
-                is TrackerUiState.Loading -> SkeletonDashboard(modifier = Modifier.fillMaxSize())
-                is TrackerUiState.Error -> AivanceError(
-                    message = state.message,
-                    onRetry = { viewModel.onEvent(TrackerUiEvent.Refresh) },
-                    title = "Pipeline unavailable"
-                )
-                is TrackerUiState.Success -> PipelineBoard(
-                    stages = state.stages,
-                    applications = state.applications,
-                    onMove = { appId, stageId ->
-                        viewModel.onEvent(TrackerUiEvent.UpdateStage(appId, stageId))
-                    }
-                )
-                else -> {}
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            AivanceTopBar(title = "Career Pipeline", onBack = onBack)
+            AnimatedContent(
+                targetState = uiState,
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "TrackerTransition"
+            ) { state ->
+                when (state) {
+                    is TrackerUiState.Loading -> SkeletonDashboard(modifier = Modifier.fillMaxSize())
+                    is TrackerUiState.Error -> AivanceError(
+                        message = state.message,
+                        onRetry = { viewModel.onEvent(TrackerUiEvent.Refresh) },
+                        title = "Pipeline unavailable"
+                    )
+                    is TrackerUiState.Success -> PipelineBoard(
+                        stages = state.stages,
+                        applications = state.applications,
+                        selectedApplicationId = state.selectedApplicationId,
+                        onMove = { appId, stageId ->
+                            viewModel.onEvent(TrackerUiEvent.UpdateStage(appId, stageId))
+                        },
+                        onSelect = { appId ->
+                            viewModel.onEvent(TrackerUiEvent.SelectApplication(appId))
+                        },
+                        onClose = { viewModel.onEvent(TrackerUiEvent.CloseApplication) },
+                        onDelete = { appId ->
+                            viewModel.onEvent(TrackerUiEvent.DeleteApplication(appId))
+                        },
+                        onNotesChange = { appId, notes ->
+                            viewModel.onEvent(TrackerUiEvent.UpdateNotes(appId, notes))
+                        }
+                    )
+                    else -> {}
+                }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -73,7 +105,12 @@ fun TrackerScreen(
 private fun PipelineBoard(
     stages: List<ApplicationStage>,
     applications: List<Application>,
-    onMove: (Long, String) -> Unit
+    selectedApplicationId: Long?,
+    onMove: (Long, String) -> Unit,
+    onSelect: (Long) -> Unit,
+    onClose: () -> Unit,
+    onDelete: (Long) -> Unit,
+    onNotesChange: (Long, String) -> Unit
 ) {
     if (stages.isEmpty()) {
         AivanceEmptyState(
@@ -82,6 +119,10 @@ private fun PipelineBoard(
             icon = Icons.Rounded.ViewKanban
         )
         return
+    }
+
+    val selectedApplication = selectedApplicationId?.let { id ->
+        applications.firstOrNull { it.id == id }
     }
 
     LazyRow(
@@ -93,9 +134,19 @@ private fun PipelineBoard(
             PipelineColumn(
                 stage = stage,
                 applications = applications.filter { it.currentStageId == stage.id },
-                onMove = onMove
+                onMove = onMove,
+                onSelect = onSelect
             )
         }
+    }
+
+    if (selectedApplication != null) {
+        ApplicationDetailSheet(
+            application = selectedApplication,
+            onDismiss = onClose,
+            onDelete = { onDelete(selectedApplication.id) },
+            onNotesChange = { onNotesChange(selectedApplication.id, it) }
+        )
     }
 }
 
@@ -104,7 +155,8 @@ private fun PipelineBoard(
 private fun PipelineColumn(
     stage: ApplicationStage,
     applications: List<Application>,
-    onMove: (Long, String) -> Unit
+    onMove: (Long, String) -> Unit,
+    onSelect: (Long) -> Unit
 ) {
     var isDropTarget by remember { mutableStateOf(false) }
 
@@ -193,7 +245,11 @@ private fun PipelineColumn(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(applications, key = { it.id }) { app ->
-                        KanbanCard(app = app)
+                        val currentOnSelect by rememberUpdatedState(onSelect)
+                        KanbanCard(
+                            app = app,
+                            onClick = { currentOnSelect(app.id) }
+                        )
                     }
                 }
             }
@@ -214,13 +270,19 @@ private fun Modifier.dropHighlight(isActive: Boolean): Modifier {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun KanbanCard(app: Application) {
+private fun KanbanCard(
+    app: Application,
+    onClick: () -> Unit
+) {
+    val currentOnClick by rememberUpdatedState(onClick)
     DashboardCard(
         modifier = Modifier
             .fillMaxWidth()
             .dragAndDropSource {
-                // Long-press to lift the card into a drag payload.
+                // Long-press to lift the card into a drag payload; a plain tap
+                // opens the application detail sheet.
                 detectTapGestures(
+                    onTap = { currentOnClick() },
                     onLongPress = {
                         startTransfer(
                             DragAndDropTransferData(
@@ -277,4 +339,219 @@ private fun stageColor(stageId: String): Color = when (stageId.uppercase()) {
     "OFFER" -> AivanceTheme.colors.success
     "REJECTED", "CLOSED" -> MaterialTheme.colorScheme.error
     else -> MaterialTheme.colorScheme.secondary
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ApplicationDetailSheet(
+    application: Application,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit,
+    onNotesChange: (String) -> Unit
+) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+
+    // Locally buffer the notes so typing never fights the Room re-emissions;
+    // save (debounced) once the user pauses.
+    var notesText by remember(application.id) { mutableStateOf(application.notes.orEmpty()) }
+    val currentOnNotesChange by rememberUpdatedState(onNotesChange)
+    LaunchedEffect(notesText, application.id) {
+        if (notesText != application.notes.orEmpty()) {
+            kotlinx.coroutines.delay(600)
+            currentOnNotesChange(notesText)
+        }
+    }
+
+    // Flush any pending (debounced) notes when the sheet is dismissed so the
+    // last edits are never silently dropped.
+    val dismissWithFlush = {
+        if (notesText != application.notes.orEmpty()) {
+            onNotesChange(notesText)
+        }
+        onDismiss()
+    }
+
+    ModalBottomSheet(onDismissRequest = dismissWithFlush) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            stageColor(application.currentStageId).copy(alpha = 0.15f),
+                            RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Rounded.Business,
+                        null,
+                        tint = stageColor(application.currentStageId),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        application.job?.title ?: "Unknown Role",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        application.job?.company ?: "Unknown Company",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Current status + last modified
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatusChip(text = application.currentStageId.replace('_', ' '), tone = BannerTone.INFO)
+                Text(
+                    "Updated ${formatTimestamp(application.lastModified)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            HorizontalDivider()
+
+            // Timeline
+            Text("Timeline", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (application.timeline.isEmpty()) {
+                Text(
+                    "No activity recorded yet.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                application.timeline.forEach { event ->
+                    TimelineRow(event = event)
+                }
+            }
+
+            HorizontalDivider()
+
+            // Notes
+            Text("Notes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = notesText,
+                onValueChange = { notesText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Add follow-up notes, contact details, links…") },
+                minLines = 3
+            )
+            Text(
+                "Saved automatically as you type.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // Job listing link
+            val jobUrl = application.job?.url
+            if (!jobUrl.isNullOrBlank()) {
+                OutlinedButton(
+                    onClick = { uriHandler.openUri(jobUrl) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Rounded.OpenInNew, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Open Job Listing")
+                }
+            }
+
+            // Delete
+            TextButton(
+                onClick = { showDeleteConfirm = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(Icons.Rounded.DeleteOutline, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Delete Application")
+            }
+        }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete application?") },
+            text = {
+                Text("This removes \"${application.job?.title ?: "this role"}\" and its entire history from your pipeline. This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun TimelineRow(event: TimelineEvent) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(AivanceTheme.colors.accent, RoundedCornerShape(4.dp))
+                .padding(top = 20.dp)
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                event.title.orEmpty(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            if (!event.description.isNullOrBlank()) {
+                Text(
+                    event.description.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                formatTimestamp(event.timestamp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val date = Date(timestamp)
+    return try {
+        SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(date)
+    } catch (_: Exception) {
+        ""
+    }
 }

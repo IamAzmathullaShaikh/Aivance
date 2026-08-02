@@ -23,6 +23,8 @@ android {
 dependencies {
     implementation(project(":core:domain"))
     implementation(project(":core:database"))
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     implementation(project(":core:network"))
     implementation(project(":core:datastore"))
     implementation(project(":core:common"))

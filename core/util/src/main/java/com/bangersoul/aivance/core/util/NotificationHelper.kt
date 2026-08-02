@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.core.util
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -94,6 +95,12 @@ class NotificationHelper @Inject constructor(
         showNotification(id, CHANNEL_APPLICATIONS, title, message, deepLinkUri = "aivance://jobs")
     }
 
+    /**
+     * The notify() call is wrapped in a try/catch for SecurityException, which
+     * handles the missing POST_NOTIFICATIONS permission at runtime (Android 13+),
+     * so the lint MissingPermission warning is a false positive.
+     */
+    @SuppressLint("MissingPermission")
     private fun showNotification(
         id: Int,
         channelId: String,

@@ -161,7 +161,8 @@ data class InterviewQuestion(
     val category: String,
     val difficulty: String,
     val expectedKeyPoints: List<String> = emptyList(),
-    val idealAnswer: String? = null
+    val idealAnswer: String? = null,
+    val isFavorite: Boolean = false
 )
 
 @Serializable
@@ -294,6 +295,12 @@ data class UserProfile(
     val email: String,
     val phone: String = "",
     val targetRole: String = "",
+    val currentRole: String = "",
+    val company: String = "",
+    val linkedinUrl: String = "",
+    val githubUrl: String = "",
+    val dateOfBirth: Long? = null,
+    val profilePictureUrl: String? = null,
     val bio: String = "",
     val location: String = "",
     val skills: List<String> = emptyList(),

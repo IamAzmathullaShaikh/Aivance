@@ -1,5 +1,15 @@
 package com.bangersoul.aivance.feature.assistant
 
+import android.app.Activity
+import android.content.Intent
+import android.provider.OpenableColumns
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -7,27 +17,36 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bangersoul.aivance.core.designsystem.components.*
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
+import java.util.Calendar
 
 /**
  * The AI Career Assistant — an operating-system style command surface.
+ *
+ * v2: personalized greeting header, intent quick-action chips, live provider
+ * status bar, and an input bar with voice/document/photo affordances.
  */
 @Composable
 fun AssistantScreen(
@@ -35,10 +54,16 @@ fun AssistantScreen(
     onSwitchProvider: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val providerStatus by viewModel.providerStatus.collectAsStateWithLifecycle()
+    val userName by viewModel.userName.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        AivanceTopBar(title = "Assistant", subtitle = "Your AI career copilot")
+        AssistantHeader(
+            userName = userName,
+            providerStatus = providerStatus,
+            onSwitchProvider = onSwitchProvider
+        )
 
         Box(modifier = Modifier.weight(1f)) {
             AnimatedContent(
@@ -47,9 +72,11 @@ fun AssistantScreen(
                 label = "AssistantTransition"
             ) { state ->
                 when (state) {
-                    is AssistantUiState.Idle -> AssistantWelcomeContent(onPromptClick = { prompt ->
-                        viewModel.sendMessage(prompt)
-                    })
+                    is AssistantUiState.Idle -> AssistantWelcomeContent(
+                        providerReady = providerStatus.isReady,
+                        onPromptClick = { prompt -> viewModel.sendMessage(prompt) },
+                        onConfigureProvider = onSwitchProvider
+                    )
                     is AssistantUiState.Loading -> SkeletonDashboard(modifier = Modifier.fillMaxSize())
                     is AssistantUiState.Chatting -> ChatContent(
                         messages = state.messages,
@@ -80,6 +107,75 @@ fun AssistantScreen(
     }
 }
 
+private fun greetingForTime(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+    in 0..11 -> "Good Morning"
+    in 12..16 -> "Good Afternoon"
+    else -> "Good Evening"
+}
+
+@Composable
+private fun AssistantHeader(
+    userName: String,
+    providerStatus: ProviderStatusUi,
+    onSwitchProvider: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "${greetingForTime()}, ${userName.ifBlank { "there" }}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = "What do you want to achieve today?",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            ProviderStatusChip(providerStatus, onSwitchProvider)
+        }
+    }
+}
+
+@Composable
+private fun ProviderStatusChip(status: ProviderStatusUi, onSwitchProvider: () -> Unit) {
+    val (dotColor, label) = if (status.isReady) {
+        AivanceTheme.colors.success to (status.providerName?.let { "$it · ${status.statusLabel}" } ?: "Active")
+    } else {
+        AivanceTheme.colors.warning to "No provider"
+    }
+    Surface(
+        onClick = onSwitchProvider,
+        shape = RoundedCornerShape(100.dp),
+        color = dotColor.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, dotColor.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(dotColor, CircleShape)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = dotColor,
+                maxLines = 1
+            )
+        }
+    }
+}
+
 private val suggestedPrompts = listOf(
     "Optimize my resume for a Senior Android Engineer role",
     "Write a follow-up email after an interview",
@@ -90,7 +186,11 @@ private val suggestedPrompts = listOf(
 )
 
 @Composable
-private fun AssistantWelcomeContent(onPromptClick: (String) -> Unit) {
+private fun AssistantWelcomeContent(
+    providerReady: Boolean,
+    onPromptClick: (String) -> Unit,
+    onConfigureProvider: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp),
@@ -128,14 +228,40 @@ private fun AssistantWelcomeContent(onPromptClick: (String) -> Unit) {
             }
         }
 
-        // Provider status
+        // Inline provider setup card when nothing is configured yet
+        if (!providerReady) {
+            item {
+                ProviderSetupCard(onConfigureProvider)
+            }
+        }
+
+        // Intent quick-action chips
         item {
-            InsightCard(
-                text = "AI Provider: Ready",
-                icon = Icons.Rounded.CloudDone,
-                iconTint = AivanceTheme.colors.success,
-                modifier = Modifier.fillMaxWidth()
-            )
+            SectionHeader(title = "Quick Actions")
+        }
+        item {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                item {
+                    QuickActionChip("Improve Resume", Icons.Rounded.Description, AivanceTheme.colors.accent) {
+                        onPromptClick("Analyze my resume and suggest improvements")
+                    }
+                }
+                item {
+                    QuickActionChip("Find Jobs", Icons.Rounded.WorkOutline, AivanceTheme.colors.info) {
+                        onPromptClick("Find jobs matching my profile")
+                    }
+                }
+                item {
+                    QuickActionChip("Interview Prep", Icons.Rounded.RecordVoiceOver, AivanceTheme.colors.warning) {
+                        onPromptClick("Start a mock interview for my target role")
+                    }
+                }
+                item {
+                    QuickActionChip("Cover Letter", Icons.Rounded.Edit, AivanceTheme.colors.success) {
+                        onPromptClick("Generate a cover letter for my target role")
+                    }
+                }
+            }
         }
 
         item {
@@ -149,7 +275,7 @@ private fun AssistantWelcomeContent(onPromptClick: (String) -> Unit) {
                         onClick = { onPromptClick(prompt) },
                         shape = AivanceTheme.shapes.large,
                         color = MaterialTheme.colorScheme.surface,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
@@ -162,44 +288,67 @@ private fun AssistantWelcomeContent(onPromptClick: (String) -> Unit) {
                 }
             }
         }
+    }
+}
 
-        item {
-            SectionHeader(title = "Quick Commands")
-        }
-
-        item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                item {
-                    QuickCommandChip("Resume Scan", Icons.Rounded.Description) { onPromptClick("Analyze my resume for ATS gaps") }
-                }
-                item {
-                    QuickCommandChip("Job Match", Icons.Rounded.WorkOutline) { onPromptClick("Find jobs matching my profile") }
-                }
-                item {
-                    QuickCommandChip("Mock Interview", Icons.Rounded.RecordVoiceOver) { onPromptClick("Start a mock interview") }
-                }
-                item {
-                    QuickCommandChip("Cover Letter", Icons.Rounded.Edit) { onPromptClick("Draft a cover letter for my target role") }
-                }
+@Composable
+private fun ProviderSetupCard(onConfigureProvider: () -> Unit) {
+    DashboardCard(onClick = onConfigureProvider, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = AivanceTheme.colors.warning.copy(alpha = 0.15f)
+            ) {
+                Icon(
+                    Icons.Rounded.Key,
+                    contentDescription = null,
+                    modifier = Modifier.padding(10.dp),
+                    tint = AivanceTheme.colors.warning
+                )
             }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "No AI provider configured",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "Connect an AI provider to unlock the full assistant.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            AivanceTertiaryButton(text = "Configure", onClick = onConfigureProvider)
         }
     }
 }
 
 @Composable
-private fun QuickCommandChip(label: String, icon: ImageVector, onClick: () -> Unit) {
+private fun QuickActionChip(label: String, icon: ImageVector, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = AivanceTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = AivanceTheme.colors.accent)
-            Text(label, style = MaterialTheme.typography.labelMedium)
+            Surface(shape = CircleShape, color = tint.copy(alpha = 0.12f)) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.padding(6.dp).size(16.dp),
+                    tint = tint
+                )
+            }
+            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -248,9 +397,9 @@ private fun AssistantBubble(msg: AssistantChatMessage) {
     ) {
         Surface(
             shape = if (isUser) {
-                androidx.compose.foundation.shape.RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp)
+                RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp)
             } else {
-                androidx.compose.foundation.shape.RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
+                RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
             },
             color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
             contentColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
@@ -272,12 +421,56 @@ private fun AssistantBubble(msg: AssistantChatMessage) {
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun AssistantInputBar(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    val permissionState = rememberPermissionState(android.Manifest.permission.RECORD_AUDIO)
+
+    // ── Voice input via SpeechRecognizer ────────────────────────────────────
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val results = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val transcript = results?.firstOrNull()?.takeIf { it.isNotBlank() }
+            if (transcript != null) {
+                onValueChange(if (value.isBlank()) transcript else "$value $transcript")
+            }
+        }
+    }
+
+    // ── Document / file attach ───────────────────────────────────────────────
+    val documentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            // Resolve display name for context without reading file bytes
+            val name = context.contentResolver.query(
+                uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            } ?: "document"
+            val prefix = "[Attached: $name]\n"
+            onValueChange(prefix + value)
+        }
+    }
+
+    // ── Photo / image attach ─────────────────────────────────────────────────
+    val photoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            val marker = "[Photo attached]\n"
+            onValueChange(marker + value)
+        }
+    }
+
     Surface(tonalElevation = 2.dp) {
         Row(
             modifier = Modifier
@@ -286,6 +479,56 @@ private fun AssistantInputBar(
                 .navigationBarsPadding(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Mic — launches Android SpeechRecognizer
+            IconButton(onClick = {
+                if (permissionState.status.isGranted) {
+                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your career question…")
+                        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                    }
+                    speechLauncher.launch(intent)
+                } else {
+                    permissionState.launchPermissionRequest()
+                }
+            }) {
+                Icon(
+                    Icons.Rounded.Mic,
+                    contentDescription = "Voice input",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Attach — opens any document (PDF, DOCX, TXT…)
+            IconButton(onClick = {
+                documentLauncher.launch(
+                    arrayOf(
+                        "application/pdf",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "text/plain"
+                    )
+                )
+            }) {
+                Icon(
+                    Icons.Rounded.AttachFile,
+                    contentDescription = "Attach document",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Photo — opens system image picker
+            IconButton(onClick = {
+                photoLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }) {
+                Icon(
+                    Icons.Rounded.PhotoCamera,
+                    contentDescription = "Attach photo",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -7,6 +9,15 @@ plugins {
     alias(libs.plugins.room)
     alias(libs.plugins.google.services)
 }
+
+// Phase 4 (STEP 3): real-API integration-test keys. Read from the gitignored
+// local.properties and exposed via BuildConfig for androidTest only — never
+// commit real keys to source.
+val localApiProperties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun integrationApiKey(name: String): String = localApiProperties.getProperty(name, "").trim()
 
 android {
     namespace = "com.bangersoul.aivance"
@@ -20,6 +31,12 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Phase 4 integration-test keys (see local.properties).
+        buildConfigField("String", "APIFY_API_KEY", "\"${integrationApiKey("apifyApiKey")}\"")
+        buildConfigField("String", "GROQ_API_KEY", "\"${integrationApiKey("groqApiKey")}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${integrationApiKey("geminiApiKey")}\"")
+        buildConfigField("String", "HUNTER_API_KEY", "\"${integrationApiKey("hunterApiKey")}\"")
     }
 
     signingConfigs {
@@ -165,6 +182,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.runner)
+    // Real-API integration tests (Phase 4 STEP 3) — kotlinx-coroutines-test for runTest.
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)

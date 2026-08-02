@@ -32,6 +32,10 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindInterviewKnowledgeRepository(impl: InterviewKnowledgeRepositoryImpl): InterviewKnowledgeRepository
+
+    @Binds
+    @Singleton
     abstract fun bindJobRepository(impl: JobRepositoryImpl): JobRepository
 
     @Binds

@@ -20,7 +20,7 @@ room {
 
 dependencies {
     implementation(project(":core:common"))
-    implementation(project(":core:util"))
+    implementation(libs.tink.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

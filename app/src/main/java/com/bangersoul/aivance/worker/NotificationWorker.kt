@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ListenableWorker
@@ -64,7 +65,7 @@ class NotificationWorker @AssistedInject constructor(
 
             val deepLinkIntent = if (deepLinkUri != null) {
                 Intent(Intent.ACTION_VIEW).apply {
-                    data = android.net.Uri.parse(deepLinkUri)
+                    data = deepLinkUri.toUri()
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
             } else {
@@ -91,7 +92,7 @@ class NotificationWorker @AssistedInject constructor(
             when (notificationType) {
                 NotificationType.INTERVIEW_REMINDER -> {
                     val interviewIntent = Intent(Intent.ACTION_VIEW).apply {
-                        data = android.net.Uri.parse("aivance://interview")
+                        data = "aivance://interview".toUri()
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     val interviewPI = PendingIntent.getActivity(
@@ -102,7 +103,7 @@ class NotificationWorker @AssistedInject constructor(
                 }
                 NotificationType.APPLICATION_UPDATE -> {
                     val trackerIntent = Intent(Intent.ACTION_VIEW).apply {
-                        data = android.net.Uri.parse("aivance://saved")
+                        data = "aivance://saved".toUri()
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     val trackerPI = PendingIntent.getActivity(
@@ -113,7 +114,7 @@ class NotificationWorker @AssistedInject constructor(
                 }
                 NotificationType.SYNC_FAILED -> {
                     val settingsIntent = Intent(Intent.ACTION_VIEW).apply {
-                        data = android.net.Uri.parse("aivance://settings")
+                        data = "aivance://settings".toUri()
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     val settingsPI = PendingIntent.getActivity(

@@ -1,4 +1,4 @@
-package com.bangersoul.aivance.core.util
+package com.bangersoul.aivance.core.database.security
 
 import android.content.Context
 import android.util.Base64
@@ -39,7 +39,7 @@ class EncryptionService @Inject constructor(
     }
 
     fun encrypt(plainText: String): String {
-        val currentAead = aead ?: return plainText // Fallback to plaintext if encryption fails (DEBUG ONLY)
+        val currentAead = aead ?: return plainText
         if (plainText.isEmpty()) return ""
         return try {
             val ciphertext = currentAead.encrypt(plainText.toByteArray(Charsets.UTF_8), null)

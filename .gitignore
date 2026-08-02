@@ -23,6 +23,11 @@ keystore.jks
 *.dex
 *.apk
 *.aab
+# Root duplicate google-services.json
+/google-services.json
+
+# Kotlin daemon sessions
+.kotlin/
 
 # Project exclude paths
 /core/common/build/

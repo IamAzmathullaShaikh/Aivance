@@ -163,4 +163,17 @@ class JobRepositoryImpl @Inject constructor(
         val id = jobId.toLongOrNull() ?: throw Exception("Invalid ID")
         jobDao.insertViewedJob(ViewedJobEntity(id))
     }
+
+    override suspend fun cacheJob(job: JobListing): CoreResult<Long> = runCatchingCore {
+        val companyId = companyDao.insertCompany(CompanyEntity(
+            name = job.company,
+            logoUrl = job.companyLogoUrl,
+            website = null,
+            industry = null,
+            domain = null,
+            headquarters = null,
+            socialLinks = emptyMap()
+        ))
+        jobDao.insertJob(job.toEntity(companyId))
+    }
 }

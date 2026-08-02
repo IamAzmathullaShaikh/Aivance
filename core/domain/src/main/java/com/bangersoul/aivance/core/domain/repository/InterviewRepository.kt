@@ -3,6 +3,7 @@ package com.bangersoul.aivance.core.domain.repository
 import com.bangersoul.aivance.core.common.enums.InterviewDifficulty
 import com.bangersoul.aivance.core.common.model.InterviewFeedback
 import com.bangersoul.aivance.core.common.model.InterviewMessage
+import com.bangersoul.aivance.core.common.model.InterviewQuestion
 import com.bangersoul.aivance.core.common.model.InterviewSession
 import com.bangersoul.aivance.core.common.result.CoreResult
 import kotlinx.coroutines.flow.Flow
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface InterviewRepository {
     fun getSessions(): Flow<CoreResult<List<InterviewSession>>>
     fun getSessionById(id: String): Flow<CoreResult<InterviewSession>>
+    fun getQuestions(sessionId: String): Flow<CoreResult<List<InterviewQuestion>>>
 
     suspend fun startSession(
         role: String,

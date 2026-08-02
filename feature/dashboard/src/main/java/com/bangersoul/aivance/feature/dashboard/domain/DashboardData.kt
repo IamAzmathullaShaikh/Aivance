@@ -14,7 +14,8 @@ data class DashboardData(
     val pipelineProgress: Map<String, Int> = emptyMap(),
     val tasks: List<DashboardTask> = emptyList(),
     val weeklyGoals: List<WeeklyGoal> = emptyList(),
-    val insights: List<CareerInsight> = emptyList()
+    val insights: List<CareerInsight> = emptyList(),
+    val careerScore: Int = 0
 )
 
 data class ResumeStatus(

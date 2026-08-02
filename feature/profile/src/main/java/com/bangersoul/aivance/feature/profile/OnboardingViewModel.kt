@@ -22,7 +22,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface OnboardingUiState {
-    data object Welcome : OnboardingUiState
+    // v2: Welcome is its own destination (WelcomeScreen); the provider flow
+    // starts directly at AI provider selection.
 
     data class ChooseAiProvider(
         val providers: List<ProviderMetadata>
@@ -68,6 +69,9 @@ sealed interface OnboardingUiState {
 
 sealed interface OnboardingUiEvent {
     data object Start : OnboardingUiEvent
+
+    /** Skip provider configuration entirely — providers can be set up later in Settings. */
+    data object SkipAll : OnboardingUiEvent
     data class SelectAiProvider(val providerId: String) : OnboardingUiEvent
     data class UpdateAiConfig(val key: String, val value: String) : OnboardingUiEvent
     data object ValidateAiProvider : OnboardingUiEvent
@@ -95,15 +99,35 @@ class OnboardingViewModel @Inject constructor(
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<OnboardingUiState>(OnboardingUiState.Welcome)
+    private val _uiState = MutableStateFlow<OnboardingUiState>(
+        OnboardingUiState.ChooseAiProvider(providers = emptyList())
+    )
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
     private var selectedAiProviderId: String? = null
     private var selectedJobProviderId: String? = null
     private var selectedEnrichmentProviderId: String? = null
 
+    init {
+        // v2: begin directly at AI provider selection — the Welcome step now
+        // lives in the standalone WelcomeScreen destination.
+        _uiState.value = OnboardingUiState.ChooseAiProvider(
+            providers = providerRegistry.getAllProviders()
+                .filter { it.metadata.type == ProviderType.AI }
+                .map { it.metadata }
+        )
+    }
+
+    // Per-step draft configs retained across Back navigation so a typed (or
+    // pasted) API key is never silently wiped when the user leaves and re-enters
+    // a provider configuration step.
+    private val aiConfigDraft = mutableMapOf<String, String>()
+    private val jobConfigDraft = mutableMapOf<String, String>()
+    private val enrichmentConfigDraft = mutableMapOf<String, String>()
+
     fun onEvent(event: OnboardingUiEvent) {
         when (event) {
+            // Kept for backward compatibility with the legacy Onboarding destination.
             OnboardingUiEvent.Start -> {
                 _uiState.value = OnboardingUiState.ChooseAiProvider(
                     providers = providerRegistry.getAllProviders()
@@ -111,38 +135,56 @@ class OnboardingViewModel @Inject constructor(
                         .map { it.metadata }
                 )
             }
+            OnboardingUiEvent.SkipAll -> skipAll()
             is OnboardingUiEvent.SelectAiProvider -> {
+                // Drafts are per-step, not per-provider: never leak the previous
+                // provider's key into a newly selected one's config screen.
+                if (selectedAiProviderId != event.providerId) aiConfigDraft.clear()
                 selectedAiProviderId = event.providerId
                 providerRegistry.getProvider(event.providerId)?.let {
-                    _uiState.value = OnboardingUiState.ConfigureAiProvider(provider = it.metadata)
+                    _uiState.value = OnboardingUiState.ConfigureAiProvider(
+                        provider = it.metadata,
+                        config = aiConfigDraft.toMap()
+                    )
                 }
             }
             is OnboardingUiEvent.UpdateAiConfig -> {
                 val current = _uiState.value as? OnboardingUiState.ConfigureAiProvider ?: return
+                aiConfigDraft[event.key] = event.value
                 _uiState.value = current.copy(config = current.config + (event.key to event.value))
             }
             OnboardingUiEvent.ValidateAiProvider -> validateAiProvider()
 
             is OnboardingUiEvent.SelectJobProvider -> {
+                if (selectedJobProviderId != event.providerId) jobConfigDraft.clear()
                 selectedJobProviderId = event.providerId
                 providerRegistry.getProvider(event.providerId)?.let {
-                    _uiState.value = OnboardingUiState.ConfigureJobProvider(provider = it.metadata)
+                    _uiState.value = OnboardingUiState.ConfigureJobProvider(
+                        provider = it.metadata,
+                        config = jobConfigDraft.toMap()
+                    )
                 }
             }
             is OnboardingUiEvent.UpdateJobConfig -> {
                 val current = _uiState.value as? OnboardingUiState.ConfigureJobProvider ?: return
+                jobConfigDraft[event.key] = event.value
                 _uiState.value = current.copy(config = current.config + (event.key to event.value))
             }
             OnboardingUiEvent.ValidateJobProvider -> validateJobProvider()
 
             is OnboardingUiEvent.SelectEnrichmentProvider -> {
+                if (selectedEnrichmentProviderId != event.providerId) enrichmentConfigDraft.clear()
                 selectedEnrichmentProviderId = event.providerId
                 providerRegistry.getProvider(event.providerId)?.let {
-                    _uiState.value = OnboardingUiState.ConfigureEnrichmentProvider(provider = it.metadata)
+                    _uiState.value = OnboardingUiState.ConfigureEnrichmentProvider(
+                        provider = it.metadata,
+                        config = enrichmentConfigDraft.toMap()
+                    )
                 }
             }
             is OnboardingUiEvent.UpdateEnrichmentConfig -> {
                 val current = _uiState.value as? OnboardingUiState.ConfigureEnrichmentProvider ?: return
+                enrichmentConfigDraft[event.key] = event.value
                 _uiState.value = current.copy(config = current.config + (event.key to event.value))
             }
             OnboardingUiEvent.ValidateEnrichmentProvider -> validateEnrichmentProvider()
@@ -176,6 +218,22 @@ class OnboardingViewModel @Inject constructor(
                 }
             }
             OnboardingUiEvent.Back -> handleBack()
+        }
+    }
+
+    private fun skipAll() {
+        viewModelScope.launch {
+            try {
+                trackEventUseCase(TrackEventRequest(eventName = "onboarding_skip_all"))
+                userPreferencesRepository.updateOnboardingCompleted(true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Non-blocking: skipping must complete even if tracking hiccups.
+                android.util.Log.w("Onboarding", "Skip-all tracking failed", e)
+            } finally {
+                _uiState.value = OnboardingUiState.Complete
+            }
         }
     }
 
@@ -289,7 +347,11 @@ class OnboardingViewModel @Inject constructor(
 
     private fun handleBack() {
         when (_uiState.value) {
-            is OnboardingUiState.ChooseAiProvider -> _uiState.value = OnboardingUiState.Welcome
+            is OnboardingUiState.ChooseAiProvider -> {
+                // v2: no Welcome step inside onboarding — backing out from the
+                // first step exits the flow entirely.
+                _uiState.value = OnboardingUiState.Complete
+            }
             is OnboardingUiState.ConfigureAiProvider -> {
                  _uiState.value = OnboardingUiState.ChooseAiProvider(
                     providers = providerRegistry.getAllProviders()
@@ -299,7 +361,10 @@ class OnboardingViewModel @Inject constructor(
             }
             is OnboardingUiState.ChooseJobProvider -> {
                 providerRegistry.getProvider(selectedAiProviderId!!)?.let {
-                    _uiState.value = OnboardingUiState.ConfigureAiProvider(provider = it.metadata)
+                    _uiState.value = OnboardingUiState.ConfigureAiProvider(
+                        provider = it.metadata,
+                        config = aiConfigDraft.toMap()
+                    )
                 }
             }
             is OnboardingUiState.ConfigureJobProvider -> {
@@ -311,7 +376,10 @@ class OnboardingViewModel @Inject constructor(
             }
             is OnboardingUiState.ChooseEnrichmentProvider -> {
                 providerRegistry.getProvider(selectedJobProviderId!!)?.let {
-                    _uiState.value = OnboardingUiState.ConfigureJobProvider(provider = it.metadata)
+                    _uiState.value = OnboardingUiState.ConfigureJobProvider(
+                        provider = it.metadata,
+                        config = jobConfigDraft.toMap()
+                    )
                 }
             }
             is OnboardingUiState.ConfigureEnrichmentProvider -> {
@@ -324,7 +392,10 @@ class OnboardingViewModel @Inject constructor(
             is OnboardingUiState.Summary -> {
                 if (selectedEnrichmentProviderId != null) {
                     providerRegistry.getProvider(selectedEnrichmentProviderId!!)?.let {
-                        _uiState.value = OnboardingUiState.ConfigureEnrichmentProvider(provider = it.metadata)
+                        _uiState.value = OnboardingUiState.ConfigureEnrichmentProvider(
+                            provider = it.metadata,
+                            config = enrichmentConfigDraft.toMap()
+                        )
                     }
                 } else {
                     _uiState.value = OnboardingUiState.ChooseEnrichmentProvider(

@@ -12,7 +12,9 @@ import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.core.ProviderType
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import okhttp3.OkHttpClient
@@ -133,9 +135,14 @@ open class ApifyJobProvider(
             .get()
             .build()
 
-        okHttpClient.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw Exception("Apify service unreachable: HTTP ${response.code}")
+        // The blocking OkHttp call must run off the main thread; validateProvider
+        // is invoked from ViewModel scope (Main), so an un-dispatched execute()
+        // throws NetworkOnMainThreadException and masks the real health result.
+        withContext(Dispatchers.IO) {
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw Exception("Apify service unreachable: HTTP ${response.code}")
+                }
             }
         }
     }

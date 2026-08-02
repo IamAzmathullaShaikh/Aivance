@@ -143,23 +143,90 @@ sealed interface Destination : NavKey {
         override val label = "Privacy & Security"
     }
 
+    // ── v2 Career Operating System destinations ───────────────────────────
+
+    /** Sign-in / create-account screen (replaces the legacy Login flow). */
+    @Serializable
+    data object Auth : Destination {
+        override val label = "Sign In"
+    }
+
+    /** Provider configuration flow — reachable from first launch AND Settings. */
+    @Serializable
+    data object ProviderSetup : Destination {
+        override val label = "Provider Setup"
+    }
+
+    /** Merged Interview + Learning intelligence engine. */
+    @Serializable
+    data object PrepStudio : Destination {
+        override val label = "Prep Studio"
+    }
+
+    /** Kanban application pipeline (replaces the legacy Tracker tab). */
+    @Serializable
+    data object Pipeline : Destination {
+        override val label = "Pipeline"
+    }
+
+    @Serializable
+    data class CompanyDetail(val companyId: String) : Destination {
+        override val label = "Company"
+    }
+
+    @Serializable
+    data class ResumeDetail(val resumeId: Long) : Destination {
+        override val label = "Resume Detail"
+    }
+
+    @Serializable
+    data object Analytics : Destination {
+        override val label = "Analytics"
+    }
+
+    @Serializable
+    data object SettingsHub : Destination {
+        override val label = "Settings"
+    }
+
     companion object {
+        /**
+         * Bottom-navigation tabs of the Main graph. Profile is deliberately NOT
+         * here — it is reached via the avatar in the Dashboard top bar so the
+         * primary navigation stays focused on the career operating loop.
+         */
         val rootDestinations = listOf(
-            Dashboard, Assistant, Resume, Tracker, Jobs, Profile
+            Dashboard, Assistant, Resume, Jobs, Pipeline
         )
 
         val authenticatedDestinations = setOf(
             Dashboard, Assistant, Resume, Tracker, Jobs, Profile,
             Ats, CoverLetter, Interview, AiChat, SavedJobs,
             CareerRoadmap, LearningHub, Settings, AiSettings,
-            ProviderManagement, Notifications, AnalyticsDashboard
+            ProviderManagement, Notifications, AnalyticsDashboard,
+            PrepStudio, Pipeline, Analytics, SettingsHub
         )
 
         val authDestinations = setOf(
-            Splash, Welcome, Login, Onboarding
+            Splash, Welcome, Login, Onboarding, Auth, ProviderSetup
         )
     }
 }
+
+/**
+ * True when a destination lives inside the authenticated Main graph.
+ *
+ * Parameterized detail destinations ([CompanyDetail], [ResumeDetail],
+ * [JobDetails], [RecruiterDashboard]) can never be compared by value against a
+ * [Set], so they are resolved by type here. Declared at top level (like
+ * [Destination.icon]) so call sites in the same package resolve it directly.
+ */
+fun Destination.isAuthenticatedDestination(): Boolean =
+    this in Destination.authenticatedDestinations ||
+        this is Destination.CompanyDetail ||
+        this is Destination.ResumeDetail ||
+        this is Destination.JobDetails ||
+        this is Destination.RecruiterDashboard
 
 val Destination.icon: ImageVector?
     get() = when (this) {
@@ -189,4 +256,12 @@ val Destination.icon: ImageVector?
         Destination.Notifications -> Icons.Rounded.Notifications
         Destination.AnalyticsDashboard -> Icons.Rounded.BarChart
         Destination.PrivacyCenter -> Icons.Rounded.PrivacyTip
+        Destination.Auth -> null
+        Destination.ProviderSetup -> null
+        Destination.PrepStudio -> Icons.Rounded.School
+        Destination.Pipeline -> Icons.Rounded.ViewKanban
+        is Destination.CompanyDetail -> null
+        is Destination.ResumeDetail -> null
+        Destination.Analytics -> Icons.Rounded.BarChart
+        Destination.SettingsHub -> Icons.Rounded.Settings
     }

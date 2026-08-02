@@ -61,6 +61,11 @@ class ApplicationWorkflowRepositoryImpl @Inject constructor(
         workflowDao.deleteApplication(entity)
     }
 
+    override suspend fun updateNotes(applicationId: Long, notes: String): CoreResult<Unit> = runCatchingCore {
+        val entity = workflowDao.getApplicationById(applicationId) ?: throw Exception("Application not found")
+        workflowDao.updateApplication(entity.copy(notes = notes, lastModified = System.currentTimeMillis()))
+    }
+
     override fun getStages(): Flow<CoreResult<List<ApplicationStage>>> {
         return workflowDao.getStages().map { entities ->
             runCatchingCore { entities.map { it.toDomain() } }

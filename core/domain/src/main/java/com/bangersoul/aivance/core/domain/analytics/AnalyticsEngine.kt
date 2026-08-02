@@ -29,7 +29,9 @@ enum class FeatureCategory {
     SETTINGS,
     PROVIDERS,
     NOTIFICATIONS,
-    ANALYTICS
+    ANALYTICS,
+    /** Fallback category for events that aren't mapped to a specific feature. */
+    GENERAL
 }
 
 /**

@@ -13,4 +13,11 @@ interface JobRepository {
     fun getSavedJobs(): Flow<CoreResult<List<JobListing>>>
     suspend fun toggleBookmark(jobId: String): CoreResult<Boolean>
     suspend fun markAsViewed(jobId: String): CoreResult<Unit>
+
+    /**
+     * Persists a [job] (company + listing) and returns the DB id so an
+     * [com.bangersoul.aivance.core.common.model.Application] can reference it
+     * as a foreign key — used by the "Apply & Track" flow in Job Details.
+     */
+    suspend fun cacheJob(job: JobListing): CoreResult<Long>
 }

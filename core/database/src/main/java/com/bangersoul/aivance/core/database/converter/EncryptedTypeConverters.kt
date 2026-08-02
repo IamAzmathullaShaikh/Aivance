@@ -3,7 +3,7 @@ package com.bangersoul.aivance.core.database.converter
 import androidx.room.ProvidedTypeConverter
 import androidx.room.TypeConverter
 import com.bangersoul.aivance.core.common.security.EncryptedString
-import com.bangersoul.aivance.core.util.EncryptionService
+import com.bangersoul.aivance.core.database.security.EncryptionService
 import javax.inject.Inject
 
 @ProvidedTypeConverter

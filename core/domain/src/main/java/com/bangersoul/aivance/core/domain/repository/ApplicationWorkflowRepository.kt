@@ -12,6 +12,7 @@ interface ApplicationWorkflowRepository {
     fun getApplicationById(id: Long): Flow<CoreResult<Application>>
     suspend fun saveApplication(application: Application): CoreResult<Long>
     suspend fun deleteApplication(id: Long): CoreResult<Unit>
+    suspend fun updateNotes(applicationId: Long, notes: String): CoreResult<Unit>
 
     fun getStages(): Flow<CoreResult<List<ApplicationStage>>>
 

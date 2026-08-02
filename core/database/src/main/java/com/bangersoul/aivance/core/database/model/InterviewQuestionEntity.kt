@@ -25,5 +25,6 @@ data class InterviewQuestionEntity(
     val category: String, // BEHAVIORAL, TECHNICAL, etc.
     val difficulty: String,
     val expectedKeyPoints: String?, // Comma separated or JSON
-    val idealAnswer: String? = null
+    val idealAnswer: String? = null,
+    val isFavorite: Boolean = false
 )

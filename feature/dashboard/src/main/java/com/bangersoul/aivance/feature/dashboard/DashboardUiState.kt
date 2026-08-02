@@ -1,23 +1,25 @@
 package com.bangersoul.aivance.feature.dashboard
 
-import com.bangersoul.aivance.feature.dashboard.domain.DashboardData
+/**
+ * Aggregated Career HQ state — every field is derived from real repositories,
+ * never hardcoded.
+ */
+data class DashboardUiState(
+    val isLoading: Boolean = true,
+    val greeting: String = "",              // "Good Morning, Azmath"
+    val userDesignation: String = "",       // "Software Engineer at TCS"
+    val careerScore: Int = 0,
+    val atsScore: Int = 0,
+    val activeApplications: Int = 0,
+    val nextInterview: String? = null,      // "Fri 10:00"
+    val savedJobs: Int = 0,
+    val aiRecommendation: String? = null,
+    val recentActivity: List<ActivityItem> = emptyList(),
+    val error: String? = null
+)
 
-sealed interface DashboardUiState {
-    data object Loading : DashboardUiState
-
-    data class Success(
-        val dashboardData: DashboardData? = null,
-        val recentAtsScore: Int? = null,
-        val activeApplicationCount: Int = 0,
-        val upcomingInterviews: Int = 0,
-        val profileCompletionPercent: Float = 0f,
-        val isRefreshing: Boolean = false
-    ) : DashboardUiState
-
-    data object Empty : DashboardUiState
-
-    data class Error(
-        val message: String? = null,
-        val isOffline: Boolean = false
-    ) : DashboardUiState
-}
+data class ActivityItem(
+    val id: String,
+    val description: String,
+    val date: String
+)

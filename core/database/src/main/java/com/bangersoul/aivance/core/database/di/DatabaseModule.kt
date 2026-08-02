@@ -50,7 +50,10 @@ object DatabaseModule {
             AivanceDatabase.MIGRATION_16_17,
             AivanceDatabase.MIGRATION_17_18,
             AivanceDatabase.MIGRATION_18_19,
-            AivanceDatabase.MIGRATION_19_20
+            AivanceDatabase.MIGRATION_19_20,
+            AivanceDatabase.MIGRATION_20_21,
+            AivanceDatabase.MIGRATION_21_22,
+            AivanceDatabase.MIGRATION_22_23
         )
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
         .setQueryExecutor(Executors.newFixedThreadPool(4))
@@ -122,4 +125,7 @@ object DatabaseModule {
 
     @Provides
     fun provideAuditDao(database: AivanceDatabase): AuditDao = database.auditDao()
+
+    @Provides
+    fun provideUserDao(database: AivanceDatabase): UserDao = database.userDao()
 }

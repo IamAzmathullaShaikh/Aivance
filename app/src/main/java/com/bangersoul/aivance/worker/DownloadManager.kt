@@ -1,12 +1,12 @@
 package com.bangersoul.aivance.worker
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.bangersoul.aivance.MainActivity
@@ -45,22 +45,25 @@ class DownloadManager @Inject constructor(
     }
 
     init {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID, CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
-            ).apply { description = "Download progress notifications" }
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
-        }
+        // minSdk is 26, so NotificationChannel is always available.
+        val channel = NotificationChannel(
+            CHANNEL_ID, CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_LOW
+        ).apply { description = "Download progress notifications" }
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(channel)
     }
 
     /**
      * Downloads a file from [url] and saves it to the app's downloads directory.
      * Shows progress notifications during download.
      *
+     * Every notify() call below is guarded by an explicit POST_NOTIFICATIONS
+     * runtime check, so the lint MissingPermission warning is a false positive.
+     *
      * @return The downloaded [File] on success, null on failure.
      */
+    @SuppressLint("MissingPermission")
     suspend fun downloadFile(
         url: String,
         fileName: String? = null,
@@ -106,9 +109,9 @@ class DownloadManager @Inject constructor(
                                 pendingIntent = pendingIntent
                             )
                             // Safely notify if POST_NOTIFICATIONS permission is granted
-if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-    notificationManager.notify(notifId, notification)
-}
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                                notificationManager.notify(notifId, notification)
+                            }
                         }
                     }
                 }
@@ -127,9 +130,9 @@ if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Man
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .build()
             // Notify success safely
-if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-    notificationManager.notify(notifId, successNotification)
-}
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                notificationManager.notify(notifId, successNotification)
+            }
 
             Timber.d("Downloaded: %s (%d bytes)", safeFileName, outputFile.length())
             outputFile
@@ -144,9 +147,9 @@ if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Man
                 .setContentIntent(pendingIntent)
                 .build()
             // Notify error safely
-if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-    notificationManager.notify(notifId, errorNotification)
-}
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                notificationManager.notify(notifId, errorNotification)
+            }
             null
         }
     }

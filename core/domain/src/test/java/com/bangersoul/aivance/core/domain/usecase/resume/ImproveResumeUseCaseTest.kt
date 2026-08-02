@@ -3,6 +3,7 @@ package com.bangersoul.aivance.core.domain.usecase.resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.AiRepository
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -17,12 +18,14 @@ import org.junit.Test
 class ImproveResumeUseCaseTest {
 
     private lateinit var resumeRepository: ResumeRepository
+    private lateinit var aiRepository: AiRepository
     private lateinit var useCase: ImproveResumeUseCase
 
     @Before
     fun setUp() {
         resumeRepository = mockk()
-        useCase = ImproveResumeUseCase(resumeRepository)
+        aiRepository = mockk()
+        useCase = ImproveResumeUseCase(resumeRepository, aiRepository)
     }
 
     @Test
@@ -30,6 +33,7 @@ class ImproveResumeUseCaseTest {
         val original = ResumeVersion(id = 2L, resumeId = 1L, versionName = "v1")
         coEvery { resumeRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(original)))
         coEvery { resumeRepository.saveVersion(any()) } returns Result.Success(99L)
+        coEvery { aiRepository.analyzeText(any(), any()) } returns Result.Success("Improved content")
 
         val result = useCase(ImproveResumeRequest(resumeId = 1L, versionId = 2L))
 

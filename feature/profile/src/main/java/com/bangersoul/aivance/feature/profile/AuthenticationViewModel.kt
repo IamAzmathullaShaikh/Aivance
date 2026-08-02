@@ -1,13 +1,17 @@
 package com.bangersoul.aivance.feature.profile
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.database.dao.UserDao
 import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseCase
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +46,9 @@ sealed interface AuthenticationUiEffect {
 class AuthenticationViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val getProviderHealthUseCase: GetProviderHealthUseCase,
-    private val trackEventUseCase: TrackEventUseCase
+    private val trackEventUseCase: TrackEventUseCase,
+    private val userDao: UserDao,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AuthenticationUiState>(AuthenticationUiState.Loading)
@@ -71,8 +77,34 @@ class AuthenticationViewModel @Inject constructor(
             // app after onboarding with Ollama or other non-Gemini providers.
             val isOnboarded = prefs?.onboardingCompleted == true
             val hasKey = !prefs?.geminiApiKey.isNullOrBlank()
-            _uiState.value = if (isOnboarded || hasKey) AuthenticationUiState.Authenticated
+
+            // Google-authenticated sessions must still have a live Firebase user.
+            // If the DataStore session points at a Google account but Firebase has
+            // been signed out (server-side, another device, token expiry), force
+            // re-authentication instead of silently trusting the local flag.
+            val needsReauth = sessionNeedsReauth(prefs?.userId)
+
+            val authenticated = (isOnboarded || hasKey) && needsReauth != true
+            _uiState.value = if (authenticated) AuthenticationUiState.Authenticated
             else AuthenticationUiState.Unauthenticated
+        }
+    }
+
+    /**
+     * @return true when the stored session belongs to a Google account whose
+     * Firebase session is no longer valid, false when the session is valid, and
+     * null when Firebase isn't configured or the session can't be classified.
+     */
+    private suspend fun sessionNeedsReauth(sessionUserId: String?): Boolean? {
+        if (sessionUserId.isNullOrBlank()) return null
+        return try {
+            if (FirebaseApp.getApps(appContext).isEmpty()) return null
+            if (FirebaseAuth.getInstance().currentUser != null) return false
+            // No live Firebase user: only force re-auth when the stored session
+            // was created through Google Sign-In (email sessions stay local).
+            userDao.getUserById(sessionUserId)?.googleId?.isNotBlank() == true
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -100,6 +132,22 @@ class AuthenticationViewModel @Inject constructor(
         viewModelScope.launch {
             trackEventUseCase(TrackEventRequest(eventName = "auth_logout"))
             userPreferencesRepository.updateGeminiApiKey("")
+            // Reset the onboarding gate too — checkAuthentication() treats
+            // onboardingCompleted == true as Authenticated, so a sign-out that
+            // only cleared the API key would silently log the user back in on
+            // the next cold start.
+            userPreferencesRepository.updateOnboardingCompleted(false)
+            userPreferencesRepository.clearSession()
+            // Best-effort Firebase sign-out so the Google account isn't silently
+            // re-authenticated on the next cold start (local-only; safe to skip
+            // when Firebase isn't configured).
+            try {
+                if (FirebaseApp.getApps(appContext).isNotEmpty()) {
+                    FirebaseAuth.getInstance().signOut()
+                }
+            } catch (e: Exception) {
+                // Local session reset above is sufficient when Firebase is absent.
+            }
             _uiState.value = AuthenticationUiState.Unauthenticated
             _effects.send(AuthenticationUiEffect.NavigateToOnboarding)
             _effects.send(AuthenticationUiEffect.ShowSnackbar("Logged out"))

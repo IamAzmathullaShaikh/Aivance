@@ -96,9 +96,14 @@ class JobsViewModel @Inject constructor(
     private fun toggleBookmark(jobId: String) {
         viewModelScope.launch {
             val result = toggleJobBookmarkUseCase(jobId)
-            if (result is Result.Success) {
-                val message = if (result.data) "Job bookmarked" else "Bookmark removed"
-                _effects.send(JobsUiEffect.ShowSnackbar(message))
+            when (result) {
+                is Result.Success -> {
+                    val message = if (result.data) "Job bookmarked" else "Bookmark removed"
+                    _effects.send(JobsUiEffect.ShowSnackbar(message))
+                }
+                is Result.Failure -> {
+                    _effects.send(JobsUiEffect.ShowSnackbar(result.error.message ?: "Failed to update bookmark"))
+                }
             }
         }
     }

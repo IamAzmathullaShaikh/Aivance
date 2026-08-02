@@ -86,10 +86,11 @@ class JobRepositoryImplTest {
     fun `getJobById returns failure when job not found`() = runTest {
         // runCatchingCore wraps every Throwable into Result.Failure.
         coEvery { jobDao.getJobWithDetailsById(1L) } returns null
+        every { providerRegistry.getAllProviders() } returns emptyList()
 
         val result = repository.getJobById("1")
 
         assertTrue(result.isFailure)
-        assertEquals("Job not found", (result as Result.Failure).error.message)
+        assertEquals("Job not found: 1", (result as Result.Failure).error.message)
     }
 }

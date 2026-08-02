@@ -6,7 +6,6 @@ import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.Result
-import com.bangersoul.aivance.core.domain.repository.AtsRepository
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
@@ -14,11 +13,18 @@ import com.bangersoul.aivance.core.domain.usecase.ats.AnalyzeJobDescriptionUseCa
 import com.bangersoul.aivance.core.domain.usecase.ats.AtsAnalysisRequest
 import com.bangersoul.aivance.core.domain.usecase.ats.PerformAtsAnalysisUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,6 +37,7 @@ sealed interface AtsUiState {
     data class Error(val message: String) : AtsUiState
 }
 
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class AtsViewModel @Inject constructor(
     private val resumeRepository: ResumeRepository,
@@ -48,28 +55,94 @@ class AtsViewModel @Inject constructor(
     private val _effects = Channel<AtsUiEffect>(Channel.BUFFERED)
     val effects: Flow<AtsUiEffect> = _effects.receiveAsFlow()
 
+    /** Job description text as the user types — the live-scoring input. */
+    private val _jdText = MutableStateFlow("")
+    val jdText: StateFlow<String> = _jdText.asStateFlow()
+
+    /** Currently selected resume version id — the other live-scoring input. */
+    private val _selectedVersionId = MutableStateFlow<Long?>(null)
+
     private var currentResume: Resume? = null
-    private var currentVersion: ResumeVersion? = null
+
+    /**
+     * Live-reactive ATS scoring. The score recalculates automatically whenever
+     * either the selected resume version OR the job description changes:
+     * the two inputs are combined, a JD under 50 chars is ignored, and the
+     * pair is debounced 800ms after the last keystroke before re-running the
+     * full parse → match pipeline.
+     */
+    private val analysisFlow: Flow<Result<AtsReport>> =
+        combine(_selectedVersionId, _jdText) { versionId, jd ->
+            if (versionId != null && jd.length > 50) Pair(versionId, jd) else null
+        }
+            .filterNotNull()
+            .debounce(800)
+            .flatMapLatest { (versionId, jd) ->
+                flow {
+                    _uiState.value = AtsUiState.Analyzing
+                    trackEventUseCase(TrackEventRequest("ats_analyze_start"))
+
+                    // Step 1: Parse the job description into a structured model.
+                    val jdResult = analyzeJobDescriptionUseCase(jd)
+                    val jdId = when (jdResult) {
+                        is Result.Success -> jdResult.data
+                        is Result.Failure -> {
+                            _uiState.value =
+                                AtsUiState.Error("Failed to parse Job Description: ${jdResult.error.message}")
+                            return@flow
+                        }
+                    }
+
+                    // Step 2: Run the match analysis against the selected version.
+                    val resumeId = currentResume?.id ?: return@flow
+                    emit(performAtsAnalysisUseCase(AtsAnalysisRequest(resumeId, versionId, jdId)))
+                }
+            }
 
     init {
         loadResumes()
+        viewModelScope.launch {
+            analysisFlow.collect { result ->
+                when (result) {
+                    is Result.Success -> {
+                        _uiState.value = AtsUiState.DisplayReport(result.data)
+                        trackEventUseCase(TrackEventRequest("ats_analyze_success"))
+                    }
+                    is Result.Failure -> {
+                        _uiState.value = AtsUiState.Error("Analysis failed: ${result.error.message}")
+                    }
+                }
+            }
+        }
     }
 
     fun onEvent(event: AtsUiEvent) {
         when (event) {
-            AtsUiEvent.Start -> _uiState.value = AtsUiState.SelectingResume
+            AtsUiEvent.Start -> reset()
             is AtsUiEvent.SelectResumeVersion -> {
                 currentResume = event.resume
-                currentVersion = event.version
+                _selectedVersionId.value = event.version.id
+                _jdText.value = ""
                 _uiState.value = AtsUiState.InputJobDescription(event.resume, event.version)
             }
-            is AtsUiEvent.Analyze -> analyze(event.jobDescriptionText)
-            AtsUiEvent.Reset -> {
-                currentResume = null
-                currentVersion = null
-                _uiState.value = AtsUiState.SelectingResume
+            is AtsUiEvent.UpdateJobDescription -> {
+                _jdText.value = event.jobDescriptionText
             }
+            is AtsUiEvent.Analyze -> {
+                // Explicit trigger — routes through the same debounced live flow.
+                _jdText.value = event.jobDescriptionText
+            }
+            AtsUiEvent.Reset -> reset()
+            AtsUiEvent.GenerateCoverLetter -> generateCoverLetter()
+            AtsUiEvent.ExportReport -> exportReport()
         }
+    }
+
+    private fun reset() {
+        currentResume = null
+        _selectedVersionId.value = null
+        _jdText.value = ""
+        _uiState.value = AtsUiState.SelectingResume
     }
 
     private fun loadResumes() {
@@ -77,44 +150,51 @@ class AtsViewModel @Inject constructor(
             resumeRepository.getResumes().collect { result ->
                 when (result) {
                     is Result.Success -> _resumes.value = result.data
-                    is Result.Failure -> _uiState.value = AtsUiState.Error("Failed to load resumes: ${result.error.message}")
+                    is Result.Failure -> _uiState.value =
+                        AtsUiState.Error("Failed to load resumes: ${result.error.message}")
                 }
             }
         }
     }
 
-    private fun analyze(jdText: String) {
-        val resumeId = currentResume?.id ?: return
-        val versionId = currentVersion?.id ?: return
-
+    private fun generateCoverLetter() {
+        val report = (_uiState.value as? AtsUiState.DisplayReport)?.report ?: return
         viewModelScope.launch {
-            _uiState.value = AtsUiState.Analyzing
-            trackEventUseCase(TrackEventRequest("ats_analyze_start"))
+            trackEventUseCase(TrackEventRequest("ats_cover_letter_request"))
+            _effects.send(AtsUiEffect.NavigateToCoverLetter(report.id))
+        }
+    }
 
-            // Step 1: Parse JD
-            val jdResult = analyzeJobDescriptionUseCase(jdText)
-            val jdId = when (jdResult) {
-                is Result.Success -> jdResult.data
-                is Result.Failure -> {
-                    _uiState.value = AtsUiState.Error("Failed to parse Job Description: ${jdResult.error.message}")
-                    return@launch
-                }
-            }
+    private fun exportReport() {
+        val report = (_uiState.value as? AtsUiState.DisplayReport)?.report ?: return
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest("ats_report_export"))
+            _effects.send(AtsUiEffect.ExportReport(buildReportText(report)))
+        }
+    }
 
-            // Step 2: Perform Match Analysis
-            val analysisResult = performAtsAnalysisUseCase(
-                AtsAnalysisRequest(resumeId, versionId, jdId)
-            )
-
-            when (analysisResult) {
-                is Result.Success -> {
-                    _uiState.value = AtsUiState.DisplayReport(analysisResult.data)
-                    trackEventUseCase(TrackEventRequest("ats_analyze_success"))
-                }
-                is Result.Failure -> {
-                    _uiState.value = AtsUiState.Error("Analysis failed: ${analysisResult.error.message}")
-                }
+    private fun buildReportText(report: AtsReport): String = buildString {
+        appendLine("=== ATS Match Report ===")
+        appendLine("Overall Score: ${report.overallScore}")
+        appendLine("Match Probability: ${report.matchPercentage}%")
+        appendLine()
+        if (report.matchedKeywords.isNotEmpty()) {
+            appendLine("Matched Keywords:")
+            report.matchedKeywords.forEach { appendLine("  + $it") }
+            appendLine()
+        }
+        if (report.missingKeywords.isNotEmpty()) {
+            appendLine("Missing Keywords:")
+            report.missingKeywords.forEach { appendLine("  - $it") }
+            appendLine()
+        }
+        if (report.optimizationTips.isNotEmpty()) {
+            appendLine("Optimization Suggestions:")
+            report.optimizationTips.forEach { tip ->
+                appendLine("  [${tip.priority}] ${tip.category}: ${tip.description}")
             }
         }
+        appendLine()
+        appendLine("Generated: ${java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(report.dateGenerated))}")
     }
 }

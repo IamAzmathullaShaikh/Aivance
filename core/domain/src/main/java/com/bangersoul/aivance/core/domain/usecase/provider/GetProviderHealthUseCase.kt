@@ -34,13 +34,17 @@ class GetProviderHealthUseCase @Inject constructor(
         }
 
         return runCatchingCore {
-            val provider = providerManager
-            val status = ProviderStatus.Ready // Simplified - would check actual provider status
+            // Run a live health probe so the reported status reflects the
+            // provider's actual reachability + credentials, not a cached lifecycle state.
+            providerManager.triggerHealthCheck(providerId)
+            val status = providerManager.providerStatuses.value[providerId] ?: ProviderStatus.Uninitialized
 
             ProviderHealth(
                 providerId = providerId,
                 status = status,
-                isOperational = status == ProviderStatus.Ready || status == ProviderStatus.Active
+                isOperational = status == ProviderStatus.Ready ||
+                    status == ProviderStatus.Active ||
+                    status == ProviderStatus.Healthy
             )
         }
     }

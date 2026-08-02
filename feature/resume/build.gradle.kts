@@ -35,6 +35,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.hilt.android)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.mlkit.text.recognition)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)

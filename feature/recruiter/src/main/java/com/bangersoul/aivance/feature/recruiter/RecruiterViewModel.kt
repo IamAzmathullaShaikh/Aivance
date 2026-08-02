@@ -48,12 +48,22 @@ class RecruiterViewModel @Inject constructor(
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
-    private val jobId: String = savedStateHandle.get<String>("jobId") ?: ""
+    private var jobId: String = savedStateHandle.get<String>("jobId") ?: ""
 
     private val _uiState = MutableStateFlow<RecruiterUiState>(RecruiterUiState.Loading)
     val uiState: StateFlow<RecruiterUiState> = _uiState.asStateFlow()
 
     init {
+        // The custom navigation back stack does not seed SavedStateHandle with
+        // destination arguments, so the screen supplies the real job ID via load().
+        if (jobId.isNotBlank()) {
+            loadRecruiters()
+        }
+    }
+
+    /** Loads recruiters for [jobId], driven by the screen's destination argument. */
+    fun load(jobId: String) {
+        this.jobId = jobId
         loadRecruiters()
     }
 

@@ -54,17 +54,33 @@ fun PrivacyCenterScreen(
             }
 
             // Data Portability
+            val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+            ) { uri ->
+                if (uri != null) {
+                    viewModel.importData(uri)
+                }
+            }
+
             DashboardCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Data Portability", fontWeight = FontWeight.Bold)
-                    Text("Download a JSON export of your resumes, applications, and networking history.", style = MaterialTheme.typography.bodyMedium)
+                    Text("Data Portability & Backup", fontWeight = FontWeight.Bold)
+                    Text("Export or restore an encrypted backup of your resumes, applications, and profile.", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(16.dp))
-                    ActionButton(
-                        text = "Export My Data",
-                        onClick = { viewModel.exportData() },
-                        icon = Icons.Rounded.Download,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ActionButton(
+                            text = "Export Backup",
+                            onClick = { viewModel.exportData() },
+                            icon = Icons.Rounded.Download,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActionButton(
+                            text = "Restore Backup",
+                            onClick = { importLauncher.launch(arrayOf("*/*")) },
+                            icon = Icons.Rounded.PrivacyTip,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 

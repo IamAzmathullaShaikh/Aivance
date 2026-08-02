@@ -54,9 +54,10 @@ import com.bangersoul.aivance.core.database.model.*
         AssistantConversationEntity::class,
         AssistantMessageEntity::class,
         WorkflowExecutionEntity::class,
-        AuditLogEntity::class
+        AuditLogEntity::class,
+        UserEntity::class
     ],
-    version = 20,
+    version = 23,
     exportSchema = true
 )
 @TypeConverters(AivanceConverters::class)
@@ -78,6 +79,7 @@ abstract class AivanceDatabase : RoomDatabase() {
     abstract fun analyticsDao(): AnalyticsDao
     abstract fun assistantDao(): AssistantDao
     abstract fun auditDao(): AuditDao
+    abstract fun userDao(): UserDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) { override fun migrate(db: SupportSQLiteDatabase) {} }
@@ -252,6 +254,30 @@ abstract class AivanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `users` (`id` TEXT NOT NULL, `googleId` TEXT NOT NULL, `email` TEXT NOT NULL, `firstName` TEXT NOT NULL, `lastName` TEXT NOT NULL, `phone` TEXT, `photoUrl` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_users_email` ON `users` (`email`)")
+            }
+        }
+
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `interview_questions` ADD COLUMN `isFavorite` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `company` TEXT")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `linkedinUrl` TEXT")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `githubUrl` TEXT")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `dateOfBirth` INTEGER")
+            }
+        }
+
         val MIGRATION_19_20 = object : Migration(19, 20) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. Create audit_logs table
@@ -270,7 +296,8 @@ abstract class AivanceDatabase : RoomDatabase() {
             MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
-            MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20
+            MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
+            MIGRATION_21_22, MIGRATION_22_23
         )
     }
 }

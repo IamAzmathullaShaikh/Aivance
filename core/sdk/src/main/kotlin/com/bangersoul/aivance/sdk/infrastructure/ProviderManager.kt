@@ -49,8 +49,12 @@ class ProviderManager @Inject constructor(
      */
     suspend fun initializeAll() {
         registry.getAllProviders().forEach { provider ->
-            orchestrator.transitionTo(provider, ProviderStatus.Ready)
-            updateInternalStatus(provider.metadata.id, provider.status)
+            try {
+                orchestrator.transitionTo(provider, ProviderStatus.Ready)
+                updateInternalStatus(provider.metadata.id, provider.status)
+            } catch (e: Exception) {
+                updateInternalStatus(provider.metadata.id, ProviderStatus.Error)
+            }
         }
     }
 
@@ -62,8 +66,12 @@ class ProviderManager @Inject constructor(
      */
     suspend fun startProvider(id: String) {
         registry.getProvider(id)?.let { provider ->
-            orchestrator.transitionTo(provider, ProviderStatus.Active)
-            updateInternalStatus(id, provider.status)
+            try {
+                orchestrator.transitionTo(provider, ProviderStatus.Active)
+                updateInternalStatus(id, provider.status)
+            } catch (e: Exception) {
+                updateInternalStatus(id, ProviderStatus.Error)
+            }
         }
     }
 
@@ -75,8 +83,12 @@ class ProviderManager @Inject constructor(
      */
     suspend fun stopProvider(id: String) {
         registry.getProvider(id)?.let { provider ->
-            orchestrator.transitionTo(provider, ProviderStatus.Ready)
-            updateInternalStatus(id, provider.status)
+            try {
+                orchestrator.transitionTo(provider, ProviderStatus.Ready)
+                updateInternalStatus(id, provider.status)
+            } catch (e: Exception) {
+                updateInternalStatus(id, ProviderStatus.Error)
+            }
         }
     }
 

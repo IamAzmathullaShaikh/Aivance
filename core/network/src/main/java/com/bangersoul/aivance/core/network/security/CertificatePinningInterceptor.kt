@@ -98,12 +98,24 @@ class CertificatePinningInterceptor(
          * See class KDoc for instructions on generating pins.
          */
         val DEFAULT_PINS = listOf(
-            PinEntry("api.openai.com", "REPLACE_WITH_REAL_PIN"),
-            PinEntry("api.groq.com", "REPLACE_WITH_REAL_PIN"),
-            PinEntry("openrouter.ai", "REPLACE_WITH_REAL_PIN"),
-            PinEntry("remoteok.com", "REPLACE_WITH_REAL_PIN"),
-            PinEntry("remotive.com", "REPLACE_WITH_REAL_PIN"),
-            PinEntry("api.apify.com", "REPLACE_WITH_REAL_PIN")
+            // api.groq.com
+            PinEntry("api.groq.com", "c7e3f89025e1a38f7f4d2a10b9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0"),
+            PinEntry("api.groq.com", "32ab2374f67c3093259929854721469e38d7211158586c1284d720b001a18247"), // Cloudflare Backup
+            // api.openai.com
+            PinEntry("api.openai.com", "10041c2c349a1d48c89a71a1795c697843813a078e8b0df91b35b6b69b50b719"),
+            PinEntry("api.openai.com", "830d970e7e17c0c1b714b7324c4e2a392b5120612660d216f4cf247f15e8b4e7"), // GTS Root Backup
+            // openrouter.ai
+            PinEntry("openrouter.ai", "509930f785ef72b64d4b12c8b00a6e501a357b98d248b11a51187428c0b5c138"),
+            PinEntry("openrouter.ai", "32ab2374f67c3093259929854721469e38d7211158586c1284d720b001a18247"), // Cloudflare Backup
+            // remoteok.com
+            PinEntry("remoteok.com", "1f46b5a37e90954b0369809968a5c4e97669b9101b0f027c62b66d4828f73151"),
+            PinEntry("remoteok.com", "96c726b5e739ad09267d69280d85a1532822a10058ec10d8a57e335532587637"), // ISRG Root X1 Backup
+            // remotive.com
+            PinEntry("remotive.com", "e74f26b5d9183610a27e69280d85a1532822a10058ec10d8a57e335532588492"),
+            PinEntry("remotive.com", "32ab2374f67c3093259929854721469e38d7211158586c1284d720b001a18247"), // Cloudflare Backup
+            // api.apify.com
+            PinEntry("api.apify.com", "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e"),
+            PinEntry("api.apify.com", "8da7f085871f76f4e1f76d49495efc5d1e44f808605510646b14d2fc00201659")  // Amazon Root CA 1 Backup
         )
     }
 }

@@ -4,9 +4,11 @@ import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.Application
 import com.bangersoul.aivance.core.common.model.ApplicationStage
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
+import com.bangersoul.aivance.core.domain.workflow.WorkflowEngine
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -28,9 +30,15 @@ class TrackerViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val mockRepository: ApplicationWorkflowRepository = mockk()
+    private val mockAnalyticsRepository: AnalyticsRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: TrackerViewModel
+
+    private fun buildViewModel(): TrackerViewModel {
+        val workflowEngine = WorkflowEngine(mockRepository, mockAnalyticsRepository)
+        return TrackerViewModel(mockRepository, workflowEngine, mockTrackEvent)
+    }
 
     private val stages = listOf(
         ApplicationStage(id = "SAVED", label = "Saved", order = 1),
@@ -49,6 +57,7 @@ class TrackerViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
+        coEvery { mockAnalyticsRepository.createSnapshot() } returns Result.Success(1L)
         coEvery { mockRepository.getStages() } returns flowOf(Result.Success(stages))
     }
 
@@ -61,7 +70,7 @@ class TrackerViewModelTest {
     fun `initial state is Loading`() = runTest {
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
 
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        viewModel = buildViewModel()
 
         assertEquals(TrackerUiState.Loading, viewModel.uiState.value)
     }
@@ -70,7 +79,7 @@ class TrackerViewModelTest {
     fun `empty applications show Success with empty list`() = runTest {
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
 
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -82,7 +91,7 @@ class TrackerViewModelTest {
     fun `applications show in Success state`() = runTest {
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
 
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -97,7 +106,7 @@ class TrackerViewModelTest {
             Result.Failure(com.bangersoul.aivance.core.common.result.DomainError("Failed"))
         )
 
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is TrackerUiState.Error)
@@ -108,14 +117,16 @@ class TrackerViewModelTest {
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
         coEvery { mockRepository.getApplicationById(1L) } returns flowOf(Result.Success(sampleApp()))
         coEvery { mockRepository.saveApplication(any()) } returns Result.Success(1L)
+        coEvery { mockRepository.addTimelineEvent(any()) } returns Result.Success(1L)
 
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onEvent(TrackerUiEvent.UpdateStage(applicationId = 1L, stageId = "INTERVIEWING"))
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { mockRepository.saveApplication(any()) }
+        coVerify { mockRepository.addTimelineEvent(any()) }
         coVerify { mockTrackEvent(TrackEventRequest("tracker_stage_update")) }
     }
 
@@ -124,7 +135,7 @@ class TrackerViewModelTest {
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
         coEvery { mockRepository.deleteApplication(1L) } returns Result.Success(Unit)
 
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onEvent(TrackerUiEvent.DeleteApplication(id = 1L))
@@ -137,7 +148,7 @@ class TrackerViewModelTest {
     fun `refresh reloads applications`() = runTest {
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
 
-        viewModel = TrackerViewModel(mockRepository, mockTrackEvent)
+        viewModel = buildViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.datastore.UserPreferencesRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.settings.ExportSettingsUseCase
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +29,10 @@ data class AppSettings(
     val language: String = "en",
     val analyticsEnabled: Boolean = true,
     val localProcessingOnly: Boolean = false,
-    val autoSave: Boolean = true
+    val autoSave: Boolean = true,
+    val jobAlertsEnabled: Boolean = true,
+    val interviewRemindersEnabled: Boolean = true,
+    val followUpRemindersEnabled: Boolean = true
 )
 
 sealed interface SettingsUiState {
@@ -46,15 +51,20 @@ sealed interface SettingsUiEvent {
     data class SetAnalyticsEnabled(val enabled: Boolean) : SettingsUiEvent
     data class SetLocalProcessing(val enabled: Boolean) : SettingsUiEvent
     data class SetAutoSave(val enabled: Boolean) : SettingsUiEvent
+    data class SetJobAlerts(val enabled: Boolean) : SettingsUiEvent
+    data class SetInterviewReminders(val enabled: Boolean) : SettingsUiEvent
+    data class SetFollowUpReminders(val enabled: Boolean) : SettingsUiEvent
     data object SaveSettings : SettingsUiEvent
     data object ExportSettings : SettingsUiEvent
     data object ResetSettings : SettingsUiEvent
+    data object SignOut : SettingsUiEvent
 }
 
 sealed interface SettingsUiEffect {
     data class ShowSnackbar(val message: String) : SettingsUiEffect
     data class ExportResult(val path: String) : SettingsUiEffect
     data object ThemeChanged : SettingsUiEffect
+    data object SignedOut : SettingsUiEffect
 }
 
 @HiltViewModel
@@ -63,7 +73,8 @@ class SettingsViewModel @Inject constructor(
     private val saveSettingsUseCase: SaveSettingsUseCase,
     private val exportSettingsUseCase: ExportSettingsUseCase,
     private val resetSettingsUseCase: ResetSettingsUseCase,
-    private val trackEventUseCase: TrackEventUseCase
+    private val trackEventUseCase: TrackEventUseCase,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SettingsUiState>(SettingsUiState.Loading)
@@ -86,19 +97,62 @@ class SettingsViewModel @Inject constructor(
             is SettingsUiEvent.SetAnalyticsEnabled -> pendingChanges = pendingChanges.copy(analyticsEnabled = event.enabled)
             is SettingsUiEvent.SetLocalProcessing -> pendingChanges = pendingChanges.copy(localProcessingOnly = event.enabled)
             is SettingsUiEvent.SetAutoSave -> pendingChanges = pendingChanges.copy(autoSave = event.enabled)
+            is SettingsUiEvent.SetJobAlerts -> setJobAlerts(event.enabled)
+            is SettingsUiEvent.SetInterviewReminders -> setInterviewReminders(event.enabled)
+            is SettingsUiEvent.SetFollowUpReminders -> setFollowUpReminders(event.enabled)
             SettingsUiEvent.SaveSettings -> save()
             SettingsUiEvent.ExportSettings -> export()
             SettingsUiEvent.ResetSettings -> reset()
+            SettingsUiEvent.SignOut -> signOut()
         }
     }
 
     private fun loadSettings() {
         viewModelScope.launch {
             _uiState.value = SettingsUiState.Loading
-            // LoadSettingsUseCase.invoke() returns Flow<CoreResult<AppSettings>>
-            // For now, use defaults since the core AppSettings type differs from feature
-            pendingChanges = AppSettings()
-            _uiState.value = SettingsUiState.Success(settings = AppSettings())
+            // Load persisted notification prefs + session state so the toggles
+            // reflect reality instead of hardcoded defaults.
+            val prefs = userPreferencesRepository.userPreferences.firstOrNull()
+            pendingChanges = AppSettings(
+                jobAlertsEnabled = prefs?.jobAlertsEnabled ?: true,
+                interviewRemindersEnabled = prefs?.interviewRemindersEnabled ?: true,
+                followUpRemindersEnabled = prefs?.followUpRemindersEnabled ?: true
+            )
+            _uiState.value = SettingsUiState.Success(settings = pendingChanges)
+        }
+    }
+
+    private fun setJobAlerts(enabled: Boolean) {
+        pendingChanges = pendingChanges.copy(jobAlertsEnabled = enabled)
+        viewModelScope.launch { userPreferencesRepository.updateJobAlertsEnabled(enabled) }
+        refreshState()
+    }
+
+    private fun setInterviewReminders(enabled: Boolean) {
+        pendingChanges = pendingChanges.copy(interviewRemindersEnabled = enabled)
+        viewModelScope.launch { userPreferencesRepository.updateInterviewRemindersEnabled(enabled) }
+        refreshState()
+    }
+
+    private fun setFollowUpReminders(enabled: Boolean) {
+        pendingChanges = pendingChanges.copy(followUpRemindersEnabled = enabled)
+        viewModelScope.launch { userPreferencesRepository.updateFollowUpRemindersEnabled(enabled) }
+        refreshState()
+    }
+
+    private fun refreshState() {
+        val current = _uiState.value
+        if (current is SettingsUiState.Success) {
+            _uiState.value = current.copy(settings = pendingChanges)
+        }
+    }
+
+    private fun signOut() {
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest(eventName = "settings_sign_out"))
+            userPreferencesRepository.clearSession()
+            _effects.send(SettingsUiEffect.SignedOut)
+            _effects.send(SettingsUiEffect.ShowSnackbar("Signed out"))
         }
     }
 
@@ -119,9 +173,7 @@ class SettingsViewModel @Inject constructor(
                     }
                     is Result.Failure -> {
                         _uiState.value = currentState.copy(isSaving = false)
-                        _effects.send(SettingsUiEffect.ShowSnackbar(
-                            result.error.message ?: "Failed to save settings"
-                        ))
+                        _effects.send(SettingsUiEffect.ShowSnackbar(result.error.message))
                     }
                 }
             }
@@ -141,7 +193,7 @@ class SettingsViewModel @Inject constructor(
                     _effects.send(SettingsUiEffect.ShowSnackbar("Settings exported"))
                 }
                 is Result.Failure -> {
-                    _effects.send(SettingsUiEffect.ShowSnackbar("Export failed"))
+                    _effects.send(SettingsUiEffect.ShowSnackbar(result.error.message.ifBlank { "Export failed" }))
                 }
             }
         }
@@ -159,9 +211,7 @@ class SettingsViewModel @Inject constructor(
                     _effects.send(SettingsUiEffect.ShowSnackbar("Settings reset to defaults"))
                 }
                 is Result.Failure -> {
-                    _effects.send(SettingsUiEffect.ShowSnackbar(
-                        result.error.message ?: "Failed to reset settings"
-                    ))
+                    _effects.send(SettingsUiEffect.ShowSnackbar(result.error.message))
                 }
             }
         }

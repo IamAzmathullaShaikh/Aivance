@@ -7,6 +7,7 @@ import com.bangersoul.aivance.core.domain.repository.CoverLetterRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.GenerateCoverLetterUseCase
 import com.bangersoul.aivance.core.domain.usecase.coverletter.RegenerateCoverLetterSectionUseCase
+import com.bangersoul.aivance.core.util.PdfExporter
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -31,6 +32,7 @@ class CoverLetterViewModelTest {
     private val mockGenerateUseCase: GenerateCoverLetterUseCase = mockk()
     private val mockRegenerateSectionUseCase: RegenerateCoverLetterSectionUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
+    private val mockPdfExporter: PdfExporter = mockk()
 
     private lateinit var viewModel: CoverLetterViewModel
 
@@ -59,7 +61,8 @@ class CoverLetterViewModelTest {
         mockRepository,
         mockGenerateUseCase,
         mockRegenerateSectionUseCase,
-        mockTrackEvent
+        mockTrackEvent,
+        mockPdfExporter
     )
 
     @Test

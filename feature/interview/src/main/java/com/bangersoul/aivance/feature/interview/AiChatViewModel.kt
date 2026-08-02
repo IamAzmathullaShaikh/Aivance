@@ -187,6 +187,7 @@ class AiChatViewModel @Inject constructor(
                 }
                 is Result.Failure -> {
                     _uiState.value = currentState.copy(messages = messagesWithoutLastAi, isTyping = false)
+                    sendEffect(AiChatUiEffect.ShowSnackbar(result.error.message.ifBlank { "Regeneration failed" }))
                 }
             }
         }
