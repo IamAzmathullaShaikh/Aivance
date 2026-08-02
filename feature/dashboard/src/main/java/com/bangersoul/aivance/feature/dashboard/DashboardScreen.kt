@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -84,14 +85,14 @@ private fun DashboardHeader(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = greeting.ifBlank { "Good Morning 👋" },
+                text = greeting.ifBlank { stringResource(R.string.dash_greeting_fallback) },
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = designation.ifBlank { "Your career command center" },
+                text = designation.ifBlank { stringResource(R.string.dash_designation_fallback) },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -108,7 +109,7 @@ private fun DashboardHeader(
             ) {
                 Icon(
                     Icons.Rounded.Notifications,
-                    contentDescription = "Notifications",
+                    contentDescription = stringResource(R.string.dash_notifications_cd),
                     modifier = Modifier.padding(10.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -129,7 +130,7 @@ private fun DashboardHeader(
         ) {
             Icon(
                 Icons.Rounded.Person,
-                contentDescription = "Profile",
+                contentDescription = stringResource(R.string.dash_profile_cd),
                 modifier = Modifier.padding(10.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
             )
@@ -164,26 +165,26 @@ internal fun DashboardContent(
 
         // 2. Quick stats row: ATS | Active Apps | Saved Jobs
         item {
-            SectionHeader(title = "Overview")
+            SectionHeader(title = stringResource(R.string.dash_overview))
             Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StatCard(
-                    label = "ATS Score",
+                    label = stringResource(R.string.dash_ats_score),
                     value = "${state.atsScore}",
                     icon = Icons.Rounded.FactCheck,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    label = "Active Apps",
+                    label = stringResource(R.string.dash_active_apps),
                     value = "${state.activeApplications}",
                     icon = Icons.Rounded.Send,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    label = "Saved Jobs",
+                    label = stringResource(R.string.dash_saved_jobs),
                     value = "${state.savedJobs}",
                     icon = Icons.Rounded.Bookmark,
                     modifier = Modifier.weight(1f)
@@ -191,10 +192,22 @@ internal fun DashboardContent(
             }
         }
 
+        // 2.5 Career breakdown pie chart: ATS | Applied | Saved | Career Score
+        item {
+            SectionHeader(title = stringResource(R.string.dash_career_breakdown))
+            Spacer(Modifier.height(10.dp))
+            CareerBreakdownCard(
+                atsScore = state.atsScore,
+                activeApplications = state.activeApplications,
+                savedJobs = state.savedJobs,
+                careerScore = state.careerScore
+            )
+        }
+
         // 3. Next interview card (with countdown chip)
         state.nextInterview?.let { interview ->
             item {
-                SectionHeader(title = "Next Interview")
+                SectionHeader(title = stringResource(R.string.dash_next_interview))
                 Spacer(Modifier.height(10.dp))
                 NextInterviewCard(
                     dateTime = interview,
@@ -215,7 +228,7 @@ internal fun DashboardContent(
 
         // 5. Quick Actions 2x2 grid
         item {
-            SectionHeader(title = "Quick Actions")
+            SectionHeader(title = stringResource(R.string.dash_quick_actions))
             Spacer(Modifier.height(10.dp))
             QuickActionsGrid(
                 onResume = onNavigateToResume,
@@ -229,12 +242,12 @@ internal fun DashboardContent(
 
         // 6. Recent Activity feed (last 5)
         item {
-            SectionHeader(title = "Recent Activity", ctaText = "View All", onCtaClick = onNavigateToAnalytics)
+            SectionHeader(title = stringResource(R.string.dash_recent_activity), ctaText = stringResource(R.string.dash_view_all), onCtaClick = onNavigateToAnalytics)
             Spacer(Modifier.height(10.dp))
             if (state.recentActivity.isEmpty()) {
                 EmptyStateCard(
-                    title = "No activity yet",
-                    description = "Applications, ATS scans and AI sessions will appear here.",
+                    title = stringResource(R.string.dash_no_activity),
+                    description = stringResource(R.string.dash_no_activity_detail),
                     icon = Icons.Rounded.History
                 )
             } else {
@@ -279,7 +292,7 @@ private fun CareerScoreCard(score: Int, onNavigateToAnalytics: () -> Unit) {
                         color = color
                     )
                     Text(
-                        text = "Career Score",
+                        text = stringResource(R.string.dash_career_score),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -298,16 +311,92 @@ private fun CareerScoreCard(score: Int, onNavigateToAnalytics: () -> Unit) {
                 )
                 MetricChip(
                     label = when {
-                        score >= 80 -> "Top tier"
-                        score >= 60 -> "Strong"
-                        score > 0 -> "Building"
-                        else -> "Not scored yet"
+                        score >= 80 -> stringResource(R.string.dash_chip_top_tier)
+                        score >= 60 -> stringResource(R.string.dash_chip_strong)
+                        score > 0 -> stringResource(R.string.dash_chip_building)
+                        else -> stringResource(R.string.dash_chip_not_scored)
                     },
                     containerColor = color.copy(alpha = 0.12f),
                     contentColor = color
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CareerBreakdownCard(
+    atsScore: Int,
+    activeApplications: Int,
+    savedJobs: Int,
+    careerScore: Int
+) {
+    // Raw values — PieChart skips zero sweeps, so a new user (0 ATS, 0 applied,
+    // 0 saved) sees an honest empty chart rather than four fake equal slices.
+    val segments = listOf(
+        PieSegment(stringResource(R.string.dash_pie_career_score), careerScore.toFloat(), AivanceTheme.colors.accent),
+        PieSegment(stringResource(R.string.dash_pie_ats_score), atsScore.toFloat(), AivanceTheme.colors.info),
+        PieSegment(stringResource(R.string.dash_pie_applied), activeApplications.toFloat(), AivanceTheme.colors.success),
+        PieSegment(stringResource(R.string.dash_pie_saved_jobs), savedJobs.toFloat(), AivanceTheme.colors.warning)
+    )
+
+    DashboardCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                PieChart(
+                    segments = segments,
+                    size = 132,
+                    centerText = "${careerScore}\n${stringResource(R.string.dash_score_word)}"
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    segments.forEach { segment ->
+                        BreakdownLegend(
+                            label = segment.label,
+                            value = segment.value.toInt(),
+                            color = segment.color
+                        )
+                    }
+                }
+            }
+            Text(
+                text = stringResource(R.string.dash_breakdown_caption),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun BreakdownLegend(label: String, value: Int, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .background(color, CircleShape)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "$value",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
@@ -319,18 +408,20 @@ private fun scoreColor(score: Int): Color = when {
     else -> MaterialTheme.colorScheme.surfaceVariant
 }
 
+@Composable
 private fun scoreTitle(score: Int): String = when {
-    score >= 80 -> "Ready to apply"
-    score >= 60 -> "Strong profile"
-    score > 0 -> "Keep building"
-    else -> "Unlock your score"
+    score >= 80 -> stringResource(R.string.dash_score_title_ready)
+    score >= 60 -> stringResource(R.string.dash_score_title_strong)
+    score > 0 -> stringResource(R.string.dash_score_title_building)
+    else -> stringResource(R.string.dash_score_title_unlock)
 }
 
+@Composable
 private fun scoreMessage(score: Int): String = when {
-    score >= 80 -> "Top-tier profile — you're in great shape for applications."
-    score >= 60 -> "Solid foundation with clear room to grow."
-    score > 0 -> "Every point counts — upload & analyze a resume to level up."
-    else -> "Upload a resume and run an ATS scan to unlock scoring."
+    score >= 80 -> stringResource(R.string.dash_score_msg_ready)
+    score >= 60 -> stringResource(R.string.dash_score_msg_strong)
+    score > 0 -> stringResource(R.string.dash_score_msg_building)
+    else -> stringResource(R.string.dash_score_msg_unlock)
 }
 
 @Composable
@@ -359,13 +450,13 @@ private fun NextInterviewCard(dateTime: String, onClick: () -> Unit) {
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Upcoming interview",
+                    text = stringResource(R.string.dash_upcoming_interview),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             MetricChip(
-                label = "Prepare",
+                label = stringResource(R.string.dash_prepare),
                 containerColor = AivanceTheme.colors.warning.copy(alpha = 0.12f),
                 contentColor = AivanceTheme.colors.warning
             )
@@ -400,7 +491,7 @@ private fun AiRecommendationCard(recommendation: String, onClick: () -> Unit) {
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "AI Recommendation",
+                    text = stringResource(R.string.dash_ai_recommendation),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = AivanceTheme.colors.accent
@@ -414,7 +505,7 @@ private fun AiRecommendationCard(recommendation: String, onClick: () -> Unit) {
             }
             Icon(
                 Icons.AutoMirrored.Rounded.ArrowForward,
-                contentDescription = "Open",
+                contentDescription = stringResource(R.string.dash_open_cd),
                 tint = AivanceTheme.colors.accent
             )
         }
@@ -433,14 +524,14 @@ private fun QuickActionsGrid(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickActionTile(
-                label = "Resume",
+                label = stringResource(R.string.dash_action_resume),
                 icon = Icons.Rounded.Description,
                 tint = AivanceTheme.colors.accent,
                 onClick = onResume,
                 modifier = Modifier.weight(1f)
             )
             QuickActionTile(
-                label = "Jobs",
+                label = stringResource(R.string.dash_action_jobs),
                 icon = Icons.Rounded.WorkOutline,
                 tint = AivanceTheme.colors.info,
                 onClick = onJobs,
@@ -449,14 +540,14 @@ private fun QuickActionsGrid(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickActionTile(
-                label = "Interview",
+                label = stringResource(R.string.dash_action_interview),
                 icon = Icons.Rounded.RecordVoiceOver,
                 tint = AivanceTheme.colors.warning,
                 onClick = onInterview,
                 modifier = Modifier.weight(1f)
             )
             QuickActionTile(
-                label = "Assistant",
+                label = stringResource(R.string.dash_action_assistant),
                 icon = Icons.Rounded.SmartToy,
                 tint = AivanceTheme.colors.success,
                 onClick = onAssistant,
@@ -465,14 +556,14 @@ private fun QuickActionsGrid(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             QuickActionTile(
-                label = "Pipeline",
+                label = stringResource(R.string.dash_action_pipeline),
                 icon = Icons.Rounded.ViewKanban,
                 tint = MaterialTheme.colorScheme.primary,
                 onClick = onTracker,
                 modifier = Modifier.weight(1f)
             )
             QuickActionTile(
-                label = "Insights",
+                label = stringResource(R.string.dash_action_insights),
                 icon = Icons.Rounded.BarChart,
                 tint = MaterialTheme.colorScheme.secondary,
                 onClick = onAnalytics,

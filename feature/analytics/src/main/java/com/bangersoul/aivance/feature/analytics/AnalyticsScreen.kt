@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,7 +31,7 @@ fun AnalyticsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        AivanceTopBar(title = "Career Intelligence", onBack = onBack)
+        AivanceTopBar(title = stringResource(R.string.analytics_title), onBack = onBack)
         AnimatedContent(
             targetState = uiState,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -41,8 +42,8 @@ fun AnalyticsScreen(
                 is AnalyticsUiState.Error -> AivanceError(
                     message = state.message,
                     onRetry = { viewModel.refresh() },
-                    title = "Analytics unavailable",
-                    detail = "Snapshot data could not be loaded from the local database."
+                    title = stringResource(R.string.analytics_unavailable_title),
+                    detail = stringResource(R.string.analytics_unavailable_detail)
                 )
                 is AnalyticsUiState.Success -> AnalyticsDashboardContent(
                     snapshot = state.latestSnapshot,
@@ -77,7 +78,7 @@ private fun AnalyticsDashboardContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "Current Career Score",
+                        stringResource(R.string.analytics_current_score),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -89,9 +90,9 @@ private fun AnalyticsDashboardContent(
                     )
                     Text(
                         text = when {
-                            (snapshot?.careerScore ?: 0) >= 80 -> "Top-tier candidate readiness"
-                            (snapshot?.careerScore ?: 0) >= 60 -> "Strong momentum — keep optimizing"
-                            else -> "Every action moves the score — start with a resume scan"
+                            (snapshot?.careerScore ?: 0) >= 80 -> stringResource(R.string.analytics_score_top)
+                            (snapshot?.careerScore ?: 0) >= 60 -> stringResource(R.string.analytics_score_strong)
+                            else -> stringResource(R.string.analytics_score_start)
                         },
                         style = MaterialTheme.typography.labelMedium,
                         color = AivanceTheme.colors.accent
@@ -105,7 +106,7 @@ private fun AnalyticsDashboardContent(
         // Career Score Trend
         if (sortedSnapshots.size >= 2) {
             item {
-                SectionHeader(title = "Score Trend")
+                SectionHeader(title = stringResource(R.string.analytics_score_trend))
                 Spacer(Modifier.height(10.dp))
                 DashboardCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -122,7 +123,7 @@ private fun AnalyticsDashboardContent(
         val dimensions = snapshot?.dimensionScores
         if (dimensions != null && dimensions.isNotEmpty()) {
             item {
-                SectionHeader(title = "Performance Dimensions")
+                SectionHeader(title = stringResource(R.string.analytics_dimensions))
                 Spacer(Modifier.height(10.dp))
                 DashboardCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -140,7 +141,7 @@ private fun AnalyticsDashboardContent(
         // Activity Heat Map
         if (sortedSnapshots.isNotEmpty()) {
             item {
-                SectionHeader(title = "Score History")
+                SectionHeader(title = stringResource(R.string.analytics_score_history))
                 Spacer(Modifier.height(10.dp))
                 DashboardCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -155,15 +156,15 @@ private fun AnalyticsDashboardContent(
 
         // Application Funnel
         item {
-            SectionHeader(title = "Application Funnel")
+            SectionHeader(title = stringResource(R.string.analytics_funnel))
             Spacer(Modifier.height(10.dp))
             DashboardCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     val kpis = snapshot?.kpis ?: emptyMap()
                     val funnel = listOf(
-                        "Applications" to (kpis.entries.firstOrNull { it.key.equals("applications", true) }?.value?.toInt() ?: 0),
-                        "Interviews" to (kpis.entries.firstOrNull { it.key.equals("interviews", true) }?.value?.toInt() ?: 0),
-                        "Offers" to (kpis.entries.firstOrNull { it.key.equals("offers", true) }?.value?.toInt() ?: 0)
+                        stringResource(R.string.analytics_funnel_applications) to (kpis.entries.firstOrNull { it.key.equals("applications", true) }?.value?.toInt() ?: 0),
+                        stringResource(R.string.analytics_funnel_interviews) to (kpis.entries.firstOrNull { it.key.equals("interviews", true) }?.value?.toInt() ?: 0),
+                        stringResource(R.string.analytics_funnel_offers) to (kpis.entries.firstOrNull { it.key.equals("offers", true) }?.value?.toInt() ?: 0)
                     )
                     FunnelChart(stages = funnel, modifier = Modifier.fillMaxWidth())
                 }
@@ -172,12 +173,12 @@ private fun AnalyticsDashboardContent(
 
         // Recommendations
         item {
-            SectionHeader(title = "Priority Recommendations")
+            SectionHeader(title = stringResource(R.string.analytics_recommendations))
             Spacer(Modifier.height(10.dp))
             if (recommendations.isEmpty()) {
                 EmptyStateCard(
-                    title = "No recommendations yet",
-                    description = "As you use the app, the intelligence engine will surface prioritized actions.",
+                    title = stringResource(R.string.analytics_no_recommendations),
+                    description = stringResource(R.string.analytics_no_recommendations_detail),
                     icon = Icons.Rounded.AutoAwesome
                 )
             }
@@ -238,7 +239,7 @@ private fun RecommendationCard(rec: CareerRecommendation, onDismiss: () -> Unit)
             }
             StatusChip(text = rec.priority, tone = tone)
             IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.Top)) {
-                Icon(Icons.Rounded.CheckCircle, contentDescription = "Dismiss", modifier = Modifier.size(18.dp))
+                Icon(Icons.Rounded.CheckCircle, contentDescription = stringResource(R.string.analytics_dismiss), modifier = Modifier.size(18.dp))
             }
         }
     }

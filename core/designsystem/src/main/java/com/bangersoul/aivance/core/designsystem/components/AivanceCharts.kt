@@ -338,6 +338,68 @@ fun LineChart(
 }
 
 /**
+ * A multi-segment pie/donut chart with an animated sweep. Each segment is
+ * drawn as an arc proportional to its value; the [centerText] (if any) is
+ * rendered in the middle. Zero-valued segments are simply not drawn.
+ */
+@Composable
+fun PieChart(
+    segments: List<PieSegment>,
+    modifier: Modifier = Modifier,
+    size: Int = 150,
+    centerText: String? = null,
+    strokeWidth: Int = 24
+) {
+    val total = segments.map { it.value }.sum().coerceAtLeast(1f)
+    val duration = AivanceTheme.motion.durationSlow
+    val animated = remember { Animatable(0f) }
+    LaunchedEffect(segments) {
+        animated.animateTo(1f, tween(duration))
+    }
+
+    Box(modifier = modifier.size(size.dp), contentAlignment = Alignment.Center) {
+        Canvas(
+            modifier = Modifier
+                .size(size.dp)
+                .semantics { contentDescription = "Career breakdown pie chart" }
+        ) {
+            val stroke = Stroke(width = strokeWidth.dp.toPx(), cap = StrokeCap.Butt)
+            var startAngle = -90f
+            segments.forEach { segment ->
+                val segmentFraction = segment.value / total
+                val sweep = 360f * segmentFraction * animated.value
+                if (sweep > 0.5f) {
+                    drawArc(
+                        color = segment.color,
+                        startAngle = startAngle,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        style = stroke
+                    )
+                }
+                startAngle += 360f * segmentFraction
+            }
+        }
+        centerText?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+    }
+}
+
+/** A single slice of a [PieChart]. */
+data class PieSegment(
+    val label: String,
+    val value: Float,
+    val color: Color
+)
+
+/**
  * A donut chart with animated sweep.
  */
 @Composable
