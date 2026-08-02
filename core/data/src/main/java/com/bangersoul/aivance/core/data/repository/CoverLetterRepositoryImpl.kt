@@ -15,6 +15,7 @@ import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -90,16 +91,64 @@ class CoverLetterRepositoryImpl @Inject constructor(
         val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
             ?: throw Exception("No AI provider available")
 
-        val prompt = "Generate a $writingStyle cover letter for ${job.company.name} as ${job.job.title}."
+        val prompt = buildPrompt(job.company.name, job.job.title, writingStyle)
         val content = provider.generateText(prompt).getOrNull() ?: throw Exception("AI generation failed")
 
+        persistLetter(jobId, resumeVersionId, recruiterId, writingStyle, job.company.name, job.job.title, content)
+    }
+
+    override fun streamGenerateCoverLetter(
+        resumeId: Long,
+        resumeVersionId: Long,
+        jobId: Long,
+        recruiterId: String?,
+        writingStyle: String
+    ): Flow<String> = flow {
+        val job = jobDao.getJobWithDetailsById(jobId) ?: throw Exception("Job not found")
+        val prompt = buildPrompt(job.company.name, job.job.title, writingStyle)
+
+        val streamingProvider =
+            providerManager.getBestProviderFor(ProviderCapability.AI.Streaming) as? AIProvider
+        val content = StringBuilder()
+        if (streamingProvider != null) {
+            streamingProvider.streamText(prompt).collect { chunk ->
+                content.append(chunk)
+                emit(chunk)
+            }
+        } else {
+            // Graceful fallback: non-streaming provider emits the full letter once.
+            val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+                ?: throw Exception("No AI provider available")
+            val full = provider.generateText(prompt).getOrNull()
+                ?: throw Exception("AI generation failed")
+            content.append(full)
+            emit(full)
+        }
+
+        if (content.isEmpty()) throw Exception("AI returned an empty cover letter")
+
+        persistLetter(
+            jobId, resumeVersionId, recruiterId, writingStyle,
+            job.company.name, job.job.title, content.toString()
+        )
+    }
+
+    private suspend fun persistLetter(
+        jobId: Long,
+        resumeVersionId: Long,
+        recruiterId: String?,
+        writingStyle: String,
+        companyName: String,
+        roleTitle: String,
+        content: String
+    ): Long {
         val coverLetterId = coverLetterDao.insertCoverLetter(
             CoverLetter(
                 resumeVersionId = resumeVersionId,
                 jobId = jobId,
                 recruiterId = recruiterId,
-                company = job.company.name,
-                role = job.job.title
+                company = companyName,
+                role = roleTitle
             ).toEntity()
         )
 
@@ -110,9 +159,11 @@ class CoverLetterRepositoryImpl @Inject constructor(
             sections = listOf(com.bangersoul.aivance.core.common.model.CoverLetterSection(sectionType = "BODY", title = "Body", content = content))
         )
         saveVersion(version)
-
-        coverLetterId
+        return coverLetterId
     }
+
+    private fun buildPrompt(companyName: String, roleTitle: String, writingStyle: String): String =
+        "Generate a $writingStyle cover letter for $companyName as $roleTitle."
 
     override suspend fun regenerateSection(versionId: Long, sectionType: String): CoreResult<Unit> = runCatchingCore {
         val versionEntity = coverLetterDao.getVersionById(versionId) ?: throw Exception("Version not found")

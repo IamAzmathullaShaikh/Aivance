@@ -1,8 +1,10 @@
 package com.bangersoul.aivance.core.data.repository
 
+import com.bangersoul.aivance.core.common.enums.MessageRole
 import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.JobDescription
 import com.bangersoul.aivance.core.common.result.CoreResult
+import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.common.result.runCatchingCore
 import com.bangersoul.aivance.core.data.mapper.toDomain
@@ -10,11 +12,14 @@ import com.bangersoul.aivance.core.data.mapper.toEntity
 import com.bangersoul.aivance.core.database.dao.AtsDao
 import com.bangersoul.aivance.core.database.dao.ResumeDao
 import com.bangersoul.aivance.core.domain.repository.AtsRepository
+import com.bangersoul.aivance.core.domain.repository.AtsStreamEvent
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
+import com.bangersoul.aivance.sdk.model.AiMessage as SdkAiMessage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -61,15 +66,57 @@ class AtsRepositoryImpl @Inject constructor(
         versionId: Long,
         jobDescriptionId: Long
     ): CoreResult<AtsReport> = runCatchingCore {
-        val version = resumeDao.getVersionById(versionId) ?: throw Exception("Resume version not found")
-        val sections = resumeDao.getSectionsForVersion(versionId).firstOrNull() ?: emptyList()
-        val jd = atsDao.getJobDescriptionById(jobDescriptionId) ?: throw Exception("Job description not found")
-
-        val resumeContent = sections.joinToString("\n\n") { "${it.title}:\n${it.content}" }
+        val prompt = buildPrompt(versionId, jobDescriptionId)
         val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
             ?: throw Exception("No AI provider available")
 
-        val prompt = """
+        val result = provider.generateText(prompt).getOrNull() ?: throw Exception("AI analysis failed")
+        persistParsedReport(result, versionId, jobDescriptionId)
+    }
+
+    override fun streamAtsAnalysis(
+        resumeId: Long,
+        versionId: Long,
+        jobDescriptionId: Long
+    ): Flow<AtsStreamEvent> = flow {
+        try {
+            val prompt = buildPrompt(versionId, jobDescriptionId)
+
+            // Prefer a streaming-capable provider so tokens render live; fall
+            // back to one-shot analysis (single Completed event) otherwise.
+            val streamingProvider =
+                providerManager.getBestProviderFor(ProviderCapability.AI.Streaming) as? AIProvider
+            if (streamingProvider != null) {
+                val sdkMessages = listOf(SdkAiMessage(MessageRole.USER, prompt))
+                val full = StringBuilder()
+                streamingProvider.streamChat(sdkMessages).collect { chunkResult ->
+                    when (chunkResult) {
+                        is Result.Success -> {
+                            full.append(chunkResult.data)
+                            emit(AtsStreamEvent.Chunk(chunkResult.data))
+                        }
+                        is Result.Failure -> throw Exception(chunkResult.error.message)
+                    }
+                }
+                emit(AtsStreamEvent.Completed(persistParsedReport(full.toString(), versionId, jobDescriptionId)))
+            } else {
+                // No streaming provider — reuse the one-shot path as a fallback.
+                when (val result = performAtsAnalysis(resumeId, versionId, jobDescriptionId)) {
+                    is Result.Success -> emit(AtsStreamEvent.Completed(result.data))
+                    is Result.Failure -> emit(AtsStreamEvent.Failed(result.error.message))
+                }
+            }
+        } catch (e: Exception) {
+            emit(AtsStreamEvent.Failed(e.message ?: "ATS analysis failed"))
+        }
+    }
+
+    /** Builds the shared ATS analysis prompt for a resume version + job description. */
+    private suspend fun buildPrompt(versionId: Long, jobDescriptionId: Long): String {
+        val sections = resumeDao.getSectionsForVersion(versionId).firstOrNull() ?: emptyList()
+        val jd = atsDao.getJobDescriptionById(jobDescriptionId) ?: throw Exception("Job description not found")
+        val resumeContent = sections.joinToString("\n\n") { "${it.title}:\n${it.content}" }
+        return """
             Perform a detailed ATS (Applicant Tracking System) analysis by comparing the Resume against the Job Description.
 
             Resume:
@@ -88,9 +135,14 @@ class AtsRepositoryImpl @Inject constructor(
                 { "category": String, "description": String, "priority": "HIGH"|"MEDIUM"|"LOW" }
             ]
         """.trimIndent()
+    }
 
-        val result = provider.generateText(prompt).getOrNull() ?: throw Exception("AI analysis failed")
-
+    /** Parses the raw AI output into an [AtsReport] and persists it. */
+    private suspend fun persistParsedReport(
+        result: String,
+        versionId: Long,
+        jobDescriptionId: Long
+    ): AtsReport {
         val jsonText = if (result.contains("```json")) {
             result.substringAfter("```json").substringBefore("```").trim()
         } else if (result.contains("{") && result.contains("}")) {
@@ -101,8 +153,7 @@ class AtsRepositoryImpl @Inject constructor(
             resumeVersionId = versionId,
             jobDescriptionId = jobDescriptionId
         )
-
         val id = atsDao.insertReport(report.toEntity())
-        report.copy(id = id)
+        return report.copy(id = id)
     }
 }

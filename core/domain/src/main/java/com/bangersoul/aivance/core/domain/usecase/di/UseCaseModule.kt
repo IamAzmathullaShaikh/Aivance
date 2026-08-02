@@ -4,6 +4,7 @@ import com.bangersoul.aivance.core.domain.repository.*
 import com.bangersoul.aivance.core.domain.repository.crm.*
 import com.bangersoul.aivance.core.domain.usecase.ai.*
 import com.bangersoul.aivance.core.domain.usecase.analytics.*
+import com.bangersoul.aivance.core.domain.usecase.ats.*
 import com.bangersoul.aivance.core.domain.usecase.career.*
 import com.bangersoul.aivance.core.domain.usecase.coverletter.*
 import com.bangersoul.aivance.core.domain.usecase.crm.*
@@ -40,10 +41,16 @@ object UseCaseModule {
     fun provideImproveResumeUseCase(repo: ResumeRepository, aiRepo: AiRepository): ImproveResumeUseCase = ImproveResumeUseCase(repo, aiRepo)
 
     @Provides @Singleton
+    fun provideStreamImproveSectionUseCase(repo: ResumeRepository, aiRepo: AiRepository): StreamImproveSectionUseCase = StreamImproveSectionUseCase(repo, aiRepo)
+
+    @Provides @Singleton
     fun provideGenerateResumeSummaryUseCase(repo: ResumeRepository): GenerateResumeSummaryUseCase = GenerateResumeSummaryUseCase(repo)
 
     @Provides @Singleton
     fun provideExportResumeUseCase(repo: ResumeRepository): ExportResumeUseCase = ExportResumeUseCase(repo)
+
+    @Provides @Singleton
+    fun provideStreamAtsAnalysisUseCase(repo: AtsRepository): StreamAtsAnalysisUseCase = StreamAtsAnalysisUseCase(repo)
 
     @Provides @Singleton
     fun provideSearchJobsUseCase(repo: JobRepository): SearchJobsUseCase = SearchJobsUseCase(repo)
@@ -88,6 +95,9 @@ object UseCaseModule {
     // Cover Letter Use Cases
     @Provides @Singleton
     fun provideGenerateCoverLetterUseCase(repo: CoverLetterRepository): GenerateCoverLetterUseCase = GenerateCoverLetterUseCase(repo)
+
+    @Provides @Singleton
+    fun provideStreamGenerateCoverLetterUseCase(repo: CoverLetterRepository): StreamGenerateCoverLetterUseCase = StreamGenerateCoverLetterUseCase(repo)
 
     @Provides @Singleton
     fun provideRegenerateCoverLetterSectionUseCase(repo: CoverLetterRepository): RegenerateCoverLetterSectionUseCase = RegenerateCoverLetterSectionUseCase(repo)

@@ -25,6 +25,20 @@ interface CoverLetterRepository {
         writingStyle: String
     ): CoreResult<Long>
 
+    /**
+     * Streaming variant of [generateCoverLetter]. Emits token chunks in real
+     * time from a streaming-capable provider (falling back to a single
+     * emission for one-shot providers) and persists the finished letter when
+     * the stream completes.
+     */
+    fun streamGenerateCoverLetter(
+        resumeId: Long,
+        resumeVersionId: Long,
+        jobId: Long,
+        recruiterId: String?,
+        writingStyle: String
+    ): kotlinx.coroutines.flow.Flow<String>
+
     suspend fun regenerateSection(
         versionId: Long,
         sectionType: String

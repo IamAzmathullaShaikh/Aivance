@@ -13,6 +13,7 @@ import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import com.bangersoul.aivance.sdk.model.AiMessage as SdkAiMessage
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -28,6 +29,18 @@ class AiRepositoryImpl @Inject constructor(
 
     override suspend fun analyzeText(text: String, prompt: String): Result<String> = runCatchingCore {
         getProvider().generateText("$prompt\n\n$text").getOrNull() ?: throw Exception("AI analysis failed")
+    }
+
+    override fun streamAnalyzeText(text: String, prompt: String): Flow<String> = flow {
+        val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Streaming) as? AIProvider
+        if (provider != null) {
+            provider.streamText("$prompt\n\n$text").collect { chunk -> emit(chunk) }
+        } else {
+            // Graceful fallback: non-streaming provider emits the full answer once.
+            val full = getProvider().generateText("$prompt\n\n$text").getOrNull()
+                ?: throw Exception("AI analysis failed")
+            emit(full)
+        }
     }
 
     override suspend fun startChatSession(providerId: String, modelName: String): Result<AIConversation> = runCatchingCore {
