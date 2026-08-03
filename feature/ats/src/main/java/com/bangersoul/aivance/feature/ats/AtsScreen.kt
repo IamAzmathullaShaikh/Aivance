@@ -62,11 +62,7 @@ import androidx.core.content.FileProvider
 import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
-import com.bangersoul.aivance.core.designsystem.components.ActionButton
-import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
-import com.bangersoul.aivance.core.designsystem.components.DashboardCard
-import com.bangersoul.aivance.core.designsystem.components.KeywordChip
-import com.bangersoul.aivance.core.designsystem.components.ScoreGauge
+import com.bangersoul.aivance.core.designsystem.components.*
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,8 +79,6 @@ fun AtsScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Prefill the JD when arriving from Job Details (the "AI Compatibility
-    // Check" button) so the user can scan against this job immediately.
     LaunchedEffect(initialJobDescription) {
         if (!initialJobDescription.isNullOrBlank()) {
             viewModel.onEvent(AtsUiEvent.UpdateJobDescription(initialJobDescription))
@@ -101,21 +95,14 @@ fun AtsScreen(
         }
     }
 
-    AivanceScreen(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.ats_intelligence_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-        },
+    AivanceWorkspaceScaffold(
+        title = stringResource(R.string.ats_intelligence_title),
+        subtitle = "Match analysis",
+        onBack = onNavigateBack,
         isLoading = uiState is AtsUiState.Analyzing,
         error = (uiState as? AtsUiState.Error)?.message,
-        onRetry = { viewModel.onEvent(AtsUiEvent.Reset) }
+        onRetry = { viewModel.onEvent(AtsUiEvent.Reset) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) {
         Box(Modifier.fillMaxSize()) {
             AnimatedContent(
@@ -146,11 +133,6 @@ fun AtsScreen(
                     else -> {}
                 }
             }
-
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
     }
 }

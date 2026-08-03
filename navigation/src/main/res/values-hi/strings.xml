@@ -149,6 +149,8 @@
     <string name="dest_onboarding">ऑनबोर्डिंग</string>
     <string name="dest_dashboard">डैशबोर्ड</string>
     <string name="dest_assistant">सहायक</string>
+    <string name="dest_intelligence">इंटेलिजेंस</string>
+    <string name="dest_discovery">डिस्कवरी</string>
     <string name="dest_resume">रिज़्यूमे</string>
     <string name="dest_jobs">नौकरियां</string>
     <string name="dest_profile">प्रोफ़ाइल</string>
@@ -168,6 +170,7 @@
     <string name="dest_sign_in">साइन इन</string>
     <string name="dest_provider_setup">प्रदाता सेटअप</string>
     <string name="dest_pipeline">पाइपलाइन</string>
+    <string name="dest_job_comparison">नौकरी की तुलना</string>
     <string name="dest_company">कंपनी</string>
     <string name="dest_resume_detail">रिज़्यूमे विवरण</string>
     <string name="dest_about">हमारे बारे में</string>

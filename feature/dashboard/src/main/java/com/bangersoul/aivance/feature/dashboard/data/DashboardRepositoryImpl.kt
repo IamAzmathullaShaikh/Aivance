@@ -97,7 +97,8 @@ class DashboardRepositoryImpl @Inject constructor(
                 )
             },
             recruiters = emptyList(),
-            applicationCount = active.size
+            applicationCount = active.size,
+            interviewReadiness = if (interviews.isNotEmpty()) 80 else 0 // Mock readiness
         )["OVERALL"] ?: 0
         val careerScore = snapshotScore ?: compositeScore
 

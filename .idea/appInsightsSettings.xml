@@ -9,9 +9,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.bangersoul.aivance.debug" />
-                  <option name="mobileSdkAppId" value="1:000000000000:android:0000000000000001" />
-                  <option name="projectId" value="aivance-development" />
-                  <option name="projectNumber" value="000000000000" />
+                  <option name="mobileSdkAppId" value="1:362023371153:android:9ac714aae3c030f7edda30" />
+                  <option name="projectId" value="test-dea4929b" />
+                  <option name="projectNumber" value="362023371153" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

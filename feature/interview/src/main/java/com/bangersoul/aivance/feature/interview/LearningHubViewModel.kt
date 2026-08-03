@@ -1,4 +1,4 @@
-package com.bangersoul.aivance.feature.profile
+package com.bangersoul.aivance.feature.interview
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

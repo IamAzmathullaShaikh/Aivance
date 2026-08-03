@@ -12,6 +12,7 @@ interface UserPreferencesRepository {
     suspend fun updateThemeConfig(themeConfig: ThemeConfig)
     suspend fun updateAccentSeed(accentSeed: String)
     suspend fun updateDynamicColor(enabled: Boolean)
+    suspend fun updateBiometricLockEnabled(enabled: Boolean)
     suspend fun updateJobAlertsEnabled(enabled: Boolean)
     suspend fun updateInterviewRemindersEnabled(enabled: Boolean)
     suspend fun updateFollowUpRemindersEnabled(enabled: Boolean)
@@ -56,9 +57,11 @@ class UserPreferencesRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateDynamicColor(enabled: Boolean) {
-        dataStore.updateData {
-            it.copy(dynamicColor = enabled)
-        }
+        dataStore.updateData { it.copy(dynamicColor = enabled) }
+    }
+
+    override suspend fun updateBiometricLockEnabled(enabled: Boolean) {
+        dataStore.updateData { it.copy(biometricLockEnabled = enabled) }
     }
 
     override suspend fun updateJobAlertsEnabled(enabled: Boolean) {

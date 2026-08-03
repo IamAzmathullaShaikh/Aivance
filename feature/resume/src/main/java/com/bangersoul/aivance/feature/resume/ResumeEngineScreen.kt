@@ -77,12 +77,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bangersoul.aivance.core.common.model.ResumeAnalysis
 import com.bangersoul.aivance.core.common.model.ResumeVersion
-import com.bangersoul.aivance.core.designsystem.components.AivancePrimaryButton
-import com.bangersoul.aivance.core.designsystem.components.AivanceSecondaryButton
-import com.bangersoul.aivance.core.designsystem.components.BannerTone
-import com.bangersoul.aivance.core.designsystem.components.KeywordChip
-import com.bangersoul.aivance.core.designsystem.components.ScoreGauge
-import com.bangersoul.aivance.core.designsystem.components.StatusChip
+import com.bangersoul.aivance.core.designsystem.components.*
 import kotlinx.coroutines.delay
 import java.io.File
 import java.text.SimpleDateFormat
@@ -117,38 +112,20 @@ fun ResumeEngineScreen(
         }
     }
 
-    // BackHandler-aware step navigation — one step back per press.
     BackHandler(enabled = true) {
-        when (state) {
-            is ResumeEngineState.Import -> onBack()
-            else -> viewModel.onEvent(ResumeEngineEvent.Back)
-        }
+        if (state is ResumeEngineState.Import) onBack()
+        else viewModel.onEvent(ResumeEngineEvent.Back)
     }
 
-    Box(Modifier.fillMaxSize()) {
+    AivanceWorkspaceScaffold(
+        title = stringResource(R.string.resume_engine_title),
+        subtitle = stringResource(R.string.resume_engine_subtitle),
+        onBack = {
+            if (state is ResumeEngineState.Import) onBack()
+            else viewModel.onEvent(ResumeEngineEvent.Back)
+        }
+    ) {
         Column(Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(stringResource(R.string.resume_engine_title), fontWeight = FontWeight.Bold)
-                        Text(
-                            stringResource(R.string.resume_engine_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (state is ResumeEngineState.Import) onBack()
-                        else viewModel.onEvent(ResumeEngineEvent.Back)
-                    }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-
             EngineStepper(currentStep = state.stepIndex())
 
             AnimatedContent(
@@ -201,9 +178,6 @@ fun ResumeEngineScreen(
                     is ResumeEngineState.Error -> ErrorStep(
                         step = current.step,
                         message = current.message,
-                        // Retry only re-imports for Import/Parsing failures; for
-                        // ATS/Optimization/Save errors it steps back to the prior
-                        // step, so only advertise it as a retry in those cases.
                         canRetry = current.canRetry,
                         onRetry = { viewModel.onEvent(ResumeEngineEvent.Retry) },
                         onBack = { viewModel.onEvent(ResumeEngineEvent.Back) }
@@ -211,11 +185,6 @@ fun ResumeEngineScreen(
                 }
             }
         }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 }
 

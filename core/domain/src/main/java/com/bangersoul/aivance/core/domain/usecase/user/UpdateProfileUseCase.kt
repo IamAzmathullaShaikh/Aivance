@@ -26,7 +26,12 @@ data class UpdateProfileRequest(
     val bio: String? = null,
     val location: String? = null,
     val skills: List<String>? = null,
-    val experienceYears: Int? = null
+    val experienceYears: Int? = null,
+    val preferredIndustries: List<String>? = null,
+    val salaryExpectation: String? = null,
+    val workPreference: String? = null,
+    val visaRequired: Boolean? = null,
+    val noticePeriod: String? = null
 )
 
 /**
@@ -88,6 +93,11 @@ class UpdateProfileUseCase @Inject constructor(
             location = input.location?.trim() ?: existing.location,
             skills = input.skills?.map { it.trim() }?.filter { it.isNotBlank() } ?: existing.skills,
             experienceYears = input.experienceYears?.coerceIn(0, 100) ?: existing.experienceYears,
+            preferredIndustries = input.preferredIndustries ?: existing.preferredIndustries,
+            salaryExpectation = input.salaryExpectation ?: existing.salaryExpectation,
+            workPreference = input.workPreference ?: existing.workPreference,
+            visaRequired = input.visaRequired ?: existing.visaRequired,
+            noticePeriod = input.noticePeriod ?: existing.noticePeriod,
             createdDate = existing.createdDate
         )
     }

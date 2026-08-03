@@ -35,3 +35,27 @@ data class CareerGoal(
     val isCompleted: Boolean = false,
     val type: String = "SYSTEM"
 )
+
+@Serializable
+data class CareerIntelligence(
+    val careerScore: Int,
+    val dimensionScores: Map<String, Int>,
+    val predictions: PredictiveMetrics,
+    val health: List<HealthDimension>,
+    val weeklyReview: String? = null
+)
+
+@Serializable
+data class PredictiveMetrics(
+    val interviewProbability: Int,
+    val offerProbability: Int,
+    val successExplanation: String
+)
+
+@Serializable
+data class HealthDimension(
+    val category: String,
+    val score: Int,
+    val trend: String, // "UP", "DOWN", "STABLE"
+    val recommendation: String
+)

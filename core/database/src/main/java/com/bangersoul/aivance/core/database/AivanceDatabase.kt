@@ -57,7 +57,7 @@ import com.bangersoul.aivance.core.database.model.*
         AuditLogEntity::class,
         UserEntity::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = true
 )
 @TypeConverters(AivanceConverters::class)
@@ -278,6 +278,16 @@ abstract class AivanceDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `preferredIndustries` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `salaryExpectation` TEXT")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `workPreference` TEXT DEFAULT 'REMOTE'")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `visaRequired` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `noticePeriod` TEXT")
+            }
+        }
+
         val MIGRATION_19_20 = object : Migration(19, 20) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // 1. Create audit_logs table
@@ -297,7 +307,7 @@ abstract class AivanceDatabase : RoomDatabase() {
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
             MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17,
             MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
-            MIGRATION_21_22, MIGRATION_22_23
+            MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24
         )
     }
 }

@@ -6,43 +6,16 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Bookmark
-import androidx.compose.material.icons.rounded.BookmarkBorder
-import androidx.compose.material.icons.rounded.Business
-import androidx.compose.material.icons.rounded.HistoryEdu
-import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material.icons.rounded.PersonSearch
-import androidx.compose.material.icons.rounded.PlaylistAdd
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,10 +23,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bangersoul.aivance.core.common.model.Company
 import com.bangersoul.aivance.core.common.model.JobListing
-import com.bangersoul.aivance.core.designsystem.components.ActionButton
-import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
-import com.bangersoul.aivance.core.designsystem.components.DashboardCard
+import com.bangersoul.aivance.core.common.model.Recruiter
+import com.bangersoul.aivance.core.designsystem.components.*
+import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,9 +43,8 @@ fun JobDetailsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    var selectedTab by remember { mutableIntStateOf(0) }
 
-    // The custom back stack passes the destination's job ID here directly (it does
-    // not populate SavedStateHandle), so drive the load from the destination arg.
     LaunchedEffect(jobId) {
         viewModel.load(jobId)
     }
@@ -80,7 +53,7 @@ fun JobDetailsScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is JobDetailsUiEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
-                is JobDetailsUiEffect.OpenExternalUrl -> openUrl(context, effect.url)
+                is JobDetailsUiEffect.OpenExternalUrl -> openExternalUrl(context, effect.url)
                 is JobDetailsUiEffect.NavigateToRecruiters -> onNavigateToRecruiters(effect.jobId)
                 is JobDetailsUiEffect.NavigateToCoverLetter -> onNavigateToCoverLetter(effect.jobId)
                 is JobDetailsUiEffect.NavigateToAts -> onNavigateToAts(effect.jobDescription)
@@ -89,59 +62,87 @@ fun JobDetailsScreen(
         }
     }
 
-    AivanceScreen(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.job_details_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                },
-                actions = {
-                    val isBookmarked = (uiState as? JobDetailsUiState.Success)?.isBookmarked ?: false
-                    IconButton(onClick = { viewModel.onEvent(JobDetailsUiEvent.ToggleBookmark) }) {
-                        Icon(
-                            if (isBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                            contentDescription = stringResource(R.string.bookmark)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
+    AivanceWorkspaceScaffold(
+        title = stringResource(R.string.job_details_title),
+        onBack = onNavigateBack,
+        showAssistantAction = true,
+        topBarActions = {
+            val isBookmarked = (uiState as? JobDetailsUiState.Success)?.isBookmarked ?: false
+            IconButton(onClick = { viewModel.onEvent(JobDetailsUiEvent.ToggleBookmark) }) {
+                Icon(
+                    if (isBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                    contentDescription = stringResource(R.string.bookmark),
+                    tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         isLoading = uiState is JobDetailsUiState.Loading,
         error = (uiState as? JobDetailsUiState.Error)?.message,
-        onRetry = { viewModel.onEvent(JobDetailsUiEvent.Reload) }
+        onRetry = { viewModel.onEvent(JobDetailsUiEvent.Reload) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) {
-        Box(Modifier.fillMaxSize()) {
-            AnimatedContent(
-                targetState = uiState,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "JobDetailsTransition"
-            ) { state ->
-                when (state) {
-                    is JobDetailsUiState.Success -> JobDetailsContent(
-                        job = state.job,
-                        onApplyClick = { viewModel.onEvent(JobDetailsUiEvent.OpenUrl) },
-                        onApplyAndTrack = { viewModel.onEvent(JobDetailsUiEvent.ApplyAndTrack) },
-                        onFindRecruiters = { viewModel.onEvent(JobDetailsUiEvent.FindRecruiters) },
-                        onGenerateCoverLetter = { viewModel.onEvent(JobDetailsUiEvent.GenerateCoverLetter) },
-                        onOpenAts = { viewModel.onEvent(JobDetailsUiEvent.OpenAts) }
-                    )
-                    else -> {}
+        Column(Modifier.fillMaxSize()) {
+            (uiState as? JobDetailsUiState.Success)?.let { state ->
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) }
+                ) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                        Text(
+                            "Overview",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                        Text(
+                            "Readiness",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) {
+                        Text(
+                            "Intelligence",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
+
+                Box(Modifier.weight(1f)) {
+                    AnimatedContent(
+                        targetState = selectedTab,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        label = "TabContentTransition"
+                    ) { tab ->
+                        when (tab) {
+                            0 -> JobOverviewContent(
+                                job = state.job,
+                                onApplyClick = { viewModel.onEvent(JobDetailsUiEvent.OpenUrl) },
+                                onApplyAndTrack = { viewModel.onEvent(JobDetailsUiEvent.ApplyAndTrack) }
+                            )
+                            1 -> JobReadinessContent(
+                                score = state.readinessScore,
+                                onOpenAts = { viewModel.onEvent(JobDetailsUiEvent.OpenAts) },
+                                onGenerateCoverLetter = { viewModel.onEvent(JobDetailsUiEvent.GenerateCoverLetter) }
+                            )
+                            2 -> JobIntelligenceContent(
+                                company = state.company,
+                                recruiters = state.recruiters,
+                                onFindRecruiters = { viewModel.onEvent(JobDetailsUiEvent.FindRecruiters) }
+                            )
+                        }
+                    }
                 }
             }
-
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
         }
     }
 }
 
-private fun openUrl(context: Context, url: String) {
+private fun openExternalUrl(context: Context, url: String) {
     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
     if (intent.resolveActivity(context.packageManager) != null) {
         context.startActivity(intent)
@@ -149,13 +150,10 @@ private fun openUrl(context: Context, url: String) {
 }
 
 @Composable
-private fun JobDetailsContent(
+private fun JobOverviewContent(
     job: JobListing,
     onApplyClick: () -> Unit,
-    onApplyAndTrack: () -> Unit,
-    onFindRecruiters: () -> Unit,
-    onGenerateCoverLetter: () -> Unit,
-    onOpenAts: () -> Unit
+    onApplyAndTrack: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -164,7 +162,6 @@ private fun JobDetailsContent(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(job.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
@@ -180,57 +177,175 @@ private fun JobDetailsContent(
             }
         }
 
-        // Primary actions
-        ActionButton(
-            text = stringResource(R.string.apply_on_provider_site),
-            onClick = onApplyClick,
-            modifier = Modifier.fillMaxWidth(),
-            icon = Icons.Rounded.Public
-        )
-        ActionButton(
-            text = stringResource(R.string.apply_and_track),
-            onClick = onApplyAndTrack,
-            modifier = Modifier.fillMaxWidth(),
-            icon = Icons.Rounded.PlaylistAdd,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            ActionButton(
-                text = stringResource(R.string.find_recruiters),
-                onClick = onFindRecruiters,
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            AivancePrimaryButton(
+                text = "Apply Now",
+                onClick = onApplyClick,
                 modifier = Modifier.weight(1f),
-                icon = Icons.Rounded.PersonSearch,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                icon = Icons.Rounded.Public
             )
-            ActionButton(
-                text = stringResource(R.string.cover_letter),
-                onClick = onGenerateCoverLetter,
-                modifier = Modifier.weight(1f),
-                icon = Icons.Rounded.HistoryEdu,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            AivanceSecondaryButton(
+                text = "Track",
+                onClick = onApplyAndTrack,
+                modifier = Modifier.weight(0.6f),
+                icon = Icons.Rounded.PlaylistAdd
             )
         }
 
-        // ATS Match Banner
-        DashboardCard(modifier = Modifier.fillMaxWidth()) {
-            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.ai_compatibility_check), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.ai_compatibility_sub), style = MaterialTheme.typography.bodySmall)
-                }
-                ActionButton(text = stringResource(R.string.check), onClick = onOpenAts)
-            }
-        }
-
-        // Description
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.job_description), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(job.description, style = MaterialTheme.typography.bodyMedium)
         }
 
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(48.dp))
+    }
+}
+
+@Composable
+private fun JobReadinessContent(
+    score: Int,
+    onOpenAts: () -> Unit,
+    onGenerateCoverLetter: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        AivanceWorkspaceCard {
+            Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                ScoreGauge(score = score, size = 80.dp)
+                Column {
+                    Text("Match Readiness", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("How prepared you are for this specific role.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        SectionHeader(title = "Required Steps")
+
+        ReadinessCard(
+            title = "ATS Optimization",
+            description = "Your current resume match is ${score}%. Fix missing keywords to pass filters.",
+            actionLabel = "Run ATS Scan",
+            icon = Icons.Rounded.Search,
+            onClick = onOpenAts
+        )
+
+        ReadinessCard(
+            title = "Cover Letter",
+            description = "A tailored cover letter increases your interview chance by 40%.",
+            actionLabel = "Generate with AI",
+            icon = Icons.Rounded.HistoryEdu,
+            onClick = onGenerateCoverLetter
+        )
+
+        ReadinessCard(
+            title = "Interview Prep",
+            description = "We found 12 specific interview questions for this role.",
+            actionLabel = "Start Prep",
+            icon = Icons.Rounded.RecordVoiceOver,
+            onClick = { /* Navigate to Prep Studio */ }
+        )
+    }
+}
+
+@Composable
+private fun ReadinessCard(
+    title: String,
+    description: String,
+    actionLabel: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    AivanceWorkspaceCard {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) {
+                    Icon(icon, null, Modifier.padding(8.dp).size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+                Text(title, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(description, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(16.dp))
+            AivanceTertiaryButton(text = actionLabel, onClick = onClick, modifier = Modifier.align(Alignment.End))
+        }
+    }
+}
+
+@Composable
+private fun JobIntelligenceContent(
+    company: Company?,
+    recruiters: List<Recruiter>,
+    onFindRecruiters: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        if (company != null) {
+            SectionHeader(title = "Company Insights")
+            AivanceWorkspaceCard {
+                Column(Modifier.padding(16.dp)) {
+                    Text(company.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                    Text(company.industry, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                    Spacer(Modifier.height(12.dp))
+                    Text(company.description, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        SectionHeader(title = "Hiring Team")
+        if (recruiters.isEmpty()) {
+            AivanceEmptyState(
+                title = "No recruiters found",
+                description = "We can try to find hiring managers and contacts for this role.",
+                icon = Icons.Rounded.PersonSearch,
+                primaryActionText = "Search Recruiters",
+                onPrimaryAction = onFindRecruiters
+            )
+        } else {
+            recruiters.forEach { recruiter ->
+                RecruiterCard(recruiter)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecruiterCard(recruiter: Recruiter) {
+    AivanceWorkspaceCard {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)) {
+                Icon(Icons.Rounded.AccountCircle, null, Modifier.padding(10.dp).size(24.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(recruiter.name, fontWeight = FontWeight.Bold)
+                Text(recruiter.title ?: "Recruiter", style = MaterialTheme.typography.bodySmall)
+            }
+            if (recruiter.contacts.any { it.isVerified }) {
+                Icon(Icons.Rounded.Verified, "Verified Contact", tint = AivanceTheme.colors.info, modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AivanceWorkspaceCard(
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AivanceTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        content()
     }
 }

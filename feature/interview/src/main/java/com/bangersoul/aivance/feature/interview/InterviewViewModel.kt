@@ -4,27 +4,26 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.enums.InterviewDifficulty
 import com.bangersoul.aivance.core.common.enums.MessageSender
-import com.bangersoul.aivance.core.common.model.InterviewMessage
-import com.bangersoul.aivance.core.common.model.InterviewSession
+import com.bangersoul.aivance.core.common.model.*
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.getOrNull
+import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.repository.InterviewRepository
+import com.bangersoul.aivance.core.domain.repository.crm.CompanyIntelligenceRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed interface InterviewUiState {
-    data class Idle(val history: List<InterviewSession> = emptyList()) : InterviewUiState
+    data class Idle(
+        val history: List<InterviewSession> = emptyList(),
+        val careerState: CareerState? = null,
+        val readinessScore: Int = 0
+    ) : InterviewUiState
     data object Preparing : InterviewUiState
     data class Active(
         val session: InterviewSession,
@@ -36,7 +35,7 @@ sealed interface InterviewUiState {
 }
 
 sealed interface InterviewUiEvent {
-    data class StartSession(val role: String, val company: String, val type: String) : InterviewUiEvent
+    data class StartSession(val role: String, val company: String, val type: String, val jobId: Long? = null) : InterviewUiEvent
     data class SubmitAnswer(val text: String) : InterviewUiEvent
     data object NextQuestion : InterviewUiEvent
     data object Complete : InterviewUiEvent
@@ -47,6 +46,8 @@ sealed interface InterviewUiEvent {
 @HiltViewModel
 class InterviewViewModel @Inject constructor(
     private val interviewRepository: InterviewRepository,
+    private val careerStateEngine: CareerStateEngine,
+    private val companyRepository: CompanyIntelligenceRepository,
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
@@ -61,6 +62,26 @@ class InterviewViewModel @Inject constructor(
 
     init {
         loadHistory()
+        observeCareerState()
+    }
+
+    private fun observeCareerState() {
+        viewModelScope.launch {
+            careerStateEngine.state.collect { state ->
+                val current = _uiState.value
+                if (current is InterviewUiState.Idle) {
+                    _uiState.value = current.copy(
+                        careerState = state,
+                        readinessScore = calculateReadiness(state, current.history)
+                    )
+                }
+            }
+        }
+    }
+
+    private fun calculateReadiness(state: CareerState, history: List<InterviewSession>): Int {
+        val lastScore = history.firstOrNull { it.isCompleted }?.feedback?.overallScore ?: 0
+        return (lastScore + (state.growth.careerScore / 10)).coerceIn(0, 100)
     }
 
     fun onEvent(event: InterviewUiEvent) {
@@ -79,12 +100,18 @@ class InterviewViewModel @Inject constructor(
             _uiState.value = InterviewUiState.Preparing
             trackEventUseCase(TrackEventRequest("interview_session_start"))
 
+            // Find the correct resume version for this job if possible
+            val resumeVersionId = event.jobId?.let { jid ->
+                // Logic to find best resume for this job context
+                null
+            }
+
             val result = interviewRepository.startSession(
                 role = event.role,
                 company = event.company,
                 difficulty = InterviewDifficulty.MEDIUM,
-                jobId = null,
-                resumeVersionId = null,
+                jobId = event.jobId,
+                resumeVersionId = resumeVersionId,
                 type = event.type
             )
 

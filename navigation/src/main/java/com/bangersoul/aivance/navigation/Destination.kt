@@ -14,6 +14,8 @@ import kotlinx.serialization.Serializable
 sealed interface Destination : NavKey {
     val label: String
 
+    // ── Layer 1: Authentication & Onboarding (Gate) ──────────────────────
+
     @Serializable
     data object Splash : Destination {
         override val label = "Splash"
@@ -24,9 +26,10 @@ sealed interface Destination : NavKey {
         override val label = "Welcome"
     }
 
+    /** Sign-in / create-account screen. */
     @Serializable
-    data object Login : Destination {
-        override val label = "Login"
+    data object Auth : Destination {
+        override val label = "Sign In"
     }
 
     @Serializable
@@ -34,10 +37,44 @@ sealed interface Destination : NavKey {
         override val label = "Onboarding"
     }
 
+    /** Provider configuration flow — reachable from first launch AND Identity Hub. */
+    @Serializable
+    data object ProviderSetup : Destination {
+        override val label = "Provider Setup"
+    }
+
+    // ── Layer 2: Primary Navigation (The Core Loop) ──────────────────────
+
     @Serializable
     data object Dashboard : Destination {
         override val label = "Dashboard"
     }
+
+    /** Intelligence Hub — manages resumes and ATS analysis. */
+    @Serializable
+    data object Intelligence : Destination {
+        override val label = "Intelligence"
+    }
+
+    /** Job Discovery — universal job search and market intelligence. */
+    @Serializable
+    data object Discovery : Destination {
+        override val label = "Job Discovery"
+    }
+
+    /** Application Pipeline — Kanban workflow management. */
+    @Serializable
+    data object Pipeline : Destination {
+        override val label = "Pipeline"
+    }
+
+    /** Prep Studio — Mock interviews and practice intelligence. */
+    @Serializable
+    data object PrepStudio : Destination {
+        override val label = "Prep Studio"
+    }
+
+    // ── Layer 3: Secondary & Detail Screens ──────────────────────────────
 
     @Serializable
     data object Assistant : Destination {
@@ -45,18 +82,18 @@ sealed interface Destination : NavKey {
     }
 
     @Serializable
-    data object Resume : Destination {
-        override val label = "Resume"
+    data object Analytics : Destination {
+        override val label = "Analytics"
     }
 
     @Serializable
-    data object Jobs : Destination {
-        override val label = "Jobs"
+    data object IdentityHub : Destination {
+        override val label = "Identity Hub"
     }
 
     @Serializable
-    data object Profile : Destination {
-        override val label = "Profile"
+    data object ResumeEngine : Destination {
+        override val label = "Resume Engine"
     }
 
     @Serializable
@@ -75,6 +112,21 @@ sealed interface Destination : NavKey {
     }
 
     @Serializable
+    data class CompanyDetail(val companyId: String) : Destination {
+        override val label = "Company"
+    }
+
+    @Serializable
+    data class ResumeDetail(val resumeId: Long) : Destination {
+        override val label = "Resume Detail"
+    }
+
+    @Serializable
+    data object JobComparison : Destination {
+        override val label = "Job Comparison"
+    }
+
+    @Serializable
     data class RecruiterDashboard(val jobId: String) : Destination {
         override val label = "Recruiter Discovery"
     }
@@ -84,14 +136,11 @@ sealed interface Destination : NavKey {
         override val label = "Saved Jobs"
     }
 
+    // ── Layer 4: System ──────────────────────────────────────────────────
+
     @Serializable
     data object Appearance : Destination {
         override val label = "Appearance"
-    }
-
-    @Serializable
-    data object AiSettings : Destination {
-        override val label = "AI Settings"
     }
 
     @Serializable
@@ -109,53 +158,6 @@ sealed interface Destination : NavKey {
         override val label = "Privacy & Security"
     }
 
-    // ── v2 Career Operating System destinations ───────────────────────────
-
-    /** Sign-in / create-account screen (replaces the legacy Login flow). */
-    @Serializable
-    data object Auth : Destination {
-        override val label = "Sign In"
-    }
-
-    /** Provider configuration flow — reachable from first launch AND Settings. */
-    @Serializable
-    data object ProviderSetup : Destination {
-        override val label = "Provider Setup"
-    }
-
-    /** Merged Interview + Learning intelligence engine. */
-    @Serializable
-    data object PrepStudio : Destination {
-        override val label = "Prep Studio"
-    }
-
-    /** Kanban application pipeline (replaces the legacy Tracker tab). */
-    @Serializable
-    data object Pipeline : Destination {
-        override val label = "Pipeline"
-    }
-
-    @Serializable
-    data class CompanyDetail(val companyId: String) : Destination {
-        override val label = "Company"
-    }
-
-    @Serializable
-    data class ResumeDetail(val resumeId: Long) : Destination {
-        override val label = "Resume Detail"
-    }
-
-    @Serializable
-    data object Analytics : Destination {
-        override val label = "Analytics"
-    }
-
-    @Serializable
-    data object SettingsHub : Destination {
-        override val label = "Settings"
-    }
-
-    /** About screen — contact, licenses, and how the app is made. */
     @Serializable
     data object About : Destination {
         override val label = "About"
@@ -163,34 +165,28 @@ sealed interface Destination : NavKey {
 
     companion object {
         /**
-         * Bottom-navigation tabs of the Main graph. Profile is deliberately NOT
-         * here — it is reached via the avatar in the Dashboard top bar so the
-         * primary navigation stays focused on the career operating loop.
+         * Bottom-navigation tabs of the Main Career OS graph.
+         * The loop: HQ -> Intel -> Discover -> Pipeline -> Practice.
          */
         val rootDestinations = listOf(
-            Dashboard, Assistant, Resume, Jobs, Pipeline
+            Dashboard, Intelligence, Discovery, Pipeline, PrepStudio
         )
 
         val authenticatedDestinations = setOf(
-            Dashboard, Assistant, Resume, Jobs, Profile,
-            SavedJobs, AiSettings,
-            ProviderManagement, Notifications,
-            PrepStudio, Pipeline, Analytics, SettingsHub, About
+            Dashboard, Intelligence, Discovery, Pipeline, PrepStudio,
+            Assistant, Analytics, IdentityHub, About,
+            ProviderManagement, Notifications, PrivacyCenter, Appearance,
+            ResumeEngine, SavedJobs, JobComparison
         )
 
         val authDestinations = setOf(
-            Splash, Welcome, Login, Onboarding, Auth, ProviderSetup
+            Splash, Welcome, Auth, Onboarding, ProviderSetup
         )
     }
 }
 
 /**
  * True when a destination lives inside the authenticated Main graph.
- *
- * Parameterized detail destinations ([CompanyDetail], [ResumeDetail],
- * [JobDetails], [RecruiterDashboard]) can never be compared by value against a
- * [Set], so they are resolved by type here. Declared at top level (like
- * [Destination.icon]) so call sites in the same package resolve it directly.
  */
 fun Destination.isAuthenticatedDestination(): Boolean =
     this in Destination.authenticatedDestinations ||
@@ -205,20 +201,18 @@ val Destination.icon: ImageVector?
     get() = when (this) {
         Destination.Splash -> null
         Destination.Welcome -> null
-        Destination.Login -> null
         Destination.Onboarding -> null
         Destination.Dashboard -> Icons.Rounded.GridView
         Destination.Assistant -> Icons.Rounded.AutoAwesome
-        Destination.Resume -> Icons.Rounded.Description
-        Destination.Jobs -> Icons.Rounded.WorkOutline
-        Destination.Profile -> Icons.Rounded.PersonOutline
+        Destination.Intelligence, Destination.ResumeEngine -> Icons.Rounded.Description
+        Destination.Discovery -> Icons.Rounded.WorkOutline
+        Destination.IdentityHub -> Icons.Rounded.PersonOutline
         is Destination.Ats -> Icons.Rounded.Assessment
         is Destination.CoverLetter -> Icons.Rounded.Assignment
         is Destination.JobDetails -> null
         is Destination.RecruiterDashboard -> Icons.Rounded.PersonSearch
         Destination.SavedJobs -> Icons.Rounded.BookmarkBorder
         Destination.Appearance -> Icons.Rounded.Palette
-        Destination.AiSettings -> Icons.Rounded.AutoAwesome
         Destination.ProviderManagement -> Icons.Rounded.Tune
         Destination.Notifications -> Icons.Rounded.Notifications
         Destination.PrivacyCenter -> Icons.Rounded.PrivacyTip
@@ -228,35 +222,30 @@ val Destination.icon: ImageVector?
         Destination.Pipeline -> Icons.Rounded.ViewKanban
         is Destination.CompanyDetail -> null
         is Destination.ResumeDetail -> null
+        Destination.JobComparison -> Icons.Rounded.Compare
         Destination.Analytics -> Icons.Rounded.BarChart
-        Destination.SettingsHub -> Icons.Rounded.Settings
         Destination.About -> Icons.Rounded.Info
     }
 
 /**
- * Localized label resource for each destination. The plain [Destination.label]
- * stays as the stable English identifier (used by tests and logs), while this
- * maps to a translatable string resource for the UI (bottom-nav labels,
- * screen titles).
+ * Localized label resource for each destination.
  */
 val Destination.labelRes: Int
     @StringRes get() = when (this) {
         Destination.Splash -> R.string.dest_splash
         Destination.Welcome -> R.string.dest_welcome
-        Destination.Login -> R.string.dest_login
         Destination.Onboarding -> R.string.dest_onboarding
         Destination.Dashboard -> R.string.dest_dashboard
         Destination.Assistant -> R.string.dest_assistant
-        Destination.Resume -> R.string.dest_resume
-        Destination.Jobs -> R.string.dest_jobs
-        Destination.Profile -> R.string.dest_profile
+        Destination.Intelligence, Destination.ResumeEngine -> R.string.dest_intelligence
+        Destination.Discovery -> R.string.dest_discovery
+        Destination.IdentityHub -> R.string.dest_profile
         is Destination.Ats -> R.string.dest_ats
         is Destination.CoverLetter -> R.string.dest_cover_letter
         is Destination.JobDetails -> R.string.dest_job_details
         is Destination.RecruiterDashboard -> R.string.dest_recruiter_discovery
         Destination.SavedJobs -> R.string.dest_saved_jobs
         Destination.Appearance -> R.string.dest_appearance
-        Destination.AiSettings -> R.string.dest_ai_settings
         Destination.ProviderManagement -> R.string.dest_providers
         Destination.Notifications -> R.string.dest_notifications
         Destination.PrivacyCenter -> R.string.dest_privacy
@@ -266,7 +255,7 @@ val Destination.labelRes: Int
         Destination.Pipeline -> R.string.dest_pipeline
         is Destination.CompanyDetail -> R.string.dest_company
         is Destination.ResumeDetail -> R.string.dest_resume_detail
+        Destination.JobComparison -> R.string.dest_job_comparison
         Destination.Analytics -> R.string.dest_analytics
-        Destination.SettingsHub -> R.string.dest_settings
         Destination.About -> R.string.dest_about
     }

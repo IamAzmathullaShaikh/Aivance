@@ -61,6 +61,7 @@ fun AssistantScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val providerStatus by viewModel.providerStatus.collectAsStateWithLifecycle()
+    val careerState by viewModel.careerState.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf("") }
 
@@ -78,7 +79,8 @@ fun AssistantScreen(
                 label = "AssistantTransition"
             ) { state ->
                 when (state) {
-                    is AssistantUiState.Idle -> AssistantWelcomeContent(
+                    is AssistantUiState.Idle -> AssistantCopilotWorkspace(
+                        careerState = careerState,
                         providerReady = providerStatus.isReady,
                         onPromptClick = { prompt -> viewModel.sendMessage(prompt) },
                         onConfigureProvider = onSwitchProvider
@@ -100,7 +102,6 @@ fun AssistantScreen(
                         secondaryActionText = stringResource(R.string.assistant_switch_provider),
                         onSecondaryAction = onSwitchProvider
                     )
-                    else -> {}
                 }
             }
         }
@@ -197,92 +198,88 @@ private fun suggestedPrompts(): List<String> = listOf(
 )
 
 @Composable
-private fun AssistantWelcomeContent(
+private fun AssistantCopilotWorkspace(
+    careerState: com.bangersoul.aivance.core.common.model.CareerState,
     providerReady: Boolean,
     onPromptClick: (String) -> Unit,
     onConfigureProvider: () -> Unit
 ) {
-    val resumePrompt = stringResource(R.string.assistant_chip_prompt_resume)
-    val jobsPrompt = stringResource(R.string.assistant_chip_prompt_jobs)
-    val interviewPrompt = stringResource(R.string.assistant_chip_prompt_interview)
-    val letterPrompt = stringResource(R.string.assistant_chip_prompt_letter)
     val prompts = suggestedPrompts()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        // 1. Career Snapshot
         item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Surface(
-                    shape = AivanceTheme.shapes.extraLarge,
-                    color = AivanceTheme.colors.accent.copy(alpha = 0.14f),
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Icon(
-                            Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = AivanceTheme.colors.accent
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    stringResource(R.string.assistant_your_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+            Text(
+                text = "Career Snapshot",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MetricCard(
+                    label = "Career Score",
+                    value = careerState.growth.careerScore.toString(),
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.TrendingUp
                 )
-                Text(
-                    stringResource(R.string.assistant_welcome_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(0.85f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                MetricCard(
+                    label = "ATS Match",
+                    value = "${careerState.intelligence.atsScore}%",
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.FactCheck
                 )
             }
         }
 
-        // Inline provider setup card when nothing is configured yet
+        // 2. Next Best Actions (Hero Card if available)
+        careerState.nextBestAction?.let { action ->
+            item {
+                AivanceHeroCard(
+                    title = action.title,
+                    description = action.description,
+                    actionLabel = "Execute",
+                    onClick = { onPromptClick(action.title) }
+                )
+            }
+        }
+
+        // 3. Quick Commands
+        item {
+            SectionHeader(title = "Quick Commands")
+            Spacer(Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                item {
+                    QuickActionChip("Optimize Resume", Icons.Rounded.Description, AivanceTheme.colors.accent) {
+                        onPromptClick("Help me optimize my resume sections.")
+                    }
+                }
+                item {
+                    QuickActionChip("Find Jobs", Icons.Rounded.WorkOutline, AivanceTheme.colors.info) {
+                        onPromptClick("Find the best job matches for my current profile.")
+                    }
+                }
+                item {
+                    QuickActionChip("Mock Interview", Icons.Rounded.RecordVoiceOver, AivanceTheme.colors.warning) {
+                        onPromptClick("Start a mock interview session for my target role.")
+                    }
+                }
+            }
+        }
+
+        // 4. Inline provider setup card
         if (!providerReady) {
             item {
                 ProviderSetupCard(onConfigureProvider)
             }
         }
 
-        // Intent quick-action chips
+        // 5. Try a Prompt
         item {
-            SectionHeader(title = stringResource(R.string.assistant_quick_actions))
-        }
-        item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                item {
-                    QuickActionChip(stringResource(R.string.assistant_action_improve_resume), Icons.Rounded.Description, AivanceTheme.colors.accent) {
-                        onPromptClick(resumePrompt)
-                    }
-                }
-                item {
-                    QuickActionChip(stringResource(R.string.assistant_action_find_jobs), Icons.Rounded.WorkOutline, AivanceTheme.colors.info) {
-                        onPromptClick(jobsPrompt)
-                    }
-                }
-                item {
-                    QuickActionChip(stringResource(R.string.assistant_action_interview_prep), Icons.Rounded.RecordVoiceOver, AivanceTheme.colors.warning) {
-                        onPromptClick(interviewPrompt)
-                    }
-                }
-                item {
-                    QuickActionChip(stringResource(R.string.assistant_action_cover_letter), Icons.Rounded.Edit, AivanceTheme.colors.success) {
-                        onPromptClick(letterPrompt)
-                    }
-                }
-            }
-        }
-
-        item {
-            SectionHeader(title = stringResource(R.string.assistant_try_prompt))
+            SectionHeader(title = "Suggested Advice")
         }
 
         items(prompts.chunked(2)) { pair ->
@@ -305,6 +302,59 @@ private fun AssistantWelcomeContent(
                 }
             }
         }
+
+        // 6. Recent Intelligence (Timeline)
+        item {
+            SectionHeader(title = "Recent AI Insights")
+            Spacer(Modifier.height(8.dp))
+        }
+
+        if (careerState.recommendations.isEmpty()) {
+            item {
+                Text(
+                    "No recent insights. Ask me anything to get started!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            items(careerState.recommendations.take(3)) { rec ->
+                AivanceWorkspaceCard(onClick = { onPromptClick("Tell me more about: ${rec.title}") }) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Rounded.Lightbulb,
+                            contentDescription = null,
+                            tint = AivanceTheme.colors.accent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Column {
+                            Text(rec.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                            Text(rec.description, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AivanceWorkspaceCard(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = AivanceTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        content()
     }
 }
 
@@ -529,11 +579,22 @@ private fun AssistantBubble(msg: AssistantChatMessage) {
             contentColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.widthIn(max = 320.dp)
         ) {
-            Text(
-                msg.content,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(
+                    msg.content,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                // AI Action Card detection (Simplified)
+                if (!isUser) {
+                    val content = msg.content.lowercase()
+                    when {
+                        content.contains("optimize") -> ActionCard("Optimize Resume", Icons.Rounded.AutoAwesome) { /* Navigate */ }
+                        content.contains("search") || content.contains("job") -> ActionCard("Find Jobs", Icons.Rounded.Search) { /* Navigate */ }
+                        content.contains("interview") -> ActionCard("Start Practice", Icons.Rounded.RecordVoiceOver) { /* Navigate */ }
+                    }
+                }
+            }
         }
         Spacer(Modifier.height(2.dp))
         Text(
@@ -542,6 +603,30 @@ private fun AssistantBubble(msg: AssistantChatMessage) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 6.dp)
         )
+    }
+}
+
+@Composable
+private fun ActionCard(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Spacer(Modifier.height(8.dp))
+    Surface(
+        onClick = onClick,
+        shape = AivanceTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(icon, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        }
     }
 }
 

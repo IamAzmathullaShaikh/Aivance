@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 23,
-    "identityHash": "d62780807286800b3e3489575b9dea05",
+    "identityHash": "4f0cbee9f4ea876044b62d14d41a1778",
     "entities": [
       {
         "tableName": "aivance_entities",
@@ -897,7 +897,7 @@
       },
       {
         "tableName": "user_profiles",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `email` TEXT NOT NULL, `phone` TEXT, `currentRole` TEXT, `skills` TEXT NOT NULL, `targetRole` TEXT, `bio` TEXT, `location` TEXT, `experienceYears` INTEGER NOT NULL, `profilePictureUrl` TEXT, `company` TEXT, `linkedinUrl` TEXT, `githubUrl` TEXT, `dateOfBirth` INTEGER, `createdDate` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `email` TEXT NOT NULL, `phone` TEXT, `currentRole` TEXT, `skills` TEXT NOT NULL, `targetRole` TEXT, `bio` TEXT, `location` TEXT, `experienceYears` INTEGER NOT NULL, `profilePictureUrl` TEXT, `company` TEXT, `linkedinUrl` TEXT, `githubUrl` TEXT, `dateOfBirth` INTEGER, `preferredIndustries` TEXT NOT NULL, `salaryExpectation` TEXT, `workPreference` TEXT, `visaRequired` INTEGER NOT NULL, `noticePeriod` TEXT, `createdDate` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -978,6 +978,33 @@
             "fieldPath": "dateOfBirth",
             "columnName": "dateOfBirth",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "preferredIndustries",
+            "columnName": "preferredIndustries",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "salaryExpectation",
+            "columnName": "salaryExpectation",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "workPreference",
+            "columnName": "workPreference",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "visaRequired",
+            "columnName": "visaRequired",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noticePeriod",
+            "columnName": "noticePeriod",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "createdDate",
@@ -3087,7 +3114,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd62780807286800b3e3489575b9dea05')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4f0cbee9f4ea876044b62d14d41a1778')"
     ]
   }
 }

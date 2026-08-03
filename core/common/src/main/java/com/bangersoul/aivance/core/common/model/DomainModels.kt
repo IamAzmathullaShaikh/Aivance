@@ -305,6 +305,11 @@ data class UserProfile(
     val location: String = "",
     val skills: List<String> = emptyList(),
     val experienceYears: Int = 0,
+    val preferredIndustries: List<String> = emptyList(),
+    val salaryExpectation: String = "",
+    val workPreference: String = "REMOTE",
+    val visaRequired: Boolean = false,
+    val noticePeriod: String = "",
     val createdDate: Long = System.currentTimeMillis()
 )
 

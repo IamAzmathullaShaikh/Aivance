@@ -35,6 +35,7 @@
             <option value="$PROJECT_DIR$/feature/recruiter" />
             <option value="$PROJECT_DIR$/feature/resume" />
             <option value="$PROJECT_DIR$/feature/tracker" />
+            <option value="$PROJECT_DIR$/macrobenchmark" />
             <option value="$PROJECT_DIR$/navigation" />
           </set>
         </option>

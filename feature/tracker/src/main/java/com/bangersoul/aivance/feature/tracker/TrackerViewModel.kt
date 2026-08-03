@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.Application
 import com.bangersoul.aivance.core.common.model.ApplicationStage
+import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
@@ -22,10 +24,18 @@ sealed interface TrackerUiState {
     data class Success(
         val applications: List<Application> = emptyList(),
         val stages: List<ApplicationStage> = emptyList(),
-        val selectedApplicationId: Long? = null
+        val selectedApplicationId: Long? = null,
+        val careerState: CareerState? = null,
+        val pipelineMetrics: PipelineMetrics = PipelineMetrics()
     ) : TrackerUiState
     data class Error(val message: String) : TrackerUiState
 }
+
+data class PipelineMetrics(
+    val activeCount: Int = 0,
+    val interviewRate: Int = 0,
+    val offerRate: Int = 0
+)
 
 sealed interface TrackerUiEvent {
     data class UpdateStage(val applicationId: Long, val stageId: String) : TrackerUiEvent
@@ -42,6 +52,7 @@ sealed interface TrackerUiEvent {
 class TrackerViewModel @Inject constructor(
     private val repository: ApplicationWorkflowRepository,
     private val workflowEngine: WorkflowEngine,
+    private val careerStateEngine: CareerStateEngine,
     private val trackEventUseCase: TrackEventUseCase,
     private val jobRepository: JobRepository
 ) : ViewModel() {
@@ -58,6 +69,48 @@ class TrackerViewModel @Inject constructor(
         loadData()
     }
 
+    private fun loadData() {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            combine(
+                repository.getApplications(),
+                repository.getStages(),
+                careerStateEngine.state
+            ) { appsRes, stagesRes, careerState ->
+                if (appsRes is Result.Success && stagesRes is Result.Success) {
+                    val apps = appsRes.data
+                    TrackerUiState.Success(
+                        applications = apps,
+                        stages = stagesRes.data,
+                        careerState = careerState,
+                        pipelineMetrics = calculateMetrics(apps)
+                    )
+                } else {
+                    TrackerUiState.Error("Failed to load pipeline")
+                }
+            }.collect { state ->
+                val previous = _uiState.value as? TrackerUiState.Success
+                _uiState.value = if (state is TrackerUiState.Success) {
+                    state.copy(selectedApplicationId = previous?.selectedApplicationId)
+                } else {
+                    state
+                }
+            }
+        }
+    }
+
+    private fun calculateMetrics(apps: List<Application>): PipelineMetrics {
+        val active = apps.filter { it.status == "ACTIVE" }
+        val interviewCount = apps.count { it.currentStageId.contains("INTERVIEW", ignoreCase = true) }
+        val offerCount = apps.count { it.currentStageId.contains("OFFER", ignoreCase = true) }
+
+        return PipelineMetrics(
+            activeCount = active.size,
+            interviewRate = if (apps.isNotEmpty()) (interviewCount * 100 / apps.size) else 0,
+            offerRate = if (apps.isNotEmpty()) (offerCount * 100 / apps.size) else 0
+        )
+    }
+
     fun onEvent(event: TrackerUiEvent) {
         when (event) {
             is TrackerUiEvent.UpdateStage -> updateStage(event.applicationId, event.stageId)
@@ -70,32 +123,9 @@ class TrackerViewModel @Inject constructor(
         }
     }
 
-    private fun loadData() {
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
-            _uiState.value = TrackerUiState.Loading
-
-            combine(
-                repository.getApplications(),
-                repository.getStages()
-            ) { appsRes, stagesRes ->
-                if (appsRes is Result.Success && stagesRes is Result.Success) {
-                    TrackerUiState.Success(appsRes.data, stagesRes.data)
-                } else {
-                    TrackerUiState.Error("Failed to load pipeline")
-                }
-            }.collect { state ->
-                // Preserve the selected application across Room re-emissions
-                // (e.g. while the user edits notes) so the detail sheet stays
-                // open instead of dismissing on every DB write.
-                val previous = _uiState.value as? TrackerUiState.Success
-                _uiState.value = if (state is TrackerUiState.Success) {
-                    state.copy(selectedApplicationId = previous?.selectedApplicationId)
-                } else {
-                    state
-                }
-            }
-        }
+    private fun closeApplication() {
+        val current = _uiState.value as? TrackerUiState.Success ?: return
+        _uiState.value = current.copy(selectedApplicationId = null)
     }
 
     private fun updateStage(applicationId: Long, stageId: String) {
@@ -103,11 +133,6 @@ class TrackerViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest("tracker_stage_update"))
             repository.getApplicationById(applicationId).firstOrNull()?.let { res ->
                 if (res is Result.Success) {
-                    // Route through the WorkflowEngine so the transition is
-                    // validated, timeline events are recorded, and analytics
-                    // snapshots are refreshed (dashboard career score updates).
-                    // Only surface failures — a successful move is already visible
-                    // in the board, so a snackbar on every drag would be noise.
                     val transition = workflowEngine.transitionTo(res.data, stageId)
                     if (transition is Result.Failure) {
                         _effects.send(
@@ -131,11 +156,6 @@ class TrackerViewModel @Inject constructor(
         _uiState.value = current.copy(selectedApplicationId = applicationId)
     }
 
-    private fun closeApplication() {
-        val current = _uiState.value as? TrackerUiState.Success ?: return
-        _uiState.value = current.copy(selectedApplicationId = null)
-    }
-
     private fun updateNotes(applicationId: Long, notes: String) {
         viewModelScope.launch {
             val result = repository.updateNotes(applicationId, notes)
@@ -145,12 +165,6 @@ class TrackerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Manually adds an application to the pipeline. The Application row has a
-     * non-null [Application.jobId] foreign key into the jobs table, so the
-     * synthetic job is cached first (reusing an existing row for the same URL)
-     * and the returned DB id is used as the FK.
-     */
     private fun addApplication(company: String, role: String, stageId: String) {
         if (company.isBlank() || role.isBlank()) {
             viewModelScope.launch { _effects.send("Enter a company and role to add an application.") }

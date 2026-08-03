@@ -7,13 +7,14 @@ import com.bangersoul.aivance.core.common.result.runCatchingCore
 import com.bangersoul.aivance.core.data.mapper.toDomain
 import com.bangersoul.aivance.core.data.mapper.toEntity
 import com.bangersoul.aivance.core.database.dao.AnalyticsDao
-import com.bangersoul.aivance.core.domain.analytics.CareerScoreEngine
-import com.bangersoul.aivance.core.domain.analytics.KPIEngine
-import com.bangersoul.aivance.core.domain.analytics.RecommendationEngine
+import com.bangersoul.aivance.core.database.dao.AtsDao
+import com.bangersoul.aivance.core.domain.analytics.*
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.crm.RecruiterIntelligenceRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -22,10 +23,14 @@ import javax.inject.Singleton
 @Singleton
 class AnalyticsRepositoryImpl @Inject constructor(
     private val analyticsDao: AnalyticsDao,
+    private val atsDao: AtsDao,
     private val workflowRepository: ApplicationWorkflowRepository,
     private val recruiterRepository: RecruiterIntelligenceRepository,
+    private val userRepository: com.bangersoul.aivance.core.domain.repository.UserRepository,
     private val kpiEngine: KPIEngine,
     private val scoreEngine: CareerScoreEngine,
+    private val intelEngine: CareerIntelligenceEngine,
+    private val forecastEngine: CareerForecastEngine,
     private val recommendationEngine: RecommendationEngine
 ) : AnalyticsRepository {
 
@@ -84,5 +89,47 @@ class AnalyticsRepositoryImpl @Inject constructor(
 
     override suspend fun updateGoalProgress(id: Long, progress: Double): CoreResult<Unit> = runCatchingCore {
         analyticsDao.updateGoalProgress(id, progress)
+    }
+
+    override fun getCareerIntelligence(): Flow<CoreResult<CareerIntelligence>> {
+        return kotlinx.coroutines.flow.combine(
+            atsDao.getAtsResults(),
+            workflowRepository.getApplications(),
+            userRepository.getProfile(),
+            analyticsDao.getSnapshots()
+        ) { atsResults, appsRes, profileRes, snapshots ->
+            runCatchingCore {
+                val apps = appsRes.getOrNull() ?: emptyList()
+                val profile = profileRes.getOrNull()
+                val recruiters = apps.flatMap { app ->
+                    recruiterRepository.getRecruitersForCompany(app.jobId).firstOrNull()?.getOrNull() ?: emptyList()
+                }.distinctBy { it.id }
+
+                val reports = atsResults.map { entity ->
+                    AtsReport(
+                        resumeVersionId = entity.resumeId,
+                        jobDescriptionId = 0,
+                        overallScore = entity.score,
+                        matchPercentage = entity.score
+                    )
+                }
+
+                intelEngine.calculateIntelligence(
+                    latestAtsReports = reports,
+                    recruiters = recruiters,
+                    applications = apps,
+                    interviewReadiness = 75 // Mock readiness for now
+                ).copy(
+                    weeklyReview = if (apps.isNotEmpty()) {
+                        "Hey ${profile?.fullName?.substringBefore(" ") ?: ""}, this week you applied to ${apps.size} roles and engaged with ${recruiters.size} recruiters. Your interview readiness is increasing."
+                    } else null
+                )
+            }
+        }
+    }
+
+    override suspend fun runSimulation(ats: Int?, readiness: Int?): CoreResult<CareerIntelligence> = runCatchingCore {
+        val current = getCareerIntelligence().first().getOrNull() ?: throw Exception("No intelligence data")
+        forecastEngine.simulate(current, ats, readiness)
     }
 }

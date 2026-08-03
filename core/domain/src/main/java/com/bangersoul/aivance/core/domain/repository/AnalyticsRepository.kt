@@ -17,4 +17,9 @@ interface AnalyticsRepository {
     fun getGoals(): Flow<CoreResult<List<CareerGoal>>>
     suspend fun saveGoal(goal: CareerGoal): CoreResult<Long>
     suspend fun updateGoalProgress(id: Long, progress: Double): CoreResult<Unit>
+
+    // ── Career Intelligence ─────────────────────────
+
+    fun getCareerIntelligence(): Flow<CoreResult<com.bangersoul.aivance.core.common.model.CareerIntelligence>>
+    suspend fun runSimulation(ats: Int?, readiness: Int?): CoreResult<com.bangersoul.aivance.core.common.model.CareerIntelligence>
 }

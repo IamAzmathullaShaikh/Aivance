@@ -1,0 +1,839 @@
+﻿path	module	kind	name	signature
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	DatabaseConstants	object DatabaseConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	NetworkConstants	object NetworkConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	ProviderConstants	object ProviderConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	RouteConstants	object RouteConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	KeyConstants	object KeyConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	ValidationConstants	object ValidationConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	AnalyticsConstants	object AnalyticsConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\constant\CoreConstants.kt	core/common	object	PreferencesConstants	object PreferencesConstants {
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\AnalyticsDtos.kt	core/common	data-class	SessionInfo	data class SessionInfo(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\AnalyticsDtos.kt	core/common	data-class	PerformanceMetric	data class PerformanceMetric(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\AnalyticsDtos.kt	core/common	data-class	TraceContext	data class TraceContext(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\AnalyticsDtos.kt	core/common	data-class	ConsentPreferences	data class ConsentPreferences(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\AnalyticsDtos.kt	core/common	data-class	ProviderMetric	data class ProviderMetric(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\AnalyticsDtos.kt	core/common	data-class	HealthSummary	data class HealthSummary(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	ResumeAnalysisDto	data class ResumeAnalysisDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	AtsResultDto	data class AtsResultDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	CoverLetterDto	data class CoverLetterDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	InterviewFeedbackDto	data class InterviewFeedbackDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	ApifyJobScraperDto	data class ApifyJobScraperDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	AiMessageDto	data class AiMessageDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	UserProfileDto	data class UserProfileDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	ProviderInfoDto	data class ProviderInfoDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	AnalyticsEventDto	data class AnalyticsEventDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	JobListingDto	data class JobListingDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	SettingsDto	data class SettingsDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	ResumeAnalysisRequest	data class ResumeAnalysisRequest(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	CoverLetterRequest	data class CoverLetterRequest(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	InterviewPromptRequest	data class InterviewPromptRequest(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	JobSearchQueryRequest	data class JobSearchQueryRequest(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	PageResponse	data class PageResponse<T>(
+core\common\src\main\java\com\bangersoul\aivance\core\common\dto\CoreDtos.kt	core/common	data-class	HealthCheckResponse	data class HealthCheckResponse(
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	JobType	enum class JobType {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	RemoteType	enum class RemoteType {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	EmploymentType	enum class EmploymentType {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	ExperienceLevel	enum class ExperienceLevel {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	JobSortOrder	enum class JobSortOrder {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	ResumeStatus	enum class ResumeStatus {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	ProviderState	enum class ProviderState {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	ProviderType	enum class ProviderType {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	AIModel	enum class AIModel {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	MessageRole	enum class MessageRole {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	ThemeMode	enum class ThemeMode {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	Language	enum class Language {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	ApplicationStatus	enum class ApplicationStatus {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	PermissionState	enum class PermissionState {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	LetterTone	enum class LetterTone {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	InterviewDifficulty	enum class InterviewDifficulty {
+core\common\src\main\java\com\bangersoul\aivance\core\common\enums\CoreEnums.kt	core/common	enum	MessageSender	enum class MessageSender {
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	BaseException	abstract class BaseException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	DomainException	class DomainException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	ValidationException	class ValidationException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	ProviderException	class ProviderException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	RepositoryException	class RepositoryException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	NetworkException	class NetworkException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	DatabaseException	class DatabaseException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	SecurityException	class SecurityException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	SerializationException	class SerializationException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	AuthenticationException	class AuthenticationException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	RateLimitException	class RateLimitException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	QuotaExceededException	class QuotaExceededException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\exception\CoreExceptions.kt	core/common	class	UnknownException	class UnknownException(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	ResumeAnalysisDto	fun ResumeAnalysisDto.toDomain(): ResumeAnalysis = ResumeAnalysis(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	ResumeAnalysis	fun ResumeAnalysis.toDto(): ResumeAnalysisDto = ResumeAnalysisDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	AtsResultDto	fun AtsResultDto.toDomain(id: Long = 0): AtsResult = AtsResult(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	AtsResult	fun AtsResult.toDto(): AtsResultDto = AtsResultDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	CoverLetterDto	fun CoverLetterDto.toDomain(id: Long = 0): CoverLetter = CoverLetter(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	CoverLetter	fun CoverLetter.toDto(): CoverLetterDto = CoverLetterDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	InterviewFeedbackDto	fun InterviewFeedbackDto.toDomain(): InterviewFeedback = InterviewFeedback(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	InterviewFeedback	fun InterviewFeedback.toDto(): InterviewFeedbackDto = InterviewFeedbackDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	ApifyJobScraperDto	fun ApifyJobScraperDto.toDomain(): JobListing = JobListing(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	AiMessageDto	fun AiMessageDto.toDomain(): AIMessage = AIMessage(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	AIMessage	fun AIMessage.toDto(): AiMessageDto = AiMessageDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	UserProfileDto	fun UserProfileDto.toDomain(): UserProfile = UserProfile(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	UserProfile	fun UserProfile.toDto(): UserProfileDto = UserProfileDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	ProviderInfoDto	fun ProviderInfoDto.toDomain(): ProviderInfo = ProviderInfo(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	ProviderInfo	fun ProviderInfo.toDto(): ProviderInfoDto = ProviderInfoDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	AnalyticsEventDto	fun AnalyticsEventDto.toDomain(): AnalyticsEvent = AnalyticsEvent(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	AnalyticsEvent	fun AnalyticsEvent.toDto(): AnalyticsEventDto = AnalyticsEventDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	JobListingDto	fun JobListingDto.toDomain(): JobListing = JobListing(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	JobListing	fun JobListing.toDto(): JobListingDto = JobListingDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	SettingsDto	fun SettingsDto.toDomain(): AiProviderConfig = AiProviderConfig(
+core\common\src\main\java\com\bangersoul\aivance\core\common\mapper\CoreMappers.kt	core/common	fun	AiProviderConfig	fun AiProviderConfig.toDto(): SettingsDto = SettingsDto(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\AnalyticsModels.kt	core/common	data-class	AnalyticsSnapshot	data class AnalyticsSnapshot(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\AnalyticsModels.kt	core/common	data-class	CareerRecommendation	data class CareerRecommendation(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\AnalyticsModels.kt	core/common	data-class	CareerGoal	data class CareerGoal(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	Resume	data class Resume(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	ResumeVersion	data class ResumeVersion(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	ResumeSection	data class ResumeSection(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	AtsReport	data class AtsReport(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	OptimizationTip	data class OptimizationTip(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	JobDescription	data class JobDescription(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	ResumeAnalysis	data class ResumeAnalysis(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	AtsResult	data class AtsResult(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	CoverLetter	data class CoverLetter(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	CoverLetterVersion	data class CoverLetterVersion(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	CoverLetterSection	data class CoverLetterSection(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	InterviewSession	data class InterviewSession(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	InterviewQuestion	data class InterviewQuestion(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	InterviewMessage	data class InterviewMessage(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	InterviewEvaluation	data class InterviewEvaluation(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	InterviewFeedback	data class InterviewFeedback(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	JobListing	data class JobListing(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	Company	data class Company(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	Recruiter	data class Recruiter(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	RecruiterContact	data class RecruiterContact(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	OutreachDraft	data class OutreachDraft(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	CommunicationHistory	data class CommunicationHistory(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	JobApplication	data class JobApplication(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	UserProfile	data class UserProfile(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	CareerRoadmap	data class CareerRoadmap(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	RoadmapStep	data class RoadmapStep(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	AIConversation	data class AIConversation(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	AIMessage	data class AIMessage(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	ProviderInfo	data class ProviderInfo(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	ProviderCapability	data class ProviderCapability(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	JobSearchFilter	data class JobSearchFilter(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	SearchFilter	data class SearchFilter(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	SearchResult	data class SearchResult(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	AnalyticsEvent	data class AnalyticsEvent(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	AiProviderConfig	data class AiProviderConfig(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\DomainModels.kt	core/common	data-class	JobScraperConfig	data class JobScraperConfig(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\WorkflowModels.kt	core/common	data-class	Application	data class Application(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\WorkflowModels.kt	core/common	data-class	ApplicationStage	data class ApplicationStage(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\WorkflowModels.kt	core/common	data-class	TimelineEvent	data class TimelineEvent(
+core\common\src\main\java\com\bangersoul\aivance\core\common\model\WorkflowModels.kt	core/common	data-class	ApplicationTask	data class ApplicationTask(
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	sealed	CoreError	sealed interface CoreError {
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	DomainError	data class DomainError(override val message: String, override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	RepositoryError	data class RepositoryError(override val message: String, override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	ValidationError	data class ValidationError(val field: String? = null, override val message: String, override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	NetworkError	data class NetworkError(val statusCode: Int = 0, override val message: String, override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	DatabaseError	data class DatabaseError(override val message: String, override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	ProviderError	data class ProviderError(val providerId: String, val statusCode: Int = 0, override val message: String, override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	AuthError	data class AuthError(override val message: String = "Authentication failed", override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	data-class	RateLimitError	data class RateLimitError(val retryAfterSeconds: Long = 60L, override val message: String = "Rate limit exceeded", override val cause: Throwable? = null) : CoreError
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	sealed	Either	sealed interface Either<out L, out R> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	sealed	Result	sealed interface Result<out T> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\result\CoreResult.kt	core/common	typealias	CoreResult	typealias CoreResult<T> = Result<T>
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	sealed	Resource	sealed interface Resource<out T> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	object	DateUtils	object DateUtils {
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	object	IdGenerator	object IdGenerator {
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	object	HashUtils	object HashUtils {
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	object	FormatUtils	object FormatUtils {
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	object	JsonUtils	object JsonUtils {
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	object	FileUtils	object FileUtils {
+core\common\src\main\java\com\bangersoul\aivance\core\common\util\CoreUtils.kt	core/common	object	UriUtils	object UriUtils {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	data-class	ValidationErrorItem	data class ValidationErrorItem(val field: String, val message: String)
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	sealed	ValidationResult	sealed interface ValidationResult {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	fun	interface	fun interface Validator<T> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	StringValidator	object StringValidator {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	EmailValidator	object EmailValidator : Validator<String> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	PhoneValidator	object PhoneValidator : Validator<String> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	PasswordValidator	object PasswordValidator : Validator<String> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	UrlValidator	object UrlValidator : Validator<String> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	JsonValidator	object JsonValidator : Validator<String> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	ResumeValidator	object ResumeValidator : Validator<Resume> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	JobValidator	object JobValidator : Validator<JobListing> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	ProviderValidator	object ProviderValidator : Validator<String> {
+core\common\src\main\java\com\bangersoul\aivance\core\common\validation\CoreValidators.kt	core/common	object	ConfigurationValidator	object ConfigurationValidator : Validator<AiProviderConfig> {
+core\common\src\test\java\com\bangersoul\aivance\core\common\exception\CoreExceptionsTest.kt	core/common	class	CoreExceptionsTest	class CoreExceptionsTest {
+core\common\src\test\java\com\bangersoul\aivance\core\common\mapper\CoreMappersTest.kt	core/common	class	CoreMappersTest	class CoreMappersTest {
+core\common\src\test\java\com\bangersoul\aivance\core\common\result\CoreResultTest.kt	core/common	class	CoreResultTest	class CoreResultTest {
+core\common\src\test\java\com\bangersoul\aivance\core\common\util\CoreUtilsTest.kt	core/common	class	CoreUtilsTest	class CoreUtilsTest {
+core\common\src\test\java\com\bangersoul\aivance\core\common\validation\CoreValidatorsTest.kt	core/common	class	CoreValidatorsTest	class CoreValidatorsTest {
+core\util\src\main\java\com\bangersoul\aivance\core\util\extensions\StringExtensions.kt	core/util	fun	String	fun String.capitalizeFirstLetter(): String {
+core\util\src\main\java\com\bangersoul\aivance\core\util\extensions\StringExtensions.kt	core/util	fun	String	fun String.isValidEmail(): Boolean {
+core\util\src\main\java\com\bangersoul\aivance\core\util\formatters\DateFormatter.kt	core/util	object	DateFormatter	object DateFormatter {
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	AivanceBackupPayload	data class AivanceBackupPayload(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	BackupResume	data class BackupResume(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	BackupResumeVersion	data class BackupResumeVersion(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	BackupResumeSection	data class BackupResumeSection(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	BackupJob	data class BackupJob(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	BackupCoverLetter	data class BackupCoverLetter(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	BackupApplication	data class BackupApplication(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	data-class	BackupUserProfile	data class BackupUserProfile(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupExporter.kt	core/util	class	BackupExporter	class BackupExporter @Inject constructor(
+core\util\src\main\java\com\bangersoul\aivance\core\util\BackupImporter.kt	core/util	class	BackupImporter	class BackupImporter @Inject constructor(
+core\util\src\main\java\com\bangersoul\aivance\core\util\ClipboardHelper.kt	core/util	class	ClipboardHelper	class ClipboardHelper @Inject constructor(
+core\util\src\main\java\com\bangersoul\aivance\core\util\DocxExporter.kt	core/util	class	DocxExporter	class DocxExporter @Inject constructor(
+core\util\src\main\java\com\bangersoul\aivance\core\util\DocxTextExtractor.kt	core/util	object	DocxTextExtractor	object DocxTextExtractor {
+core\util\src\main\java\com\bangersoul\aivance\core\util\NotificationHelper.kt	core/util	class	NotificationHelper	class NotificationHelper @Inject constructor(
+core\util\src\main\java\com\bangersoul\aivance\core\util\PdfExporter.kt	core/util	class	PdfExporter	class PdfExporter @Inject constructor(
+core\util\src\main\java\com\bangersoul\aivance\core\util\PdfTextExtractor.kt	core/util	object	PdfTextExtractor	object PdfTextExtractor {
+core\util\src\test\java\com\bangersoul\aivance\core\util\PdfTextExtractorTest.kt	core/util	class	PdfTextExtractorTest	class PdfTextExtractorTest {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\analytics\AnalyticsEngine.kt	core/domain	enum	FeatureCategory	enum class FeatureCategory {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\analytics\AnalyticsEngine.kt	core/domain	data-class	SessionAnalyticsEvent	data class SessionAnalyticsEvent(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\analytics\AnalyticsEngine.kt	core/domain	interface	AnalyticsEngine	interface AnalyticsEngine {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\analytics\CareerScoreEngine.kt	core/domain	class	CareerScoreEngine	class CareerScoreEngine @Inject constructor() {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\analytics\KPIEngine.kt	core/domain	class	KPIEngine	class KPIEngine @Inject constructor() {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\analytics\RecommendationEngine.kt	core/domain	class	RecommendationEngine	class RecommendationEngine @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\assistant\AssistantContextEngine.kt	core/domain	class	AssistantContextEngine	class AssistantContextEngine @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\assistant\CapabilityRouter.kt	core/domain	class	CapabilityRouter	class CapabilityRouter @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\FeatureFlags.kt	core/domain	enum	FeatureFlag	enum class FeatureFlag(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\PlayIntegrityManager.kt	core/domain	interface	PlayIntegrityManager	interface PlayIntegrityManager {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\PlayIntegrityManager.kt	core/domain	sealed	IntegrityError	sealed class IntegrityError(message: String, cause: Throwable? = null) {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\PlayIntegrityManager.kt	core/domain	class	PlayIntegrityManagerStub	class PlayIntegrityManagerStub : PlayIntegrityManager {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\PrivacyManager.kt	core/domain	interface	PrivacyManager	interface PrivacyManager {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\PrivacyManager.kt	core/domain	object	PrivacyConstants	object PrivacyConstants {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\VersionManager.kt	core/domain	data-class	Version	data class Version(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\VersionManager.kt	core/domain	enum	ReleaseType	enum class ReleaseType(val description: String) {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\config\VersionManager.kt	core/domain	object	AppVersions	object AppVersions {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\performance\PerformanceUtils.kt	core/domain	object	PerformanceUtils	object PerformanceUtils {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\performance\PerformanceUtils.kt	core/domain	object	PageSizes	object PageSizes {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\performance\PerformanceUtils.kt	core/domain	object	TimeoutConstants	object TimeoutConstants {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\crm\CompanyIntelligenceRepository.kt	core/domain	interface	CompanyIntelligenceRepository	interface CompanyIntelligenceRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\crm\CRMRepository.kt	core/domain	interface	CRMRepository	interface CRMRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\crm\OutreachRepository.kt	core/domain	interface	OutreachRepository	interface OutreachRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\crm\RecruiterIntelligenceRepository.kt	core/domain	interface	RecruiterIntelligenceRepository	interface RecruiterIntelligenceRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\AiRepository.kt	core/domain	interface	AiRepository	interface AiRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\AnalyticsRepository.kt	core/domain	interface	AnalyticsRepository	interface AnalyticsRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\ApplicationWorkflowRepository.kt	core/domain	interface	ApplicationWorkflowRepository	interface ApplicationWorkflowRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\AssistantRepository.kt	core/domain	interface	AssistantRepository	interface AssistantRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\AssistantRepository.kt	core/domain	data-class	AssistantConversation	data class AssistantConversation(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\AtsRepository.kt	core/domain	sealed	AtsStreamEvent	sealed interface AtsStreamEvent {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\AtsRepository.kt	core/domain	interface	AtsRepository	interface AtsRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\CoverLetterRepository.kt	core/domain	interface	CoverLetterRepository	interface CoverLetterRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\InterviewKnowledgeRepository.kt	core/domain	interface	InterviewKnowledgeRepository	interface InterviewKnowledgeRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\InterviewRepository.kt	core/domain	interface	InterviewRepository	interface InterviewRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\JobRepository.kt	core/domain	interface	JobRepository	interface JobRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\JobTrackerRepository.kt	core/domain	interface	JobTrackerRepository	interface JobTrackerRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\ProviderRepository.kt	core/domain	interface	ProviderRepository	interface ProviderRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\ResumeRepository.kt	core/domain	interface	ResumeRepository	interface ResumeRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\SearchRepository.kt	core/domain	interface	SearchRepository	interface SearchRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\SettingsRepository.kt	core/domain	interface	SettingsRepository	interface SettingsRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\repository\UserRepository.kt	core/domain	interface	UserRepository	interface UserRepository {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\service\TextGenerationService.kt	core/domain	interface	TextGenerationService	interface TextGenerationService {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\telemetry\TelemetryEngine.kt	core/domain	enum	LogLevel	enum class LogLevel {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\telemetry\TelemetryEngine.kt	core/domain	data-class	LogEntry	data class LogEntry(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\telemetry\TelemetryEngine.kt	core/domain	interface	TelemetryEngine	interface TelemetryEngine {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\ClearConversationUseCase.kt	core/domain	class	ClearConversationUseCase	class ClearConversationUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\RegenerateResponseUseCase.kt	core/domain	data-class	RegenerateResponseRequest	data class RegenerateResponseRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\RegenerateResponseUseCase.kt	core/domain	class	RegenerateResponseUseCase	class RegenerateResponseUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\SendMessageUseCase.kt	core/domain	data-class	SendMessageRequest	data class SendMessageRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\SendMessageUseCase.kt	core/domain	class	SendMessageUseCase	class SendMessageUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\StartConversationUseCase.kt	core/domain	data-class	StartConversationRequest	data class StartConversationRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\StartConversationUseCase.kt	core/domain	class	StartConversationUseCase	class StartConversationUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\StreamResponseUseCase.kt	core/domain	data-class	StreamResponseRequest	data class StreamResponseRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\StreamResponseUseCase.kt	core/domain	class	StreamResponseUseCase	class StreamResponseUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ai\SummariseConversationUseCase.kt	core/domain	class	SummariseConversationUseCase	class SummariseConversationUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\analytics\ExportAnalyticsUseCase.kt	core/domain	class	ExportAnalyticsUseCase	class ExportAnalyticsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\analytics\GenerateUsageReportUseCase.kt	core/domain	class	GenerateUsageReportUseCase	class GenerateUsageReportUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\analytics\TrackEventUseCase.kt	core/domain	data-class	TrackEventRequest	data class TrackEventRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\analytics\TrackEventUseCase.kt	core/domain	class	TrackEventUseCase	class TrackEventUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\assistant\GetAssistantResponseUseCase.kt	core/domain	data-class	AssistantRequest	data class AssistantRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\assistant\GetAssistantResponseUseCase.kt	core/domain	class	GetAssistantResponseUseCase	class GetAssistantResponseUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ats\AnalyzeJobDescriptionUseCase.kt	core/domain	class	AnalyzeJobDescriptionUseCase	class AnalyzeJobDescriptionUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ats\PerformAtsAnalysisUseCase.kt	core/domain	data-class	AtsAnalysisRequest	data class AtsAnalysisRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ats\PerformAtsAnalysisUseCase.kt	core/domain	class	PerformAtsAnalysisUseCase	class PerformAtsAnalysisUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\ats\StreamAtsAnalysisUseCase.kt	core/domain	class	StreamAtsAnalysisUseCase	class StreamAtsAnalysisUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\GenerateCareerRoadmapUseCase.kt	core/domain	data-class	GenerateCareerRoadmapRequest	data class GenerateCareerRoadmapRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\GenerateCareerRoadmapUseCase.kt	core/domain	class	GenerateCareerRoadmapUseCase	class GenerateCareerRoadmapUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\RecommendSkillsUseCase.kt	core/domain	data-class	RecommendSkillsRequest	data class RecommendSkillsRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\RecommendSkillsUseCase.kt	core/domain	class	RecommendSkillsUseCase	class RecommendSkillsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\RecommendSkillsUseCase.kt	core/domain	data-class	SkillRecommendation	data class SkillRecommendation(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\SuggestLearningPathUseCase.kt	core/domain	data-class	SuggestLearningPathRequest	data class SuggestLearningPathRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\SuggestLearningPathUseCase.kt	core/domain	data-class	LearningPathResource	data class LearningPathResource(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\SuggestLearningPathUseCase.kt	core/domain	data-class	LearningPath	data class LearningPath(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\career\SuggestLearningPathUseCase.kt	core/domain	class	SuggestLearningPathUseCase	class SuggestLearningPathUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\ExportCoverLetterUseCase.kt	core/domain	data-class	ExportCoverLetterRequest	data class ExportCoverLetterRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\ExportCoverLetterUseCase.kt	core/domain	enum	ExportLetterFormat	enum class ExportLetterFormat {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\ExportCoverLetterUseCase.kt	core/domain	class	ExportCoverLetterUseCase	class ExportCoverLetterUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\GenerateCoverLetterUseCase.kt	core/domain	data-class	GenerateCoverLetterRequest	data class GenerateCoverLetterRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\GenerateCoverLetterUseCase.kt	core/domain	class	GenerateCoverLetterUseCase	class GenerateCoverLetterUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\ImproveCoverLetterUseCase.kt	core/domain	data-class	ImproveCoverLetterRequest	data class ImproveCoverLetterRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\ImproveCoverLetterUseCase.kt	core/domain	class	ImproveCoverLetterUseCase	class ImproveCoverLetterUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\RegenerateCoverLetterSectionUseCase.kt	core/domain	data-class	RegenerateSectionRequest	data class RegenerateSectionRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\RegenerateCoverLetterSectionUseCase.kt	core/domain	class	RegenerateCoverLetterSectionUseCase	class RegenerateCoverLetterSectionUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\coverletter\StreamGenerateCoverLetterUseCase.kt	core/domain	class	StreamGenerateCoverLetterUseCase	class StreamGenerateCoverLetterUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\crm\FindRecruitersUseCase.kt	core/domain	class	FindRecruitersUseCase	class FindRecruitersUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\crm\GenerateOutreachDraftUseCase.kt	core/domain	data-class	OutreachRequest	data class OutreachRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\crm\GenerateOutreachDraftUseCase.kt	core/domain	class	GenerateOutreachDraftUseCase	class GenerateOutreachDraftUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\di\UseCaseModule.kt	core/domain	object	UseCaseModule	object UseCaseModule {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\EndInterviewUseCase.kt	core/domain	class	EndInterviewUseCase	class EndInterviewUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\EvaluateAnswersUseCase.kt	core/domain	data-class	EvaluateAnswersRequest	data class EvaluateAnswersRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\EvaluateAnswersUseCase.kt	core/domain	data-class	AnswerEvaluation	data class AnswerEvaluation(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\EvaluateAnswersUseCase.kt	core/domain	class	EvaluateAnswersUseCase	class EvaluateAnswersUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\GenerateFeedbackUseCase.kt	core/domain	class	GenerateFeedbackUseCase	class GenerateFeedbackUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\GenerateInterviewQuestionsUseCase.kt	core/domain	data-class	GenerateInterviewQuestionsRequest	data class GenerateInterviewQuestionsRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\GenerateInterviewQuestionsUseCase.kt	core/domain	class	GenerateInterviewQuestionsUseCase	class GenerateInterviewQuestionsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\StartInterviewSessionUseCase.kt	core/domain	data-class	StartInterviewSessionRequest	data class StartInterviewSessionRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\interview\StartInterviewSessionUseCase.kt	core/domain	class	StartInterviewSessionUseCase	class StartInterviewSessionUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\job\GetJobDetailsUseCase.kt	core/domain	class	GetJobDetailsUseCase	class GetJobDetailsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\job\SearchJobsUseCase.kt	core/domain	data-class	SearchJobsRequest	data class SearchJobsRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\job\SearchJobsUseCase.kt	core/domain	class	SearchJobsUseCase	class SearchJobsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\job\ToggleJobBookmarkUseCase.kt	core/domain	class	ToggleJobBookmarkUseCase	class ToggleJobBookmarkUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\provider\DisableProviderUseCase.kt	core/domain	class	DisableProviderUseCase	class DisableProviderUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\provider\EnableProviderUseCase.kt	core/domain	class	EnableProviderUseCase	class EnableProviderUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\provider\GetAvailableModelsUseCase.kt	core/domain	class	GetAvailableModelsUseCase	class GetAvailableModelsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\provider\GetProviderHealthUseCase.kt	core/domain	data-class	ProviderHealth	data class ProviderHealth(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\provider\GetProviderHealthUseCase.kt	core/domain	class	GetProviderHealthUseCase	class GetProviderHealthUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\provider\SelectProviderUseCase.kt	core/domain	data-class	SelectProviderRequest	data class SelectProviderRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\provider\SelectProviderUseCase.kt	core/domain	class	SelectProviderUseCase	class SelectProviderUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\AnalyseResumeUseCase.kt	core/domain	data-class	AnalyseResumeRequest	data class AnalyseResumeRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\AnalyseResumeUseCase.kt	core/domain	class	AnalyseResumeUseCase	class AnalyseResumeUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\CalculateATSScoreUseCase.kt	core/domain	data-class	AtsScoreRequest	data class AtsScoreRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\CalculateATSScoreUseCase.kt	core/domain	data-class	AtsScoreResponse	data class AtsScoreResponse(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\CalculateATSScoreUseCase.kt	core/domain	class	CalculateATSScoreUseCase	class CalculateATSScoreUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\ExportResumeUseCase.kt	core/domain	enum	ExportFormat	enum class ExportFormat {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\ExportResumeUseCase.kt	core/domain	data-class	ExportResumeRequest	data class ExportResumeRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\ExportResumeUseCase.kt	core/domain	class	ExportResumeUseCase	class ExportResumeUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\GenerateResumeSummaryUseCase.kt	core/domain	data-class	ResumeSummaryRequest	data class ResumeSummaryRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\GenerateResumeSummaryUseCase.kt	core/domain	class	GenerateResumeSummaryUseCase	class GenerateResumeSummaryUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\ImportResumeUseCase.kt	core/domain	class	ImportResumeUseCase	class ImportResumeUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\ImproveResumeUseCase.kt	core/domain	data-class	ImproveResumeRequest	data class ImproveResumeRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\ImproveResumeUseCase.kt	core/domain	class	ImproveResumeUseCase	class ImproveResumeUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\ParseResumeUseCase.kt	core/domain	class	ParseResumeUseCase	class ParseResumeUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\StreamImproveSectionUseCase.kt	core/domain	data-class	StreamImproveSectionRequest	data class StreamImproveSectionRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\resume\StreamImproveSectionUseCase.kt	core/domain	class	StreamImproveSectionUseCase	class StreamImproveSectionUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\settings\ExportSettingsUseCase.kt	core/domain	class	ExportSettingsUseCase	class ExportSettingsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\settings\LoadSettingsUseCase.kt	core/domain	data-class	AppSettings	data class AppSettings(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\settings\LoadSettingsUseCase.kt	core/domain	class	LoadSettingsUseCase	class LoadSettingsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\settings\ResetSettingsUseCase.kt	core/domain	class	ResetSettingsUseCase	class ResetSettingsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\settings\SaveSettingsUseCase.kt	core/domain	data-class	SaveSettingsRequest	data class SaveSettingsRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\settings\SaveSettingsUseCase.kt	core/domain	class	SaveSettingsUseCase	class SaveSettingsUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\user\CreateProfileUseCase.kt	core/domain	data-class	CreateProfileRequest	data class CreateProfileRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\user\CreateProfileUseCase.kt	core/domain	class	CreateProfileUseCase	class CreateProfileUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\user\DeleteProfileUseCase.kt	core/domain	class	DeleteProfileUseCase	class DeleteProfileUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\user\LoadProfileUseCase.kt	core/domain	class	LoadProfileUseCase	class LoadProfileUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\user\UpdateProfileUseCase.kt	core/domain	data-class	UpdateProfileRequest	data class UpdateProfileRequest(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\user\UpdateProfileUseCase.kt	core/domain	class	UpdateProfileUseCase	class UpdateProfileUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\workflow\TaskGeneratorUseCase.kt	core/domain	class	TaskGeneratorUseCase	class TaskGeneratorUseCase @Inject constructor(
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\UseCase.kt	core/domain	class	UseCase	abstract class UseCase<in Input, Output> {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\UseCase.kt	core/domain	class	NoInputUseCase	abstract class NoInputUseCase<Output> {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\UseCase.kt	core/domain	class	FlowUseCase	abstract class FlowUseCase<in Input, Output> {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\usecase\UseCase.kt	core/domain	class	NoInputFlowUseCase	abstract class NoInputFlowUseCase<Output> {
+core\domain\src\main\java\com\bangersoul\aivance\core\domain\workflow\WorkflowEngine.kt	core/domain	class	WorkflowEngine	class WorkflowEngine @Inject constructor(
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\ai\SendMessageUseCaseTest.kt	core/domain	class	SendMessageUseCaseTest	class SendMessageUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\ai\StartConversationUseCaseTest.kt	core/domain	class	StartConversationUseCaseTest	class StartConversationUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\analytics\ExportAnalyticsUseCaseTest.kt	core/domain	class	ExportAnalyticsUseCaseTest	class ExportAnalyticsUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\analytics\GenerateUsageReportUseCaseTest.kt	core/domain	class	GenerateUsageReportUseCaseTest	class GenerateUsageReportUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\analytics\TrackEventUseCaseTest.kt	core/domain	class	TrackEventUseCaseTest	class TrackEventUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\career\GenerateCareerRoadmapUseCaseTest.kt	core/domain	class	GenerateCareerRoadmapUseCaseTest	class GenerateCareerRoadmapUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\coverletter\ExportCoverLetterUseCaseTest.kt	core/domain	class	ExportCoverLetterUseCaseTest	class ExportCoverLetterUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\coverletter\GenerateCoverLetterUseCaseTest.kt	core/domain	class	GenerateCoverLetterUseCaseTest	class GenerateCoverLetterUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\coverletter\ImproveCoverLetterUseCaseTest.kt	core/domain	class	ImproveCoverLetterUseCaseTest	class ImproveCoverLetterUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\interview\EndInterviewUseCaseTest.kt	core/domain	class	EndInterviewUseCaseTest	class EndInterviewUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\interview\EvaluateAnswersUseCaseTest.kt	core/domain	class	EvaluateAnswersUseCaseTest	class EvaluateAnswersUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\interview\GenerateFeedbackUseCaseTest.kt	core/domain	class	GenerateFeedbackUseCaseTest	class GenerateFeedbackUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\interview\StartInterviewSessionUseCaseTest.kt	core/domain	class	StartInterviewSessionUseCaseTest	class StartInterviewSessionUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\job\GetJobDetailsUseCaseTest.kt	core/domain	class	GetJobDetailsUseCaseTest	class GetJobDetailsUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\job\SearchJobsUseCaseTest.kt	core/domain	class	SearchJobsUseCaseTest	class SearchJobsUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\job\ToggleJobBookmarkUseCaseTest.kt	core/domain	class	ToggleJobBookmarkUseCaseTest	class ToggleJobBookmarkUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\provider\DisableProviderUseCaseTest.kt	core/domain	class	DisableProviderUseCaseTest	class DisableProviderUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\provider\EnableProviderUseCaseTest.kt	core/domain	class	EnableProviderUseCaseTest	class EnableProviderUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\provider\GetAvailableModelsUseCaseTest.kt	core/domain	class	GetAvailableModelsUseCaseTest	class GetAvailableModelsUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\provider\SelectProviderUseCaseTest.kt	core/domain	class	SelectProviderUseCaseTest	class SelectProviderUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\resume\AnalyseResumeUseCaseTest.kt	core/domain	class	AnalyseResumeUseCaseTest	class AnalyseResumeUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\resume\CalculateATSScoreUseCaseTest.kt	core/domain	class	CalculateATSScoreUseCaseTest	class CalculateATSScoreUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\resume\ExportResumeUseCaseTest.kt	core/domain	class	ExportResumeUseCaseTest	class ExportResumeUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\resume\GenerateResumeSummaryUseCaseTest.kt	core/domain	class	GenerateResumeSummaryUseCaseTest	class GenerateResumeSummaryUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\resume\ImportResumeUseCaseTest.kt	core/domain	class	ImportResumeUseCaseTest	class ImportResumeUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\resume\ImproveResumeUseCaseTest.kt	core/domain	class	ImproveResumeUseCaseTest	class ImproveResumeUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\resume\ParseResumeUseCaseTest.kt	core/domain	class	ParseResumeUseCaseTest	class ParseResumeUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\settings\ExportSettingsUseCaseTest.kt	core/domain	class	ExportSettingsUseCaseTest	class ExportSettingsUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\settings\LoadSettingsUseCaseTest.kt	core/domain	class	LoadSettingsUseCaseTest	class LoadSettingsUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\user\CreateProfileUseCaseTest.kt	core/domain	class	CreateProfileUseCaseTest	class CreateProfileUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\user\DeleteProfileUseCaseTest.kt	core/domain	class	DeleteProfileUseCaseTest	class DeleteProfileUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\user\LoadProfileUseCaseTest.kt	core/domain	class	LoadProfileUseCaseTest	class LoadProfileUseCaseTest {
+core\domain\src\test\java\com\bangersoul\aivance\core\domain\usecase\user\UpdateProfileUseCaseTest.kt	core/domain	class	UpdateProfileUseCaseTest	class UpdateProfileUseCaseTest {
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\di\DataStoreModule.kt	core/datastore	class	DataStoreModule	abstract class DataStoreModule {
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\CryptoManager.kt	core/datastore	class	CryptoManager	class CryptoManager @Inject constructor() {
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\PreferencesManager.kt	core/datastore	val	Context	private val Context.privacyDataStore by preferencesDataStore(name = "privacy_preferences")
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\PreferencesManager.kt	core/datastore	class	PreferencesManager	class PreferencesManager @Inject constructor(
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\SecretsManager.kt	core/datastore	val	Context	private val Context.secretsDataStore by preferencesDataStore(name = "aivance_secrets")
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\SecretsManager.kt	core/datastore	class	SecretsManager	class SecretsManager @Inject constructor(
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\UserPreferences.kt	core/datastore	data-class	UserPreferences	data class UserPreferences(
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\UserPreferences.kt	core/datastore	enum	ThemeConfig	enum class ThemeConfig {
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\UserPreferencesRepository.kt	core/datastore	interface	UserPreferencesRepository	interface UserPreferencesRepository {
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\UserPreferencesRepository.kt	core/datastore	class	UserPreferencesRepositoryImpl	class UserPreferencesRepositoryImpl @Inject constructor(
+core\datastore\src\main\java\com\bangersoul\aivance\core\datastore\UserPreferencesSerializer.kt	core/datastore	class	UserPreferencesSerializer	class UserPreferencesSerializer @Inject constructor(
+core\datastore\src\test\java\com\bangersoul\aivance\core\datastore\UserPreferencesSerializerTest.kt	core/datastore	class	UserPreferencesSerializerTest	class UserPreferencesSerializerTest {
+core\data\src\main\java\com\bangersoul\aivance\core\data\analytics\AnalyticsEngineImpl.kt	core/data	class	AnalyticsEngineImpl	class AnalyticsEngineImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\analytics\CrashReporter.kt	core/data	class	CrashReporter	class CrashReporter @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\analytics\PerformanceCollector.kt	core/data	class	PerformanceCollector	class PerformanceCollector @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\cache\CacheManager.kt	core/data	interface	CacheManager	interface CacheManager<K, V> {
+core\data\src\main\java\com\bangersoul\aivance\core\data\cache\MemoryCache.kt	core/data	class	MemoryCache	class MemoryCache<K : Any, V : Any>(
+core\data\src\main\java\com\bangersoul\aivance\core\data\config\PrivacyManagerImpl.kt	core/data	class	PrivacyManagerImpl	class PrivacyManagerImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\di\AnalyticsModule.kt	core/data	class	AnalyticsModule	abstract class AnalyticsModule {
+core\data\src\main\java\com\bangersoul\aivance\core\data\di\DataModule.kt	core/data	class	DataModule	abstract class DataModule {
+core\data\src\main\java\com\bangersoul\aivance\core\data\di\DataSourceModule.kt	core/data	class	DataSourceModule	abstract class DataSourceModule {
+core\data\src\main\java\com\bangersoul\aivance\core\data\di\RepositoryModule.kt	core/data	class	RepositoryModule	abstract class RepositoryModule {
+core\data\src\main\java\com\bangersoul\aivance\core\data\job\JobFilterMatcher.kt	core/data	class	JobFilterMatcher	class JobFilterMatcher @Inject constructor() {
+core\data\src\main\java\com\bangersoul\aivance\core\data\job\JobNormalizer.kt	core/data	class	JobNormalizer	class JobNormalizer @Inject constructor() {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\AnalyticsMappers.kt	core/data	val	jsonMapper	private val jsonMapper = Json { ignoreUnknownKeys = true }
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\AnalyticsMappers.kt	core/data	fun	AnalyticsSnapshotEntity	fun AnalyticsSnapshotEntity.toDomain(): AnalyticsSnapshot {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\AnalyticsMappers.kt	core/data	fun	AnalyticsSnapshot	fun AnalyticsSnapshot.toEntity(): AnalyticsSnapshotEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\AnalyticsMappers.kt	core/data	fun	RecommendationEntity	fun RecommendationEntity.toDomain(): CareerRecommendation {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\AnalyticsMappers.kt	core/data	fun	CareerRecommendation	fun CareerRecommendation.toEntity(): RecommendationEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\AnalyticsMappers.kt	core/data	fun	GoalEntity	fun GoalEntity.toDomain(): CareerGoal {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\AnalyticsMappers.kt	core/data	fun	CareerGoal	fun CareerGoal.toEntity(): GoalEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	val	jsonMapper	private val jsonMapper = Json { ignoreUnknownKeys = true }
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ResumeEntity	fun ResumeEntity.toDomain(versions: List<ResumeVersion> = emptyList()): Resume {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ResumeVersionEntity	fun ResumeVersionEntity.toDomain(sections: List<ResumeSectionEntity> = emptyList()): ResumeVersion {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ResumeSectionEntity	fun ResumeSectionEntity.toDomain(): ResumeSection {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	Resume	fun Resume.toEntity(): ResumeEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ResumeVersion	fun ResumeVersion.toEntity(): ResumeVersionEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ResumeSection	fun ResumeSection.toEntity(versionId: Long): ResumeSectionEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	AtsReportEntity	fun AtsReportEntity.toDomain(): AtsReport {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	AtsReport	fun AtsReport.toEntity(): AtsReportEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	JobDescriptionEntity	fun JobDescriptionEntity.toDomain(): JobDescription {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	JobDescription	fun JobDescription.toEntity(): JobDescriptionEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CompanyEntity	fun CompanyEntity.toDomain(): Company {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	Company	fun Company.toEntity(): CompanyEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	RecruiterEntity	fun RecruiterEntity.toDomain(contacts: List<RecruiterContactEntity> = emptyList()): Recruiter {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	Recruiter	fun Recruiter.toEntity(): RecruiterEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	RecruiterContactEntity	fun RecruiterContactEntity.toDomain(): RecruiterContact {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	RecruiterContact	fun RecruiterContact.toEntity(): RecruiterContactEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	OutreachDraftEntity	fun OutreachDraftEntity.toDomain(): OutreachDraft {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	OutreachDraft	fun OutreachDraft.toEntity(): OutreachDraftEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CommunicationHistoryEntity	fun CommunicationHistoryEntity.toDomain(): CommunicationHistory {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CommunicationHistory	fun CommunicationHistory.toEntity(): CommunicationHistoryEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CoverLetterEntity	fun CoverLetterEntity.toDomain(versions: List<CoverLetterVersion> = emptyList()): CoverLetter {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CoverLetterVersionEntity	fun CoverLetterVersionEntity.toDomain(sections: List<CoverLetterSectionEntity> = emptyList()): CoverLetterVersion {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CoverLetterSectionEntity	fun CoverLetterSectionEntity.toDomain(): CoverLetterSection {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CoverLetter	fun CoverLetter.toEntity(): CoverLetterEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CoverLetterVersion	fun CoverLetterVersion.toEntity(): CoverLetterVersionEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CoverLetterSection	fun CoverLetterSection.toEntity(versionId: Long): CoverLetterSectionEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewSessionEntity	fun InterviewSessionEntity.toDomain(
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewSession	fun InterviewSession.toEntity(): InterviewSessionEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewQuestionEntity	fun InterviewQuestionEntity.toDomain(): InterviewQuestion {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewQuestion	fun InterviewQuestion.toEntity(sessionId: Long?): InterviewQuestionEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewMessageEntity	fun InterviewMessageEntity.toDomain(evaluation: InterviewEvaluation? = null): InterviewMessage {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewMessage	fun InterviewMessage.toEntity(): InterviewMessageEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewEvaluationEntity	fun InterviewEvaluationEntity.toDomain(): InterviewEvaluation {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewEvaluation	fun InterviewEvaluation.toEntity(): InterviewEvaluationEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ApplicationEntity	fun ApplicationEntity.toDomain(
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	Application	fun Application.toEntity(): ApplicationEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ApplicationStageEntity	fun ApplicationStageEntity.toDomain(): ApplicationStage {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ApplicationStage	fun ApplicationStage.toEntity(): ApplicationStageEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ApplicationTimelineEntity	fun ApplicationTimelineEntity.toDomain(): TimelineEvent {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	TimelineEvent	fun TimelineEvent.toEntity(): ApplicationTimelineEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	TaskEntity	fun TaskEntity.toDomain(): ApplicationTask {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ApplicationTask	fun ApplicationTask.toEntity(): TaskEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ResumeAnalysisEntity	fun ResumeAnalysisEntity.toDomain(): AtsResult {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	JobWithDetails	fun JobWithDetails.toDomain(): JobListing {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	JobListing	fun JobListing.toEntity(companyId: Long): JobEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	JobApplicationWithDetails	fun JobApplicationWithDetails.toDomain(): JobApplication {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	UserProfileEntity	fun UserProfileEntity.toDomain(): UserProfile {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	UserProfile	fun UserProfile.toEntity(): UserProfileEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	RoadmapWithSteps	fun RoadmapWithSteps.toDomain(): CareerRoadmap {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	RoadmapStepEntity	fun RoadmapStepEntity.toDomain(): RoadmapStep {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	CareerRoadmap	fun CareerRoadmap.toEntity(): RoadmapEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	RoadmapStep	fun RoadmapStep.toEntity(roadmapId: Long): RoadmapStepEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	AIConversationWithMessages	fun AIConversationWithMessages.toDomain(): AIConversation {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	AIMessageEntity	fun AIMessageEntity.toDomain(): AIMessage {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	AIMessage	fun AIMessage.toEntity(): AIMessageEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	ProviderConfigurationEntity	fun ProviderConfigurationEntity.toDomain(): AiProviderConfig {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	AnalyticsEventEntity	fun AnalyticsEventEntity.toDomain(): AnalyticsEvent {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	AnalyticsEvent	fun AnalyticsEvent.toEntity(): AnalyticsEventEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewSessionWithMessages	fun InterviewSessionWithMessages.toDomain(): InterviewSession {
+core\data\src\main\java\com\bangersoul\aivance\core\data\mapper\EntityMappers.kt	core/data	fun	InterviewMessage	fun InterviewMessage.toEntity(sessionId: Long): InterviewMessageEntity {
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\crm\CompanyIntelligenceRepositoryImpl.kt	core/data	class	CompanyIntelligenceRepositoryImpl	class CompanyIntelligenceRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\crm\CRMRepositoryImpl.kt	core/data	class	CRMRepositoryImpl	class CRMRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\crm\OutreachRepositoryImpl.kt	core/data	class	OutreachRepositoryImpl	class OutreachRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\crm\RecruiterIntelligenceRepositoryImpl.kt	core/data	class	RecruiterIntelligenceRepositoryImpl	class RecruiterIntelligenceRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\AiRepositoryImpl.kt	core/data	class	AiRepositoryImpl	class AiRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\AnalyticsRepositoryImpl.kt	core/data	class	AnalyticsRepositoryImpl	class AnalyticsRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\ApplicationWorkflowRepositoryImpl.kt	core/data	class	ApplicationWorkflowRepositoryImpl	class ApplicationWorkflowRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\AssistantRepositoryImpl.kt	core/data	class	AssistantRepositoryImpl	class AssistantRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\AtsRepositoryImpl.kt	core/data	class	AtsRepositoryImpl	class AtsRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\CoverLetterRepositoryImpl.kt	core/data	class	CoverLetterRepositoryImpl	class CoverLetterRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\InterviewKnowledgeRepositoryImpl.kt	core/data	class	InterviewKnowledgeRepositoryImpl	class InterviewKnowledgeRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\InterviewRepositoryImpl.kt	core/data	class	InterviewRepositoryImpl	class InterviewRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\JobRepositoryImpl.kt	core/data	class	JobRepositoryImpl	class JobRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\JobTrackerRepositoryImpl.kt	core/data	class	JobTrackerRepositoryImpl	class JobTrackerRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\ProviderRepositoryImpl.kt	core/data	class	ProviderRepositoryImpl	class ProviderRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\ResumeRepositoryImpl.kt	core/data	class	ResumeRepositoryImpl	class ResumeRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\SearchRepositoryImpl.kt	core/data	class	SearchRepositoryImpl	class SearchRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\SettingsRepositoryImpl.kt	core/data	class	SettingsRepositoryImpl	class SettingsRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\repository\UserRepositoryImpl.kt	core/data	class	UserRepositoryImpl	class UserRepositoryImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\resume\ResumeParser.kt	core/data	class	ResumeParser	class ResumeParser @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\service\TextGenerationServiceImpl.kt	core/data	class	TextGenerationServiceImpl	class TextGenerationServiceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\AiLocalDataSource.kt	core/data	interface	AiLocalDataSource	interface AiLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\AiLocalDataSource.kt	core/data	class	AiLocalDataSourceImpl	class AiLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\CoverLetterLocalDataSource.kt	core/data	interface	CoverLetterLocalDataSource	interface CoverLetterLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\CoverLetterLocalDataSource.kt	core/data	class	CoverLetterLocalDataSourceImpl	class CoverLetterLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\InterviewLocalDataSource.kt	core/data	interface	InterviewLocalDataSource	interface InterviewLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\InterviewLocalDataSource.kt	core/data	class	InterviewLocalDataSourceImpl	class InterviewLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\JobLocalDataSource.kt	core/data	interface	JobLocalDataSource	interface JobLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\JobLocalDataSource.kt	core/data	class	JobLocalDataSourceImpl	class JobLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\ResumeLocalDataSource.kt	core/data	interface	ResumeLocalDataSource	interface ResumeLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\ResumeLocalDataSource.kt	core/data	class	ResumeLocalDataSourceImpl	class ResumeLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\SearchLocalDataSource.kt	core/data	interface	SearchLocalDataSource	interface SearchLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\SearchLocalDataSource.kt	core/data	class	SearchLocalDataSourceImpl	class SearchLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\SettingsLocalDataSource.kt	core/data	interface	SettingsLocalDataSource	interface SettingsLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\SettingsLocalDataSource.kt	core/data	class	SettingsLocalDataSourceImpl	class SettingsLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\UserLocalDataSource.kt	core/data	interface	UserLocalDataSource	interface UserLocalDataSource {
+core\data\src\main\java\com\bangersoul\aivance\core\data\source\UserLocalDataSource.kt	core/data	class	UserLocalDataSourceImpl	class UserLocalDataSourceImpl @Inject constructor(
+core\data\src\main\java\com\bangersoul\aivance\core\data\telemetry\StructuredTimberTree.kt	core/data	class	StructuredTimberTree	class StructuredTimberTree(
+core\data\src\main\java\com\bangersoul\aivance\core\data\telemetry\TelemetryEngineImpl.kt	core/data	class	TelemetryEngineImpl	class TelemetryEngineImpl @Inject constructor() : TelemetryEngine {
+core\data\src\main\java\com\bangersoul\aivance\core\data\util\Clock.kt	core/data	interface	Clock	interface Clock {
+core\data\src\main\java\com\bangersoul\aivance\core\data\util\Clock.kt	core/data	class	DefaultClock	class DefaultClock : Clock {
+core\data\src\test\java\com\bangersoul\aivance\core\data\analytics\AnalyticsEngineTest.kt	core/data	class	AnalyticsEngineTest	class AnalyticsEngineTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\cache\MemoryCacheTest.kt	core/data	class	MemoryCacheTest	class MemoryCacheTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\job\JobFilterMatcherTest.kt	core/data	class	JobFilterMatcherTest	class JobFilterMatcherTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\repository\JobRepositoryImplTest.kt	core/data	class	JobRepositoryImplTest	class JobRepositoryImplTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\repository\JobRepositoryIntegrationTest.kt	core/data	class	JobRepositoryIntegrationTest	class JobRepositoryIntegrationTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\repository\JobTrackerRepositoryImplTest.kt	core/data	class	JobTrackerRepositoryImplTest	class JobTrackerRepositoryImplTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\repository\ResumeRepositoryImplTest.kt	core/data	class	ResumeRepositoryImplTest	class ResumeRepositoryImplTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\repository\UserRepositoryImplTest.kt	core/data	class	UserRepositoryImplTest	class UserRepositoryImplTest {
+core\data\src\test\java\com\bangersoul\aivance\core\data\resume\ResumeParserTest.kt	core/data	class	ResumeParserTest	class ResumeParserTest {
+core\database\src\androidTest\java\com\bangersoul\aivance\core\database\dao\AivanceFeatureDaoTest.kt	core/database	class	AivanceFeatureDaoTest	class AivanceFeatureDaoTest {
+core\database\src\androidTest\java\com\bangersoul\aivance\core\database\dao\AtsFeatureDaoTest.kt	core/database	class	AtsFeatureDaoTest	class AtsFeatureDaoTest {
+core\database\src\androidTest\java\com\bangersoul\aivance\core\database\dao\InterviewFeatureDaoTest.kt	core/database	class	InterviewFeatureDaoTest	class InterviewFeatureDaoTest {
+core\database\src\androidTest\java\com\bangersoul\aivance\core\database\dao\JobFeatureDaoTest.kt	core/database	class	JobFeatureDaoTest	class JobFeatureDaoTest {
+core\database\src\androidTest\java\com\bangersoul\aivance\core\database\dao\ProfileFeatureDaoTest.kt	core/database	class	ProfileFeatureDaoTest	class ProfileFeatureDaoTest {
+core\database\src\androidTest\java\com\bangersoul\aivance\core\database\MigrationTest.kt	core/database	class	MigrationTest	class MigrationTest {
+core\database\src\main\java\com\bangersoul\aivance\core\database\converter\AivanceConverters.kt	core/database	class	AivanceConverters	class AivanceConverters {
+core\database\src\main\java\com\bangersoul\aivance\core\database\converter\EncryptedTypeConverters.kt	core/database	class	EncryptedTypeConverters	class EncryptedTypeConverters @Inject constructor(
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\AiAnalyticsDao.kt	core/database	interface	AiAnalyticsDao	interface AiAnalyticsDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\AivanceDao.kt	core/database	interface	AivanceDao	interface AivanceDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\AnalyticsDao.kt	core/database	interface	AnalyticsDao	interface AnalyticsDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\AssistantDao.kt	core/database	interface	AssistantDao	interface AssistantDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\AtsDao.kt	core/database	interface	AtsDao	interface AtsDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\AuditDao.kt	core/database	interface	AuditDao	interface AuditDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\CompanyDao.kt	core/database	interface	CompanyDao	interface CompanyDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\CoverLetterDao.kt	core/database	interface	CoverLetterDao	interface CoverLetterDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\InterviewDao.kt	core/database	interface	InterviewDao	interface InterviewDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\JobDao.kt	core/database	interface	JobDao	interface JobDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\ProfileDao.kt	core/database	interface	ProfileDao	interface ProfileDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\RecruiterDao.kt	core/database	interface	RecruiterDao	interface RecruiterDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\ResumeDao.kt	core/database	interface	ResumeDao	interface ResumeDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\RoadmapDao.kt	core/database	interface	RoadmapDao	interface RoadmapDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\SearchDao.kt	core/database	interface	SearchDao	interface SearchDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\TrackerDao.kt	core/database	interface	TrackerDao	interface TrackerDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\UserDao.kt	core/database	interface	UserDao	interface UserDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\dao\WorkflowDao.kt	core/database	interface	WorkflowDao	interface WorkflowDao {
+core\database\src\main\java\com\bangersoul\aivance\core\database\di\DatabaseModule.kt	core/database	object	DatabaseModule	object DatabaseModule {
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AIConversationEntity.kt	core/database	data-class	AIConversationEntity	data class AIConversationEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AIConversationWithMessages.kt	core/database	data-class	AIConversationWithMessages	data class AIConversationWithMessages(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AIMessageEntity.kt	core/database	data-class	AIMessageEntity	data class AIMessageEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AivanceEntity.kt	core/database	data-class	AivanceEntity	data class AivanceEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AnalyticsEntities.kt	core/database	data-class	AnalyticsSnapshotEntity	data class AnalyticsSnapshotEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AnalyticsEntities.kt	core/database	data-class	RecommendationEntity	data class RecommendationEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AnalyticsEntities.kt	core/database	data-class	GoalEntity	data class GoalEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AnalyticsEventEntity.kt	core/database	data-class	AnalyticsEventEntity	data class AnalyticsEventEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AssistantEntities.kt	core/database	data-class	AssistantConversationEntity	data class AssistantConversationEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AssistantEntities.kt	core/database	data-class	AssistantMessageEntity	data class AssistantMessageEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AssistantEntities.kt	core/database	data-class	WorkflowExecutionEntity	data class WorkflowExecutionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AtsReportEntity.kt	core/database	data-class	AtsReportEntity	data class AtsReportEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\AuditLogEntity.kt	core/database	data-class	AuditLogEntity	data class AuditLogEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\CompanyEntity.kt	core/database	data-class	CompanyEntity	data class CompanyEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\CoverLetterEntity.kt	core/database	data-class	CoverLetterEntity	data class CoverLetterEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\CoverLetterSectionEntity.kt	core/database	data-class	CoverLetterSectionEntity	data class CoverLetterSectionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\CoverLetterVersionEntity.kt	core/database	data-class	CoverLetterVersionEntity	data class CoverLetterVersionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\InterviewEvaluationEntity.kt	core/database	data-class	InterviewEvaluationEntity	data class InterviewEvaluationEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\InterviewMessageEntity.kt	core/database	data-class	InterviewMessageEntity	data class InterviewMessageEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\InterviewQuestionEntity.kt	core/database	data-class	InterviewQuestionEntity	data class InterviewQuestionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\InterviewSessionEntity.kt	core/database	data-class	InterviewSessionEntity	data class InterviewSessionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\InterviewSessionWithMessages.kt	core/database	data-class	InterviewSessionWithMessages	data class InterviewSessionWithMessages(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobApplicationEntity.kt	core/database	data-class	JobApplicationEntity	data class JobApplicationEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobApplicationWithDetails.kt	core/database	data-class	JobApplicationWithDetails	data class JobApplicationWithDetails(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobDescriptionEntity.kt	core/database	data-class	JobDescriptionEntity	data class JobDescriptionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobEntity.kt	core/database	data-class	JobEntity	data class JobEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobMetadataEntities.kt	core/database	data-class	SavedJobEntity	data class SavedJobEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobMetadataEntities.kt	core/database	data-class	ViewedJobEntity	data class ViewedJobEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobMetadataEntities.kt	core/database	data-class	SearchHistoryEntity	data class SearchHistoryEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\JobWithDetails.kt	core/database	data-class	JobWithDetails	data class JobWithDetails(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\OutreachEntities.kt	core/database	data-class	OutreachDraftEntity	data class OutreachDraftEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\OutreachEntities.kt	core/database	data-class	CommunicationHistoryEntity	data class CommunicationHistoryEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\ProviderConfigurationEntity.kt	core/database	data-class	ProviderConfigurationEntity	data class ProviderConfigurationEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\RecruiterEntities.kt	core/database	data-class	RecruiterEntity	data class RecruiterEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\RecruiterEntities.kt	core/database	data-class	RecruiterContactEntity	data class RecruiterContactEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\ResumeAnalysisEntity.kt	core/database	data-class	ResumeAnalysisEntity	data class ResumeAnalysisEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\ResumeEntity.kt	core/database	data-class	ResumeEntity	data class ResumeEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\ResumeSectionEntity.kt	core/database	data-class	ResumeSectionEntity	data class ResumeSectionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\ResumeVersionEntity.kt	core/database	data-class	ResumeVersionEntity	data class ResumeVersionEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\RoadmapEntity.kt	core/database	data-class	RoadmapEntity	data class RoadmapEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\RoadmapStepEntity.kt	core/database	data-class	RoadmapStepEntity	data class RoadmapStepEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\RoadmapWithSteps.kt	core/database	data-class	RoadmapWithSteps	data class RoadmapWithSteps(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\SavedSearchEntity.kt	core/database	data-class	SavedSearchEntity	data class SavedSearchEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\UserEntity.kt	core/database	data-class	UserEntity	data class UserEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\UserProfileEntity.kt	core/database	data-class	UserProfileEntity	data class UserProfileEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\WorkflowEntities.kt	core/database	data-class	ApplicationEntity	data class ApplicationEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\WorkflowEntities.kt	core/database	data-class	ApplicationStageEntity	data class ApplicationStageEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\WorkflowEntities.kt	core/database	data-class	ApplicationTimelineEntity	data class ApplicationTimelineEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\WorkflowEntities.kt	core/database	data-class	TaskEntity	data class TaskEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\model\WorkflowEntities.kt	core/database	data-class	AutomationRuleEntity	data class AutomationRuleEntity(
+core\database\src\main\java\com\bangersoul\aivance\core\database\security\EncryptionService.kt	core/database	class	EncryptionService	class EncryptionService @Inject constructor(
+core\database\src\main\java\com\bangersoul\aivance\core\database\AivanceDatabase.kt	core/database	class	AivanceDatabase	abstract class AivanceDatabase : RoomDatabase() {
+core\database\src\main\java\com\bangersoul\aivance\core\database\DatabaseManager.kt	core/database	class	DatabaseManager	class DatabaseManager @Inject constructor(
+core\database\src\main\java\com\bangersoul\aivance\core\database\DatabaseSeed.kt	core/database	class	DatabaseSeed	class DatabaseSeed @Inject constructor(
+core\database\src\test\java\com\bangersoul\aivance\core\database\converter\AivanceConvertersTest.kt	core/database	class	AivanceConvertersTest	class AivanceConvertersTest {
+core\network\src\main\java\com\bangersoul\aivance\core\network\di\NetworkModule.kt	core/network	object	NetworkModule	object NetworkModule {
+core\network\src\main\java\com\bangersoul\aivance\core\network\security\CertificatePinningInterceptor.kt	core/network	class	CertificatePinningInterceptor	class CertificatePinningInterceptor(
+core\network\src\main\java\com\bangersoul\aivance\core\network\security\SecurityUtils.kt	core/network	object	SecurityUtils	object SecurityUtils {
+core\network\src\test\java\com\bangersoul\aivance\core\network\security\CertificatePinningInterceptorTest.kt	core/network	class	CertificatePinningInterceptorTest	class CertificatePinningInterceptorTest {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AiComponents.kt	core/designsystem	fun	KeywordChip	fun KeywordChip(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AiComponents.kt	core/designsystem	fun	ScoreGauge	fun ScoreGauge(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AiComponents.kt	core/designsystem	fun	KeywordChipPreview	fun KeywordChipPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AiComponents.kt	core/designsystem	fun	ScoreGaugePreview	fun ScoreGaugePreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceBanner.kt	core/designsystem	enum	BannerTone	enum class BannerTone {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceBanner.kt	core/designsystem	val	BannerTone	private val BannerTone.icon: ImageVector
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceBanner.kt	core/designsystem	fun	AivanceBanner	fun AivanceBanner(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceBanner.kt	core/designsystem	fun	BannerPreview	private fun BannerPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceButtons.kt	core/designsystem	fun	AivancePrimaryButton	fun AivancePrimaryButton(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceButtons.kt	core/designsystem	fun	AivanceSecondaryButton	fun AivanceSecondaryButton(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceButtons.kt	core/designsystem	fun	AivanceTertiaryButton	fun AivanceTertiaryButton(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCards.kt	core/designsystem	fun	MetricCard	fun MetricCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCards.kt	core/designsystem	fun	InsightCard	fun InsightCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCards.kt	core/designsystem	fun	ActionCard	fun ActionCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCards.kt	core/designsystem	fun	ProgressCard	fun ProgressCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCards.kt	core/designsystem	fun	StatusChip	fun StatusChip(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCards.kt	core/designsystem	fun	CardPreview	private fun CardPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	Sparkline	fun Sparkline(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	BarChart	fun BarChart(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	FunnelChart	fun FunnelChart(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	HeatMapGrid	fun HeatMapGrid(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	lerpColor	private fun lerpColor(start: Color, end: Color, t: Float): Color = Color(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	LineChart	fun LineChart(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	PieChart	fun PieChart(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	data-class	PieSegment	data class PieSegment(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceCharts.kt	core/designsystem	fun	DonutChart	fun DonutChart(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceEmptyState.kt	core/designsystem	fun	AivanceEmptyState	fun AivanceEmptyState(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceEmptyState.kt	core/designsystem	fun	AivanceEmptyStatePreview	private fun AivanceEmptyStatePreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceScreen.kt	core/designsystem	fun	AivanceScreen	fun AivanceScreen(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceScreen.kt	core/designsystem	fun	AivanceScreenContentPreview	private fun AivanceScreenContentPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceScreen.kt	core/designsystem	fun	AivanceScreenLoadingPreview	private fun AivanceScreenLoadingPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSkeleton.kt	core/designsystem	fun	rememberShimmerBrush	fun rememberShimmerBrush(base: Color, highlight: Color): Brush {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSkeleton.kt	core/designsystem	fun	SkeletonBox	fun SkeletonBox(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSkeleton.kt	core/designsystem	fun	SkeletonText	fun SkeletonText(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSkeleton.kt	core/designsystem	fun	SkeletonCard	fun SkeletonCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSkeleton.kt	core/designsystem	fun	SkeletonList	fun SkeletonList(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSkeleton.kt	core/designsystem	fun	SkeletonDashboard	fun SkeletonDashboard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSkeleton.kt	core/designsystem	fun	SkeletonDashboardPreview	private fun SkeletonDashboardPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSuccess.kt	core/designsystem	fun	AivanceSuccess	fun AivanceSuccess(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceSuccess.kt	core/designsystem	fun	AivanceSuccessPreview	private fun AivanceSuccessPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\AivanceTopBar.kt	core/designsystem	fun	AivanceTopBar	fun AivanceTopBar(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\ChatComponents.kt	core/designsystem	enum	ChatBubbleRole	enum class ChatBubbleRole {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\ChatComponents.kt	core/designsystem	fun	ChatBubble	fun ChatBubble(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\ChatComponents.kt	core/designsystem	fun	TypingIndicator	fun TypingIndicator(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\ChatComponents.kt	core/designsystem	fun	ChatComponentsPreview	fun ChatComponentsPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	DashboardCard	fun DashboardCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	StatCard	fun StatCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	SectionHeader	fun SectionHeader(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	ActionButton	fun ActionButton(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	AnimatedProgress	fun AnimatedProgress(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	MetricChip	fun MetricChip(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	EmptyStateCard	fun EmptyStateCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\DashboardComponents.kt	core/designsystem	fun	DashboardComponentsPreview	fun DashboardComponentsPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\ErrorUI.kt	core/designsystem	fun	AivanceError	fun AivanceError(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\ErrorUI.kt	core/designsystem	fun	AivanceErrorPreview	private fun AivanceErrorPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\LoadingUI.kt	core/designsystem	fun	AivanceLoading	fun AivanceLoading(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\LoadingUI.kt	core/designsystem	fun	AivanceLoadingPreview	private fun AivanceLoadingPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\RoadmapComponents.kt	core/designsystem	fun	StepCard	fun StepCard(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\RoadmapComponents.kt	core/designsystem	fun	TimelineItem	fun TimelineItem(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\RoadmapComponents.kt	core/designsystem	fun	StepCardPreview	fun StepCardPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\components\RoadmapComponents.kt	core/designsystem	fun	TimelineItemPreview	fun TimelineItemPreview() {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc50	val Zinc50 = Color(0xFFFAFAFA)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc100	val Zinc100 = Color(0xFFF4F4F5)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc200	val Zinc200 = Color(0xFFE4E4E7)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc300	val Zinc300 = Color(0xFFD4D4D8)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc400	val Zinc400 = Color(0xFFA1A1AA)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc500	val Zinc500 = Color(0xFF71717A)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc600	val Zinc600 = Color(0xFF52525B)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc700	val Zinc700 = Color(0xFF3F3F46)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc800	val Zinc800 = Color(0xFF27272A)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc900	val Zinc900 = Color(0xFF18181B)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	Zinc950	val Zinc950 = Color(0xFF09090B)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	data-class	AccentPalette	data class AccentPalette(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	enum	AccentSeed	enum class AccentSeed {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	object	AccentPalettes	object AccentPalettes {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	data-class	AivanceExtendedColors	data class AivanceExtendedColors(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LocalAivanceExtendedColors	val LocalAivanceExtendedColors = staticCompositionLocalOf {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	fun	extendedColorsFor	fun extendedColorsFor(isDark: Boolean): AivanceExtendedColors = if (isDark) {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkBackground	val DarkBackground = Color(0xFF000000)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkSurface	val DarkSurface = Color(0xFF09090B) // Zinc 950
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkSurfaceVariant	val DarkSurfaceVariant = Color(0xFF18181B) // Zinc 900
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkPrimary	val DarkPrimary = Color(0xFFFFFFFF)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkOnPrimary	val DarkOnPrimary = Color(0xFF000000)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkSecondary	val DarkSecondary = Color(0xFF71717A) // Zinc 500
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkOnSecondary	val DarkOnSecondary = Color(0xFFFFFFFF)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkTertiary	val DarkTertiary = Color(0xFF3F3F46) // Zinc 700
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkAccent	val DarkAccent = Color(0xFF3B82F6) // Blue 500
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	DarkError	val DarkError = Color(0xFFEF4444) // Red 500
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightBackground	val LightBackground = Color(0xFFFFFFFF)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightSurface	val LightSurface = Color(0xFFFAFAFA)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightSurfaceVariant	val LightSurfaceVariant = Color(0xFFF4F4F5) // Zinc 100
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightPrimary	val LightPrimary = Color(0xFF000000)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightOnPrimary	val LightOnPrimary = Color(0xFFFFFFFF)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightSecondary	val LightSecondary = Color(0xFF71717A) // Zinc 500
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightOnSecondary	val LightOnSecondary = Color(0xFFFFFFFF)
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightTertiary	val LightTertiary = Color(0xFFD4D4D8) // Zinc 300
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightAccent	val LightAccent = Color(0xFF2563EB) // Blue 600
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	LightError	val LightError = Color(0xFFDC2626) // Red 600
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	ZincNeutral700	val ZincNeutral700 = Zinc700
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	ZincNeutral800	val ZincNeutral800 = Zinc800
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	val	ZincNeutral900	val ZincNeutral900 = Zinc900
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	fun	buildAccentLightScheme	fun buildAccentLightScheme(accent: AccentPalette) = lightColorScheme(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Color.kt	core/designsystem	fun	buildAccentDarkScheme	fun buildAccentDarkScheme(accent: AccentPalette, amoled: Boolean = false) = darkColorScheme(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\DesignSystem.kt	core/designsystem	data-class	AivanceSpacing	data class AivanceSpacing(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\DesignSystem.kt	core/designsystem	data-class	AivanceShapes	data class AivanceShapes(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\DesignSystem.kt	core/designsystem	val	LocalAivanceSpacing	val LocalAivanceSpacing = staticCompositionLocalOf { AivanceSpacing() }
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\DesignSystem.kt	core/designsystem	val	LocalAivanceShapes	val LocalAivanceShapes = staticCompositionLocalOf { AivanceShapes() }
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Motion.kt	core/designsystem	data-class	AivanceMotion	data class AivanceMotion(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Motion.kt	core/designsystem	data-class	AivanceElevation	data class AivanceElevation(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Motion.kt	core/designsystem	val	LocalAivanceMotion	val LocalAivanceMotion = staticCompositionLocalOf { AivanceMotion() }
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Motion.kt	core/designsystem	val	LocalAivanceElevation	val LocalAivanceElevation = staticCompositionLocalOf { AivanceElevation() }
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Theme.kt	core/designsystem	enum	ThemeMode	enum class ThemeMode {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Theme.kt	core/designsystem	fun	AivanceTheme	fun AivanceTheme(
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Theme.kt	core/designsystem	val	LocalThemeMode	val LocalThemeMode = staticCompositionLocalOf { ThemeMode.SYSTEM }
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Theme.kt	core/designsystem	object	AivanceTheme	object AivanceTheme {
+core\designsystem\src\main\java\com\bangersoul\aivance\core\designsystem\theme\Type.kt	core/designsystem	val	Typography	val Typography = Typography(
+core\designsystem\src\test\java\com\bangersoul\aivance\core\designsystem\theme\AccentPaletteTest.kt	core/designsystem	class	AccentPaletteTest	class AccentPaletteTest {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\api\AIProvider.kt	core/sdk	class	AIProvider	abstract class AIProvider(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\api\EnrichmentProvider.kt	core/sdk	class	EnrichmentProvider	abstract class EnrichmentProvider(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\api\JobProvider.kt	core/sdk	class	JobProvider	abstract class JobProvider(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\api\OcrProvider.kt	core/sdk	class	OcrProvider	abstract class OcrProvider(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\api\ResumeParserProvider.kt	core/sdk	class	ResumeParserProvider	abstract class ResumeParserProvider(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\config\ProviderConfiguration.kt	core/sdk	data-class	ProviderConfiguration	data class ProviderConfiguration(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\config\SecretManager.kt	core/sdk	interface	SecretManager	interface SecretManager {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\config\SecretManager.kt	core/sdk	class	SecretManagerImpl	class SecretManagerImpl @Inject constructor(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\BaseProvider.kt	core/sdk	class	BaseProvider	abstract class BaseProvider(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\ProviderCapability.kt	core/sdk	sealed	ProviderCapability	sealed class ProviderCapability {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\ProviderMetadata.kt	core/sdk	enum	ProviderType	enum class ProviderType {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\ProviderMetadata.kt	core/sdk	data-class	ConfigField	data class ConfigField(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\ProviderMetadata.kt	core/sdk	enum	FieldType	enum class FieldType {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\ProviderMetadata.kt	core/sdk	data-class	ProviderMetadata	data class ProviderMetadata(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\ProviderMetrics.kt	core/sdk	data-class	ProviderMetrics	data class ProviderMetrics(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\core\ProviderStatus.kt	core/sdk	enum	ProviderStatus	enum class ProviderStatus {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	sealed	AivanceSdkException	sealed class AivanceSdkException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	class	ProviderNotReadyException	class ProviderNotReadyException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	class	CapabilityNotSupportedException	class CapabilityNotSupportedException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	class	ProviderRequestException	class ProviderRequestException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	class	ProviderAuthException	class ProviderAuthException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	class	ProviderRateLimitException	class ProviderRateLimitException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	class	ProviderNetworkException	class ProviderNetworkException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\exception\SdkExceptions.kt	core/sdk	class	ProviderConfigurationException	class ProviderConfigurationException(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\infrastructure\ProviderFactory.kt	core/sdk	class	ProviderFactory	class ProviderFactory @Inject constructor(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\infrastructure\ProviderManager.kt	core/sdk	class	ProviderManager	class ProviderManager @Inject constructor(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\infrastructure\ProviderRegistry.kt	core/sdk	class	ProviderRegistry	class ProviderRegistry @Inject constructor(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\model\AiMessage.kt	core/sdk	data-class	AiMessage	data class AiMessage(
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\security\AivanceSecurity.kt	core/sdk	object	AivanceSecurity	object AivanceSecurity {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\telemetry\ProviderErrorMapper.kt	core/sdk	object	ProviderErrorMapper	object ProviderErrorMapper {
+core\sdk\src\main\kotlin\com\bangersoul\aivance\sdk\telemetry\ProviderTelemetry.kt	core/sdk	object	ProviderTelemetry	object ProviderTelemetry {
+core\sdk\src\test\java\com\bangersoul\aivance\sdk\config\SecretManagerTest.kt	core/sdk	class	SecretManagerTest	class SecretManagerTest {
+core\sdk\src\test\java\com\bangersoul\aivance\sdk\infrastructure\ProviderManagerTest.kt	core/sdk	class	ProviderManagerTest	class ProviderManagerTest {
+core\sdk\src\test\java\com\bangersoul\aivance\sdk\infrastructure\ProviderRegistryTest.kt	core/sdk	class	ProviderRegistryTest	class ProviderRegistryTest {
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\models\ClaudeModels.kt	core/ai-providers	data-class	ClaudeMessageRequest	data class ClaudeMessageRequest(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\models\ClaudeModels.kt	core/ai-providers	data-class	ClaudeMessage	data class ClaudeMessage(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\models\ClaudeModels.kt	core/ai-providers	data-class	ClaudeMessageResponse	data class ClaudeMessageResponse(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\models\ClaudeModels.kt	core/ai-providers	data-class	ClaudeContent	data class ClaudeContent(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\models\ClaudeModels.kt	core/ai-providers	data-class	ClaudeUsage	data class ClaudeUsage(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\models\ClaudeModels.kt	core/ai-providers	data-class	ClaudeStreamEvent	data class ClaudeStreamEvent(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\models\ClaudeModels.kt	core/ai-providers	data-class	ClaudeDelta	data class ClaudeDelta(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\ClaudeApi.kt	core/ai-providers	interface	ClaudeApi	interface ClaudeApi {
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\anthropic\ClaudeProvider.kt	core/ai-providers	class	ClaudeProvider	class ClaudeProvider(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\di\AiProvidersModule.kt	core/ai-providers	object	AiProvidersModule	object AiProvidersModule {
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\gemini\GeminiAIProvider.kt	core/ai-providers	class	GeminiAIProvider	class GeminiAIProvider(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\GroqProvider.kt	core/ai-providers	class	GroqProvider	class GroqProvider(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OllamaProvider.kt	core/ai-providers	class	OllamaProvider	class OllamaProvider(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenAiApi.kt	core/ai-providers	interface	OpenAiApi	interface OpenAiApi {
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenAiApi.kt	core/ai-providers	data-class	ChatCompletionRequest	data class ChatCompletionRequest(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenAiApi.kt	core/ai-providers	data-class	OpenAiMessage	data class OpenAiMessage(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenAiApi.kt	core/ai-providers	data-class	ChatCompletionResponse	data class ChatCompletionResponse(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenAiApi.kt	core/ai-providers	data-class	ChatCompletionChunk	data class ChatCompletionChunk(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenAiBaseProvider.kt	core/ai-providers	class	OpenAiBaseProvider	abstract class OpenAiBaseProvider(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenAIProvider.kt	core/ai-providers	class	OpenAIProvider	class OpenAIProvider(
+core\ai-providers\src\main\kotlin\com\bangersoul\aivance\ai\openai\OpenRouterProvider.kt	core/ai-providers	class	OpenRouterProvider	class OpenRouterProvider(
+core\ai-providers\src\test\java\com\bangersoul\aivance\ai\openai\OpenAiApiSerializationTest.kt	core/ai-providers	class	OpenAiApiSerializationTest	class OpenAiApiSerializationTest {
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\di\EnrichmentProvidersModule.kt	core/enrichment-providers	object	EnrichmentProvidersModule	object EnrichmentProvidersModule {
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\dto\HunterDtos.kt	core/enrichment-providers	data-class	HunterDomainSearchResponse	data class HunterDomainSearchResponse(
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\dto\HunterDtos.kt	core/enrichment-providers	data-class	HunterDomainSearchData	data class HunterDomainSearchData(
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\dto\HunterDtos.kt	core/enrichment-providers	data-class	HunterEmailDto	data class HunterEmailDto(
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\dto\HunterDtos.kt	core/enrichment-providers	data-class	HunterEmailVerifierResponse	data class HunterEmailVerifierResponse(
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\dto\HunterDtos.kt	core/enrichment-providers	data-class	HunterEmailVerifierData	data class HunterEmailVerifierData(
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\dto\HunterDtos.kt	core/enrichment-providers	data-class	HunterErrorDto	data class HunterErrorDto(
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\HunterApi.kt	core/enrichment-providers	interface	HunterApi	interface HunterApi {
+core\enrichment-providers\src\main\kotlin\com\bangersoul\aivance\core\enrichment\hunter\HunterEnrichmentProvider.kt	core/enrichment-providers	class	HunterEnrichmentProvider	class HunterEnrichmentProvider(
+core\enrichment-providers\src\test\java\com\bangersoul\aivance\core\enrichment\hunter\HunterEnrichmentProviderTest.kt	core/enrichment-providers	class	HunterEnrichmentProviderTest	class HunterEnrichmentProviderTest {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\adzuna\dto\AdzunaJobDto.kt	core/job-providers	data-class	AdzunaJobDto	data class AdzunaJobDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\adzuna\dto\AdzunaJobDto.kt	core/job-providers	data-class	AdzunaCompanyDto	data class AdzunaCompanyDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\adzuna\dto\AdzunaJobDto.kt	core/job-providers	data-class	AdzunaLocationDto	data class AdzunaLocationDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\adzuna\dto\AdzunaJobDto.kt	core/job-providers	data-class	AdzunaCategoryDto	data class AdzunaCategoryDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\adzuna\dto\AdzunaJobDto.kt	core/job-providers	data-class	AdzunaResponseDto	data class AdzunaResponseDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\adzuna\AdzunaApi.kt	core/job-providers	interface	AdzunaApi	interface AdzunaApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\adzuna\AdzunaProvider.kt	core/job-providers	class	AdzunaProvider	class AdzunaProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\apify\dto\ApifyDtos.kt	core/job-providers	data-class	ApifyActorRunResponse	data class ApifyActorRunResponse(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\apify\dto\ApifyDtos.kt	core/job-providers	data-class	ApifyActorRunData	data class ApifyActorRunData(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\apify\dto\ApifyDtos.kt	core/job-providers	data-class	ApifyDatasetItem	data class ApifyDatasetItem(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\apify\ApifyApi.kt	core/job-providers	interface	ApifyApi	interface ApifyApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\apify\ApifyJobProvider.kt	core/job-providers	class	ApifyJobProvider	open class ApifyJobProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\arbeitnow\dto\ArbeitnowJobDto.kt	core/job-providers	data-class	ArbeitnowJobDto	data class ArbeitnowJobDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\arbeitnow\dto\ArbeitnowJobDto.kt	core/job-providers	data-class	ArbeitnowResponseDto	data class ArbeitnowResponseDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\arbeitnow\dto\ArbeitnowJobDto.kt	core/job-providers	data-class	ArbeitnowMetaDto	data class ArbeitnowMetaDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\arbeitnow\ArbeitnowApi.kt	core/job-providers	interface	ArbeitnowApi	interface ArbeitnowApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\arbeitnow\ArbeitnowProvider.kt	core/job-providers	class	ArbeitnowProvider	class ArbeitnowProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\base\RestJobProvider.kt	core/job-providers	class	RestJobProvider	abstract class RestJobProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\base\RetryInterceptor.kt	core/job-providers	class	RetryInterceptor	class RetryInterceptor(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\base\UserAgentInterceptor.kt	core/job-providers	class	UserAgentInterceptor	class UserAgentInterceptor : Interceptor {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\cache\JobCache.kt	core/job-providers	interface	JobCache	interface JobCache {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\cache\MemoryJobCache.kt	core/job-providers	class	MemoryJobCache	class MemoryJobCache @Inject constructor(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\cache\RoomJobCache.kt	core/job-providers	class	RoomJobCache	class RoomJobCache @Inject constructor(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\di\JobProvidersModule.kt	core/job-providers	class	JobProvidersModule	abstract class JobProvidersModule {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\greenhouse\dto\GreenhouseJobDto.kt	core/job-providers	data-class	GreenhouseLocationDto	data class GreenhouseLocationDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\greenhouse\dto\GreenhouseJobDto.kt	core/job-providers	data-class	GreenhouseJobDto	data class GreenhouseJobDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\greenhouse\dto\GreenhouseJobDto.kt	core/job-providers	data-class	GreenhouseResponseDto	data class GreenhouseResponseDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\greenhouse\GreenhouseApi.kt	core/job-providers	interface	GreenhouseApi	interface GreenhouseApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\greenhouse\GreenhouseProvider.kt	core/job-providers	class	GreenhouseProvider	class GreenhouseProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\indeed\IndeedProvider.kt	core/job-providers	class	IndeedProvider	class IndeedProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\jobicy\dto\JobicyJobDto.kt	core/job-providers	data-class	JobicyJobDto	data class JobicyJobDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\jobicy\dto\JobicyJobDto.kt	core/job-providers	data-class	JobicyResponseDto	data class JobicyResponseDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\jobicy\JobicyApi.kt	core/job-providers	interface	JobicyApi	interface JobicyApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\jobicy\JobicyProvider.kt	core/job-providers	class	JobicyProvider	class JobicyProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\lever\dto\LeverJobDto.kt	core/job-providers	data-class	LeverCategoriesDto	data class LeverCategoriesDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\lever\dto\LeverJobDto.kt	core/job-providers	data-class	LeverJobDto	data class LeverJobDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\lever\LeverApi.kt	core/job-providers	interface	LeverApi	interface LeverApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\lever\LeverProvider.kt	core/job-providers	class	LeverProvider	class LeverProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\linkedin\LinkedInProvider.kt	core/job-providers	class	LinkedInProvider	class LinkedInProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\mapper\JobMapper.kt	core/job-providers	object	JobMapper	object JobMapper {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\remoteok\dto\RemoteOKJobDto.kt	core/job-providers	data-class	RemoteOKJobDto	data class RemoteOKJobDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\remoteok\RemoteOKApi.kt	core/job-providers	interface	RemoteOKApi	interface RemoteOKApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\remoteok\RemoteOKProvider.kt	core/job-providers	class	RemoteOKProvider	class RemoteOKProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\remotive\dto\RemotiveJobDto.kt	core/job-providers	data-class	RemotiveJobDto	data class RemotiveJobDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\remotive\dto\RemotiveJobDto.kt	core/job-providers	data-class	RemotiveResponseDto	data class RemotiveResponseDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\remotive\RemotiveApi.kt	core/job-providers	interface	RemotiveApi	interface RemotiveApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\remotive\RemotiveProvider.kt	core/job-providers	class	RemotiveProvider	class RemotiveProvider(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\dto\USAJobsDto.kt	core/job-providers	data-class	USAJobsResponseDto	data class USAJobsResponseDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\dto\USAJobsDto.kt	core/job-providers	data-class	USAJobsSearchResultDto	data class USAJobsSearchResultDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\dto\USAJobsDto.kt	core/job-providers	data-class	USAJobsItemDto	data class USAJobsItemDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\dto\USAJobsDto.kt	core/job-providers	data-class	USAJobsDescriptorDto	data class USAJobsDescriptorDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\dto\USAJobsDto.kt	core/job-providers	data-class	USAJobsLocationDto	data class USAJobsLocationDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\dto\USAJobsDto.kt	core/job-providers	data-class	USAJobsLabelDto	data class USAJobsLabelDto(
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\USAJobsApi.kt	core/job-providers	interface	USAJobsApi	interface USAJobsApi {
+core\job-providers\src\main\kotlin\com\bangersoul\aivance\job\usajobs\USAJobsProvider.kt	core/job-providers	class	USAJobsProvider	class USAJobsProvider(
+core\job-providers\src\test\java\com\bangersoul\aivance\job\apify\ApifyJobProviderTest.kt	core/job-providers	class	ApifyJobProviderTest	class ApifyJobProviderTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\arbeitnow\ArbeitnowProviderTest.kt	core/job-providers	class	ArbeitnowProviderTest	class ArbeitnowProviderTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\base\RestJobProviderTest.kt	core/job-providers	class	RestJobProviderTest	class RestJobProviderTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\base\RetryInterceptorTest.kt	core/job-providers	class	RetryInterceptorTest	class RetryInterceptorTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\base\UserAgentInterceptorTest.kt	core/job-providers	class	UserAgentInterceptorTest	class UserAgentInterceptorTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\cache\MemoryJobCacheTest.kt	core/job-providers	class	MemoryJobCacheTest	class MemoryJobCacheTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\cache\RoomJobCacheTest.kt	core/job-providers	class	RoomJobCacheTest	class RoomJobCacheTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\di\JobProvidersModuleTest.kt	core/job-providers	class	JobProvidersModuleTest	class JobProvidersModuleTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\greenhouse\GreenhouseProviderTest.kt	core/job-providers	class	GreenhouseProviderTest	class GreenhouseProviderTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\jobicy\JobicyProviderTest.kt	core/job-providers	class	JobicyProviderTest	class JobicyProviderTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\lever\LeverProviderTest.kt	core/job-providers	class	LeverProviderTest	class LeverProviderTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\mapper\JobMapperTest.kt	core/job-providers	class	JobMapperTest	class JobMapperTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\remoteok\RemoteOKProviderTest.kt	core/job-providers	class	RemoteOKProviderTest	class RemoteOKProviderTest {
+core\job-providers\src\test\java\com\bangersoul\aivance\job\remotive\RemotiveProviderTest.kt	core/job-providers	class	RemotiveProviderTest	class RemotiveProviderTest {

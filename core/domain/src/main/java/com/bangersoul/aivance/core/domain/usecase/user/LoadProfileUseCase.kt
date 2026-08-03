@@ -21,7 +21,7 @@ import javax.inject.Inject
 class LoadProfileUseCase @Inject constructor(
     private val userRepository: UserRepository
 ) {
-    fun invoke(): Flow<CoreResult<UserProfile>> {
+    operator fun invoke(): Flow<CoreResult<UserProfile>> {
         return userRepository.getProfile().map { result ->
             when (result) {
                 is Result.Success -> Result.Success(result.data)

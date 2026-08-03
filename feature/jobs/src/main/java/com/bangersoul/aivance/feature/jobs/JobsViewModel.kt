@@ -2,10 +2,10 @@ package com.bangersoul.aivance.feature.jobs
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bangersoul.aivance.core.common.enums.JobType
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsRequest
@@ -13,11 +13,7 @@ import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.ToggleJobBookmarkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,7 +22,8 @@ sealed interface JobsUiState {
     data class Success(
         val jobs: List<JobListing> = emptyList(),
         val filter: JobSearchFilter = JobSearchFilter(),
-        val isSearching: Boolean = false
+        val isSearching: Boolean = false,
+        val careerContext: com.bangersoul.aivance.core.common.model.CareerState? = null
     ) : JobsUiState
     data class Error(val message: String) : JobsUiState
 }
@@ -49,11 +46,38 @@ sealed interface JobsUiEffect {
 class JobsViewModel @Inject constructor(
     private val searchJobsUseCase: SearchJobsUseCase,
     private val toggleJobBookmarkUseCase: ToggleJobBookmarkUseCase,
+    private val careerStateEngine: CareerStateEngine,
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<JobsUiState>(JobsUiState.Success())
-    val uiState: StateFlow<JobsUiState> = _uiState.asStateFlow()
+    private val _manualSearchState = MutableStateFlow<SearchState>(SearchState())
+
+    val uiState: StateFlow<JobsUiState> = combine(
+        careerStateEngine.state,
+        _manualSearchState
+    ) { careerState, manualSearch ->
+        val currentJobs = manualSearch.jobs
+        val profile = careerState.profile
+
+        JobsUiState.Success(
+            jobs = currentJobs,
+            filter = manualSearch.filter.copy(
+                query = manualSearch.filter.query.ifBlank { profile.targetRole },
+                remoteType = manualSearch.filter.remoteType ?: when(profile.workPreference) {
+                    "REMOTE" -> com.bangersoul.aivance.core.common.enums.RemoteType.REMOTE
+                    "HYBRID" -> com.bangersoul.aivance.core.common.enums.RemoteType.HYBRID
+                    "ONSITE" -> com.bangersoul.aivance.core.common.enums.RemoteType.ON_SITE
+                    else -> null
+                }
+            ),
+            isSearching = manualSearch.isSearching,
+            careerContext = careerState
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = JobsUiState.Loading
+    )
 
     private val _effects = Channel<JobsUiEffect>(Channel.BUFFERED)
     val effects: Flow<JobsUiEffect> = _effects.receiveAsFlow()
@@ -72,10 +96,10 @@ class JobsViewModel @Inject constructor(
     private var searchJob: kotlinx.coroutines.Job? = null
 
     private fun search(query: String? = null) {
-        val current = _uiState.value as? JobsUiState.Success ?: JobsUiState.Success()
+        val current = _manualSearchState.value
         val newFilter = query?.let { current.filter.copy(query = it) } ?: current.filter
 
-        _uiState.value = current.copy(filter = newFilter, isSearching = true)
+        _manualSearchState.value = current.copy(filter = newFilter, isSearching = true)
 
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
@@ -84,32 +108,25 @@ class JobsViewModel @Inject constructor(
             val result = searchJobsUseCase(SearchJobsRequest(filter = newFilter))
             when (result) {
                 is Result.Success -> {
-                    _uiState.value = JobsUiState.Success(jobs = result.data, filter = newFilter, isSearching = false)
+                    _manualSearchState.value = SearchState(jobs = result.data, filter = newFilter, isSearching = false)
                 }
                 is Result.Failure -> {
                     val message = result.error.message ?: "Failed to load jobs"
-                    if (current.jobs.isEmpty()) {
-                        _uiState.value = JobsUiState.Error(message)
-                    } else {
-                        _uiState.value = JobsUiState.Success(jobs = current.jobs, filter = newFilter, isSearching = false)
-                        _effects.send(JobsUiEffect.ShowSnackbar(message))
-                    }
+                    _manualSearchState.value = current.copy(isSearching = false)
+                    _effects.send(JobsUiEffect.ShowSnackbar(message))
                 }
             }
         }
     }
 
     private fun updateFilter(filter: JobSearchFilter) {
-        val current = _uiState.value as? JobsUiState.Success ?: JobsUiState.Success()
-        _uiState.value = current.copy(filter = filter, isSearching = true)
+        _manualSearchState.value = _manualSearchState.value.copy(filter = filter, isSearching = true)
         search()
     }
 
-    /** Resets every filter dimension (keeps the free-text query). */
     private fun clearFilters() {
-        val current = _uiState.value as? JobsUiState.Success ?: JobsUiState.Success()
-        val cleared = JobSearchFilter(query = current.filter.query)
-        _uiState.value = current.copy(filter = cleared, isSearching = true)
+        val cleared = JobSearchFilter(query = _manualSearchState.value.filter.query)
+        _manualSearchState.value = _manualSearchState.value.copy(filter = cleared, isSearching = true)
         search(cleared.query)
     }
 
@@ -127,4 +144,10 @@ class JobsViewModel @Inject constructor(
             }
         }
     }
+
+    private data class SearchState(
+        val jobs: List<JobListing> = emptyList(),
+        val filter: JobSearchFilter = JobSearchFilter(),
+        val isSearching: Boolean = false
+    )
 }

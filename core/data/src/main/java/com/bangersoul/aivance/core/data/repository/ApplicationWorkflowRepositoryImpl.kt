@@ -112,9 +112,11 @@ class ApplicationWorkflowRepositoryImpl @Inject constructor(
             ApplicationStageEntity(id = "SAVED", label = "Saved", order = 1),
             ApplicationStageEntity(id = "PREPARING", label = "Preparing", order = 2),
             ApplicationStageEntity(id = "APPLIED", label = "Applied", order = 3),
-            ApplicationStageEntity(id = "INTERVIEW", label = "Interview", order = 4),
-            ApplicationStageEntity(id = "OFFER", label = "Offer", order = 5),
-            ApplicationStageEntity(id = "REJECTED", label = "Rejected", order = 6)
+            ApplicationStageEntity(id = "ASSESSMENT", label = "Assessment", order = 4),
+            ApplicationStageEntity(id = "INTERVIEW", label = "Interview", order = 5),
+            ApplicationStageEntity(id = "OFFER", label = "Offer", order = 6),
+            ApplicationStageEntity(id = "REJECTED", label = "Rejected", order = 7),
+            ApplicationStageEntity(id = "ARCHIVED", label = "Archived", order = 8)
         )
     }
 }

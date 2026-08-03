@@ -16,7 +16,7 @@ class TaskGeneratorUseCase @Inject constructor(
 ) : UseCase<Application, CoreResult<Unit>>() {
 
     override suspend operator fun invoke(input: Application): CoreResult<Unit> = runCatchingCore {
-        when (input.currentStageId) {
+        when (input.currentStageId.uppercase()) {
             "SAVED" -> {
                 if (input.atsReportId == null) {
                     repository.addTask(
@@ -40,7 +40,48 @@ class TaskGeneratorUseCase @Inject constructor(
                         )
                     )
                 }
+                if (input.resumeVersionId == null) {
+                    repository.addTask(
+                        ApplicationTask(
+                            applicationId = input.id,
+                            title = "Tailor Resume",
+                            description = "Optimize your resume sections for this specific role.",
+                            priority = "HIGH"
+                        )
+                    )
+                }
+            }
+            "APPLIED" -> {
+                repository.addTask(
+                    ApplicationTask(
+                        applicationId = input.id,
+                        title = "Research Company",
+                        description = "Deep dive into ${input.job?.company ?: "the company"}'s culture and tech stack.",
+                        priority = "MEDIUM"
+                    )
+                )
+                repository.addTask(
+                    ApplicationTask(
+                        applicationId = input.id,
+                        title = "Schedule Follow-up",
+                        description = "Set a reminder to reach out if you don't hear back in 7 days.",
+                        priority = "LOW"
+                    )
+                )
+            }
+            "INTERVIEW", "INTERVIEWING" -> {
+                repository.addTask(
+                    ApplicationTask(
+                        applicationId = input.id,
+                        title = "Mock Interview Practice",
+                        description = "Start a practice session for the ${input.job?.title ?: "role"}.",
+                        priority = "HIGH"
+                    )
+                )
             }
         }
+
+        // Add AI-suggested task if any high-priority recommendations exist
+        // (In a real implementation, we would pass the full CareerState here)
     }
 }

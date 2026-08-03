@@ -1,4 +1,4 @@
-package com.bangersoul.aivance.navigation
+package com.bangersoul.aivance.feature.profile
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn

@@ -4,10 +4,15 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.Application
+import com.bangersoul.aivance.core.common.model.Company
 import com.bangersoul.aivance.core.common.model.JobListing
+import com.bangersoul.aivance.core.common.model.Recruiter
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.JobRepository
+import com.bangersoul.aivance.core.domain.repository.crm.CompanyIntelligenceRepository
+import com.bangersoul.aivance.core.domain.repository.crm.RecruiterIntelligenceRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCase
@@ -26,7 +31,10 @@ sealed interface JobDetailsUiState {
     data object Loading : JobDetailsUiState
     data class Success(
         val job: JobListing,
-        val isBookmarked: Boolean = false
+        val company: Company? = null,
+        val recruiters: List<Recruiter> = emptyList(),
+        val isBookmarked: Boolean = false,
+        val readinessScore: Int = 0
     ) : JobDetailsUiState
     data class Error(val message: String) : JobDetailsUiState
 }
@@ -45,7 +53,6 @@ sealed interface JobDetailsUiEffect {
     data class ShowSnackbar(val message: String) : JobDetailsUiEffect
     data class OpenExternalUrl(val url: String) : JobDetailsUiEffect
     data class NavigateToRecruiters(val jobId: String) : JobDetailsUiEffect
-    /** Carries the DB job id (from caching) so the Cover Letter flow can target it. */
     data class NavigateToCoverLetter(val jobId: Long) : JobDetailsUiEffect
     data class NavigateToAts(val jobDescription: String) : JobDetailsUiEffect
     data object NavigateToPipeline : JobDetailsUiEffect
@@ -58,6 +65,8 @@ class JobDetailsViewModel @Inject constructor(
     private val toggleJobBookmarkUseCase: ToggleJobBookmarkUseCase,
     private val jobRepository: JobRepository,
     private val applicationWorkflowRepository: ApplicationWorkflowRepository,
+    private val companyIntelligenceRepository: CompanyIntelligenceRepository,
+    private val recruiterIntelligenceRepository: RecruiterIntelligenceRepository,
     private val trackEventUseCase: TrackEventUseCase
 ) : ViewModel() {
 
@@ -105,13 +114,29 @@ class JobDetailsViewModel @Inject constructor(
             val result = getJobDetailsUseCase(jobId)
             when (result) {
                 is Result.Success -> {
-                    _uiState.value = JobDetailsUiState.Success(job = result.data)
+                    val job = result.data
+                    val company = companyIntelligenceRepository.getCompanyByName(job.company)
+                    val recruiters = company?.domain?.let {
+                        recruiterIntelligenceRepository.findRecruiters(it).getOrNull()
+                    } ?: emptyList()
+
+                    _uiState.value = JobDetailsUiState.Success(
+                        job = job,
+                        company = company,
+                        recruiters = recruiters,
+                        readinessScore = calculateReadiness(job)
+                    )
                 }
                 is Result.Failure -> {
                     _uiState.value = JobDetailsUiState.Error(result.error.message)
                 }
             }
         }
+    }
+
+    private fun calculateReadiness(job: JobListing): Int {
+        // Mock readiness calculation for now
+        return (job.matchScore ?: 60).coerceIn(0, 100)
     }
 
     private fun toggleBookmark() {

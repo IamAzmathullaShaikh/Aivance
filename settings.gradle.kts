@@ -54,3 +54,6 @@ include(":feature:assistant")
 
 // Navigation module
 include(":navigation")
+
+// Performance modules
+include(":macrobenchmark")

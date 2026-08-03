@@ -100,6 +100,40 @@
     <string name="delete_confirm_body">This will delete all your resumes, applications, and settings forever.</string>
     <string name="yes_delete_everything">Yes, Delete Everything</string>
 
+    <!-- Auth -->
+    <string name="auth_create_account_title">Create your account</string>
+    <string name="auth_welcome_back_title">Welcome back</string>
+    <string name="auth_create_subtitle">Tell us a little about yourself to personalize your Career Operating System.</string>
+    <string name="auth_signin_subtitle">Sign in to continue your career journey.</string>
+    <string name="auth_sign_in">Sign In</string>
+    <string name="auth_create_account">Create Account</string>
+    <string name="auth_first_name">First Name</string>
+    <string name="auth_last_name">Last Name</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_email_placeholder">you@example.com</string>
+    <string name="auth_phone_optional">Phone (optional)</string>
+    <string name="auth_phone_placeholder">+1 555 000 1234</string>
+    <string name="auth_continue">Continue</string>
+    <string name="auth_or_separator">"  or  "</string>
+    <string name="auth_google">Continue with Google</string>
+
+    <!-- Onboarding -->
+    <string name="choose_ai_provider">Choose AI Provider</string>
+    <string name="ai_provider_desc">Select the intelligence that will power your resume analysis and interview prep.</string>
+    <string name="choose_job_provider">Choose Job Provider</string>
+    <string name="job_provider_desc">Select where you want to fetch job listings and recruiter details from.</string>
+    <string name="enrichment_optional">Enrichment Service (Optional)</string>
+    <string name="enrichment_desc">Find verified recruiter contacts and company intelligence. Highly recommended for outreach.</string>
+    <string name="skip_all">Skip All — I\'ll configure later</string>
+    <string name="configure_later">You can configure providers later in Settings.</string>
+    <string name="validate_continue">Validate &amp; Continue</string>
+    <string name="all_set">All Set!</string>
+    <string name="ai_engine">AI Engine</string>
+    <string name="job_source">Job Source</string>
+    <string name="enrichment">Enrichment</string>
+    <string name="not_configured">Not Configured</string>
+    <string name="go_to_dashboard">Go to Dashboard</string>
+
     <!-- Profile -->
     <string name="profile_title">Profile</string>
     <string name="profile_photo_desc">Profile photo</string>

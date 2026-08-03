@@ -8,6 +8,7 @@ data class UserPreferences(
     val themeConfig: ThemeConfig = ThemeConfig.FOLLOW_SYSTEM,
     val accentSeed: String = "INDIGO",
     val dynamicColor: Boolean = true,
+    val biometricLockEnabled: Boolean = false,
     val geminiApiKey: String? = null,
 
     /** Notification preferences (Settings Hub toggles). */

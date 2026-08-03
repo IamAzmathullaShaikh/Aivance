@@ -25,5 +25,10 @@ data class UserProfileEntity(
     val linkedinUrl: String? = null,
     val githubUrl: String? = null,
     val dateOfBirth: Long? = null,
+    val preferredIndustries: List<String> = emptyList(),
+    val salaryExpectation: String? = null,
+    val workPreference: String? = "REMOTE",
+    val visaRequired: Boolean = false,
+    val noticePeriod: String? = null,
     val createdDate: Long = System.currentTimeMillis()
 )

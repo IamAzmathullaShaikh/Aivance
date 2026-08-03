@@ -243,6 +243,35 @@ fun StatusChip(
     }
 }
 
+/**
+ * A workspace card — the standard container for list items and grouped content.
+ */
+@Composable
+fun AivanceWorkspaceCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier.fillMaxWidth(),
+            shape = AivanceTheme.shapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            content = { content() }
+        )
+    } else {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = AivanceTheme.shapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            content = { content() }
+        )
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 private fun CardPreview() {

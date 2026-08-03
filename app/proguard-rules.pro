@@ -61,6 +61,12 @@
     public static void i(...);
     public static void w(...);
 }
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+}
 
 # Keep explicit rules from rules.keep
 -keep @interface com.bangersoul.aivance.**.Keep { *; }

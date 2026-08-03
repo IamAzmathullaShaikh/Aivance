@@ -96,7 +96,7 @@ class AivanceNavGraphTest {
     fun deepLinkResumeParsesCorrectly() {
         val uri = Uri.parse("aivance://resume")
         val dest = DeepLinkHandler.parseUri(uri)
-        assertTrue("Expected Resume, got $dest", dest is Destination.Resume)
+        assertTrue("Expected Intelligence, got $dest", dest is Destination.Intelligence)
     }
 
     @Test

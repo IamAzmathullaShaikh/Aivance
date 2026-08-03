@@ -1,7 +1,6 @@
 package com.bangersoul.aivance.core.domain.workflow
 
-import com.bangersoul.aivance.core.common.model.Application
-import com.bangersoul.aivance.core.common.model.TimelineEvent
+import com.bangersoul.aivance.core.common.model.*
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.runCatchingCore
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
@@ -12,19 +11,30 @@ import javax.inject.Singleton
 @Singleton
 class WorkflowEngine @Inject constructor(
     private val repository: ApplicationWorkflowRepository,
-    private val analyticsRepository: AnalyticsRepository
+    private val analyticsRepository: AnalyticsRepository,
+    private val taskGenerator: com.bangersoul.aivance.core.domain.usecase.workflow.TaskGeneratorUseCase
 ) {
-    suspend fun transitionTo(application: Application, nextStageId: String): CoreResult<Unit> = runCatchingCore {
+    fun determineLifecycleStage(state: CareerState): CareerLifecycleStage {
+        return when {
+            state.profile.targetRole.isEmpty() -> CareerLifecycleStage.ONBOARDING
+            state.intelligence.totalResumes == 0 -> CareerLifecycleStage.PREPARING
+            state.intelligence.atsScore < 70 && state.intelligence.totalResumes > 0 -> CareerLifecycleStage.OPTIMIZING
+            state.discovery.savedJobsCount < 5 -> CareerLifecycleStage.EXPLORING
+            state.pipeline.activeApplications < 3 -> CareerLifecycleStage.APPLYING
+            state.pipeline.upcomingInterviews.isNotEmpty() -> CareerLifecycleStage.INTERVIEWING
+            else -> CareerLifecycleStage.STRATEGIZING
+        }
+    }
+
+    suspend fun transitionApplicationTo(application: Application, nextStageId: String): CoreResult<Unit> = runCatchingCore {
         if (application.currentStageId == nextStageId) return@runCatchingCore
 
-        // 1. Update Application
         val updated = application.copy(
             currentStageId = nextStageId,
             lastModified = System.currentTimeMillis()
         )
         repository.saveApplication(updated)
 
-        // 2. Log to Timeline
         repository.addTimelineEvent(
             TimelineEvent(
                 applicationId = application.id,
@@ -35,8 +45,11 @@ class WorkflowEngine @Inject constructor(
             )
         )
 
-        // 3. Automations: refresh the analytics snapshot so pipeline changes
-        //    flow through to the dashboard career score + recommendations.
+        taskGenerator(updated)
+
         analyticsRepository.createSnapshot()
     }
+
+    suspend fun transitionTo(application: Application, nextStageId: String): CoreResult<Unit> =
+        transitionApplicationTo(application, nextStageId)
 }

@@ -3,6 +3,7 @@ package com.bangersoul.aivance.feature.analytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.AnalyticsSnapshot
+import com.bangersoul.aivance.core.common.model.CareerIntelligence
 import com.bangersoul.aivance.core.common.model.CareerRecommendation
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
@@ -21,7 +22,9 @@ sealed interface AnalyticsUiState {
     data class Success(
         val latestSnapshot: AnalyticsSnapshot? = null,
         val recommendations: List<CareerRecommendation> = emptyList(),
-        val historicalSnapshots: List<AnalyticsSnapshot> = emptyList()
+        val historicalSnapshots: List<AnalyticsSnapshot> = emptyList(),
+        val intelligence: CareerIntelligence? = null,
+        val simulation: CareerIntelligence? = null
     ) : AnalyticsUiState
     data class Error(val message: String) : AnalyticsUiState
 }
@@ -45,20 +48,32 @@ class AnalyticsViewModel @Inject constructor(
 
             combine(
                 analyticsRepository.getSnapshots(),
-                analyticsRepository.getActiveRecommendations()
-            ) { snapshotsRes, recsRes ->
-                if (snapshotsRes is Result.Success && recsRes is Result.Success) {
+                analyticsRepository.getActiveRecommendations(),
+                analyticsRepository.getCareerIntelligence()
+            ) { snapshotsRes, recsRes, intelRes ->
+                if (snapshotsRes is Result.Success && recsRes is Result.Success && intelRes is Result.Success) {
                     val snapshots = snapshotsRes.data
                     AnalyticsUiState.Success(
                         latestSnapshot = snapshots.firstOrNull(),
                         historicalSnapshots = snapshots,
-                        recommendations = recsRes.data
+                        recommendations = recsRes.data,
+                        intelligence = intelRes.data
                     )
                 } else {
                     AnalyticsUiState.Error("Failed to load analytics")
                 }
             }.collect {
                 _uiState.value = it
+            }
+        }
+    }
+
+    fun runSimulation(ats: Int?, readiness: Int?) {
+        viewModelScope.launch {
+            val result = analyticsRepository.runSimulation(ats, readiness)
+            if (result is Result.Success) {
+                val current = _uiState.value as? AnalyticsUiState.Success ?: return@launch
+                _uiState.value = current.copy(simulation = result.data)
             }
         }
     }

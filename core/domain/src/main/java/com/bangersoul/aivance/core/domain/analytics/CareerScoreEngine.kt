@@ -11,7 +11,8 @@ class CareerScoreEngine @Inject constructor() {
     fun calculateCompositeScore(
         latestAtsReports: List<AtsReport>,
         recruiters: List<Recruiter>,
-        applicationCount: Int
+        applicationCount: Int,
+        interviewReadiness: Int = 0
     ): Map<String, Int> {
         val atsScore = if (latestAtsReports.isEmpty()) 0
                       else latestAtsReports.map { it.overallScore }.average().toInt()
@@ -20,13 +21,14 @@ class CareerScoreEngine @Inject constructor() {
 
         val consistencyScore = (applicationCount * 2).coerceAtMost(100)
 
-        val overall = (atsScore + networkingScore + consistencyScore) / 3
+        val overall = (atsScore + networkingScore + consistencyScore + interviewReadiness) / 4
 
         return mapOf(
             "OVERALL" to overall,
             "ATS_READINESS" to atsScore,
             "NETWORKING" to networkingScore,
-            "CONSISTENCY" to consistencyScore
+            "CONSISTENCY" to consistencyScore,
+            "INTERVIEW_READINESS" to interviewReadiness
         )
     }
 }

@@ -59,24 +59,37 @@ fun TrackerScreen(
 
     var showAddDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    AivanceWorkspaceScaffold(
+        title = stringResource(R.string.career_pipeline_title),
+        subtitle = "Manage your execution pipeline",
+        onBack = onBack,
+        isLoading = uiState is TrackerUiState.Loading,
+        error = (uiState as? TrackerUiState.Error)?.message,
+        onRetry = { viewModel.onEvent(TrackerUiEvent.Refresh) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.add_application))
+            }
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            AivanceTopBar(title = stringResource(R.string.career_pipeline_title), onBack = onBack)
             AnimatedContent(
                 targetState = uiState,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
                 label = "TrackerTransition"
             ) { state ->
                 when (state) {
-                    is TrackerUiState.Loading -> SkeletonDashboard(modifier = Modifier.fillMaxSize())
-                    is TrackerUiState.Error -> AivanceError(
-                        message = state.message,
-                        onRetry = { viewModel.onEvent(TrackerUiEvent.Refresh) },
-                        title = stringResource(R.string.pipeline_unavailable)
-                    )
-                    is TrackerUiState.Success -> PipelineBoard(
+                    is TrackerUiState.Success -> PipelineContent(
                         stages = state.stages,
                         applications = state.applications,
+                        metrics = state.pipelineMetrics,
                         selectedApplicationId = state.selectedApplicationId,
                         onMove = { appId, stageId ->
                             viewModel.onEvent(TrackerUiEvent.UpdateStage(appId, stageId))
@@ -96,23 +109,6 @@ fun TrackerScreen(
                 }
             }
         }
-
-        // Manual application adding — a FAB opens the add dialog.
-        FloatingActionButton(
-            onClick = { showAddDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(20.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        ) {
-            Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.add_application))
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 
     if (showAddDialog) {
@@ -124,6 +120,44 @@ fun TrackerScreen(
                 showAddDialog = false
                 viewModel.onEvent(TrackerUiEvent.AddApplication(company, role, stageId))
             }
+        )
+    }
+}
+
+@Composable
+private fun PipelineContent(
+    stages: List<ApplicationStage>,
+    applications: List<Application>,
+    metrics: PipelineMetrics,
+    selectedApplicationId: Long?,
+    onMove: (Long, String) -> Unit,
+    onSelect: (Long) -> Unit,
+    onClose: () -> Unit,
+    onDelete: (Long) -> Unit,
+    onNotesChange: (Long, String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Hero Section
+        Column(modifier = Modifier.padding(16.dp)) {
+            AivanceHeroCard(
+                title = "Pipeline Performance",
+                description = "You have ${metrics.activeCount} active applications. Your interview conversion is ${metrics.interviewRate}%.",
+                actionLabel = "View Analytics",
+                onClick = { /* Navigate to Analytics */ }
+            )
+            Spacer(Modifier.height(16.dp))
+            SectionHeader(title = "Kanban Board")
+        }
+
+        PipelineBoard(
+            stages = stages,
+            applications = applications,
+            selectedApplicationId = selectedApplicationId,
+            onMove = onMove,
+            onSelect = onSelect,
+            onClose = onClose,
+            onDelete = onDelete,
+            onNotesChange = onNotesChange
         )
     }
 }
@@ -439,10 +473,11 @@ private fun KanbanCard(
 @Composable
 private fun stageColor(stageId: String): Color = when (stageId.uppercase()) {
     "SAVED", "PREPARING" -> AivanceTheme.colors.info
-    "APPLIED" -> AivanceTheme.colors.accent
+    "APPLIED", "ASSESSMENT" -> AivanceTheme.colors.accent
     "INTERVIEW", "INTERVIEWING" -> AivanceTheme.colors.warning
     "OFFER" -> AivanceTheme.colors.success
     "REJECTED", "CLOSED" -> MaterialTheme.colorScheme.error
+    "ARCHIVED" -> MaterialTheme.colorScheme.outline
     else -> MaterialTheme.colorScheme.secondary
 }
 
@@ -454,167 +489,238 @@ private fun ApplicationDetailSheet(
     onDelete: () -> Unit,
     onNotesChange: (String) -> Unit
 ) {
+    var selectedTab by remember { mutableIntStateOf(0) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    val uriHandler = LocalUriHandler.current
 
-    // Locally buffer the notes so typing never fights the Room re-emissions;
-    // save (debounced) once the user pauses.
-    var notesText by remember(application.id) { mutableStateOf(application.notes.orEmpty()) }
-    val currentOnNotesChange by rememberUpdatedState(onNotesChange)
-    LaunchedEffect(notesText, application.id) {
-        if (notesText != application.notes.orEmpty()) {
-            kotlinx.coroutines.delay(600)
-            currentOnNotesChange(notesText)
-        }
-    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(modifier = Modifier.fillMaxHeight(0.9f)) {
+            // Workspace Header
+            ApplicationWorkspaceHeader(application)
 
-    // Flush any pending (debounced) notes when the sheet is dismissed so the
-    // last edits are never silently dropped.
-    val dismissWithFlush = {
-        if (notesText != application.notes.orEmpty()) {
-            onNotesChange(notesText)
-        }
-        onDismiss()
-    }
-
-    ModalBottomSheet(onDismissRequest = dismissWithFlush) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Header
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(
-                            stageColor(application.currentStageId).copy(alpha = 0.15f),
-                            RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Rounded.Business,
-                        null,
-                        tint = stageColor(application.currentStageId),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Column {
-                    Text(
-                        application.job?.title ?: stringResource(R.string.unknown_role),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        application.job?.company ?: stringResource(R.string.unknown_company),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Current status + last modified
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) }
             ) {
-                StatusChip(text = application.currentStageId.replace('_', ' '), tone = BannerTone.INFO)
-                Text(
-                    stringResource(R.string.updated, formatTimestamp(application.lastModified)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            HorizontalDivider()
-
-            // Timeline
-            Text(stringResource(R.string.timeline), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            if (application.timeline.isEmpty()) {
-                Text(
-                    stringResource(R.string.no_activity),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                application.timeline.forEach { event ->
-                    TimelineRow(event = event)
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                    Text("Overview", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.labelLarge)
+                }
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                    Text("Tasks", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.labelLarge)
+                }
+                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) {
+                    Text("Timeline", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.labelLarge)
                 }
             }
 
-            HorizontalDivider()
-
-            // Notes
-            Text(stringResource(R.string.notes), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = notesText,
-                onValueChange = { notesText = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.notes_placeholder)) },
-                minLines = 3
-            )
-            Text(
-                stringResource(R.string.notes_autosave),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // Job listing link
-            val jobUrl = application.job?.url
-            if (!jobUrl.isNullOrBlank()) {
-                OutlinedButton(
-                    onClick = { uriHandler.openUri(jobUrl) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Rounded.OpenInNew, null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.open_job_listing))
+            Box(modifier = Modifier.weight(1f)) {
+                AnimatedContent(
+                    targetState = selectedTab,
+                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                    label = "TabContent"
+                ) { tab ->
+                    when (tab) {
+                        0 -> ApplicationOverviewTab(application, onNotesChange, onDelete = { showDeleteConfirm = true })
+                        1 -> ApplicationTasksTab(application)
+                        2 -> ApplicationTimelineTab(application)
+                    }
                 }
-            }
-
-            // Delete
-            TextButton(
-                onClick = { showDeleteConfirm = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Icon(Icons.Rounded.DeleteOutline, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.delete_application))
             }
         }
     }
 
     if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text(stringResource(R.string.delete_application_title)) },
-            text = {
-                Text(stringResource(R.string.delete_application_body, application.job?.title ?: stringResource(R.string.saved)))
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirm = false
-                        onDelete()
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(stringResource(R.string.delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+        DeleteConfirmDialog(application, onDelete, onDismiss = { showDeleteConfirm = false })
+    }
+}
+
+@Composable
+private fun ApplicationWorkspaceHeader(application: Application) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = stageColor(application.currentStageId).copy(alpha = 0.1f),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Business, null, tint = stageColor(application.currentStageId))
             }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(application.job?.title ?: "Unknown Role", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(application.job?.company ?: "Unknown Company", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        StatusChip(text = application.currentStageId, tone = BannerTone.INFO)
+    }
+}
+
+@Composable
+private fun ApplicationOverviewTab(
+    application: Application,
+    onNotesChange: (String) -> Unit,
+    onDelete: () -> Unit
+) {
+    val uriHandler = LocalUriHandler.current
+    var notesText by remember(application.id) { mutableStateOf(application.notes.orEmpty()) }
+
+    LaunchedEffect(notesText) {
+        if (notesText != application.notes.orEmpty()) {
+            kotlinx.coroutines.delay(600)
+            onNotesChange(notesText)
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                StatCard(label = "ATS Match", value = "${application.atsReportId?.let { 85 } ?: 0}%", icon = Icons.Rounded.Analytics, modifier = Modifier.weight(1f))
+                StatCard(label = "Priority", value = "High", icon = Icons.Rounded.Flag, modifier = Modifier.weight(1f))
+            }
+        }
+
+        item {
+            Text("Notes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = notesText,
+                onValueChange = { notesText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Add private notes about this application...") },
+                minLines = 4,
+                shape = AivanceTheme.shapes.medium
+            )
+        }
+
+        item {
+            val jobUrl = application.job?.url
+            if (!jobUrl.isNullOrBlank()) {
+                AivanceSecondaryButton(
+                    text = "Open Job Listing",
+                    onClick = { uriHandler.openUri(jobUrl) },
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Rounded.OpenInNew
+                )
+            }
+        }
+
+        item {
+            TextButton(
+                onClick = onDelete,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(Icons.Rounded.DeleteOutline, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Delete Application")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApplicationTasksTab(application: Application) {
+    if (application.tasks.isEmpty()) {
+        AivanceEmptyState(
+            title = "No tasks yet",
+            description = "Tasks will be automatically generated as you progress through the pipeline.",
+            icon = Icons.Rounded.AssignmentTurnedIn
         )
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(application.tasks) { task ->
+                TaskRow(task)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskRow(task: com.bangersoul.aivance.core.common.model.ApplicationTask) {
+    AivanceWorkspaceCard {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Checkbox(checked = task.isCompleted, onCheckedChange = { /* Update Task */ })
+            Column(modifier = Modifier.weight(1f)) {
+                Text(task.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                Text(task.description.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (task.priority == "HIGH") {
+                Icon(Icons.Rounded.PriorityHigh, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApplicationTimelineTab(application: Application) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (application.timeline.isEmpty()) {
+            item {
+                Text("No activity recorded yet.", style = MaterialTheme.typography.bodySmall)
+            }
+        } else {
+            items(application.timeline) { event ->
+                TimelineRow(event)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteConfirmDialog(application: Application, onDelete: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Application") },
+        text = { Text("Are you sure you want to remove ${application.job?.title} at ${application.job?.company} from your pipeline?") },
+        confirmButton = {
+            TextButton(onClick = onDelete, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun StatCard(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = AivanceTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Icon(icon, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(4.dp))
+            Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

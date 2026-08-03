@@ -100,6 +100,40 @@
     <string name="delete_confirm_body">यह आपके सभी रिज़्यूमे, आवेदन और सेटिंग्स को हमेशा के लिए हटा देगा।</string>
     <string name="yes_delete_everything">हां, सब कुछ हटाएं</string>
 
+    <!-- Auth -->
+    <string name="auth_create_account_title">अपना खाता बनाएं</string>
+    <string name="auth_welcome_back_title">वापसी पर स्वागत है</string>
+    <string name="auth_create_subtitle">अपने करियर ऑपरेटिंग सिस्टम को व्यक्तिगत बनाने के लिए हमें अपने बारे में थोड़ा बताएं।</string>
+    <string name="auth_signin_subtitle">अपनी करियर यात्रा जारी रखने के लिए साइन इन करें।</string>
+    <string name="auth_sign_in">साइन इन करें</string>
+    <string name="auth_create_account">खाता बनाएं</string>
+    <string name="auth_first_name">पहला नाम</string>
+    <string name="auth_last_name">अंतिम नाम</string>
+    <string name="auth_email">ईमेल</string>
+    <string name="auth_email_placeholder">you@example.com</string>
+    <string name="auth_phone_optional">फ़ोन (वैकल्पिक)</string>
+    <string name="auth_phone_placeholder">+1 555 000 1234</string>
+    <string name="auth_continue">जारी रखें</string>
+    <string name="auth_or_separator">"  या  "</string>
+    <string name="auth_google">Google के साथ जारी रखें</string>
+
+    <!-- Onboarding -->
+    <string name="choose_ai_provider">AI प्रदाता चुनें</string>
+    <string name="ai_provider_desc">उस इंटेलिजेंस का चयन करें जो आपके रिज़्यूमे विश्लेषण और इंटरव्यू तैयारी को शक्ति प्रदान करेगी।</string>
+    <string name="choose_job_provider">नौकरी प्रदाता चुनें</string>
+    <string name="job_provider_desc">चुनें कि आप नौकरी लिस्टिंग और भर्तीकर्ता विवरण कहां से प्राप्त करना चाहते हैं।</string>
+    <string name="enrichment_optional">एनरिचमेंट सेवा (वैकल्पिक)</string>
+    <string name="enrichment_desc">सत्यापित भर्तीकर्ता संपर्क और कंपनी इंटेलिजेंस खोजें। आउटरीच के लिए अत्यधिक अनुशंसित।</string>
+    <string name="skip_all">सभी छोड़ें — मैं बाद में कॉन्फ़िगर करूंगा</string>
+    <string name="configure_later">आप बाद में सेटिंग्स में प्रदाता कॉन्फ़िगर कर सकते हैं।</string>
+    <string name="validate_continue">सत्यापित करें और जारी रखें</string>
+    <string name="all_set">सब तैयार है!</string>
+    <string name="ai_engine">AI इंजन</string>
+    <string name="job_source">नौकरी का स्रोत</string>
+    <string name="enrichment">एनरिचमेंट</string>
+    <string name="not_configured">कॉन्फ़िगर नहीं किया गया</string>
+    <string name="go_to_dashboard">डैशबोर्ड पर जाएं</string>
+
     <!-- Profile -->
     <string name="profile_title">प्रोफ़ाइल</string>
     <string name="profile_photo_desc">प्रोफ़ाइल फोटो</string>

@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
     alias(libs.plugins.google.services)
+    id("androidx.baselineprofile")
 }
 
 // Phase 4 (STEP 3): real-API integration-test keys. Read from the gitignored
@@ -170,6 +171,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.core)
     implementation(libs.material)
+    implementation(libs.androidx.profileinstaller)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

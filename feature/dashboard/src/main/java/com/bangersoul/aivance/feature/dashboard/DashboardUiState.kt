@@ -14,6 +14,7 @@ data class DashboardUiState(
     val nextInterview: String? = null,      // "Fri 10:00"
     val savedJobs: Int = 0,
     val aiRecommendation: String? = null,
+    val nextBestAction: com.bangersoul.aivance.core.domain.engine.NavigationIntent = com.bangersoul.aivance.core.domain.engine.NavigationIntent.None,
     val recentActivity: List<ActivityItem> = emptyList(),
     val error: String? = null
 )

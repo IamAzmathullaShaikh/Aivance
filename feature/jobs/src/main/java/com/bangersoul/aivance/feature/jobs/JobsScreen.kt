@@ -41,19 +41,26 @@ fun JobsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        AivanceTopBar(
-            title = stringResource(R.string.job_discovery_title),
-            subtitle = stringResource(R.string.job_discovery_subtitle)
-        )
-
+    AivanceWorkspaceScaffold(
+        title = stringResource(R.string.job_discovery_title),
+        subtitle = stringResource(R.string.job_discovery_subtitle),
+        isLoading = uiState is JobsUiState.Loading,
+        error = (uiState as? JobsUiState.Error)?.message,
+        onRetry = { viewModel.onEvent(JobsUiEvent.Refresh) }
+    ) {
         Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+            // Hero Section: Current Hunt status
+            (uiState as? JobsUiState.Success)?.careerContext?.let { context ->
+                DiscoveryHeroSection(
+                    targetRole = context.profile.targetRole,
+                    matchCount = (uiState as? JobsUiState.Success)?.jobs?.size ?: 0,
+                    onSearchUpdate = { searchQuery = it; viewModel.onEvent(JobsUiEvent.Search(it)) }
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
             OutlinedTextField(
                 value = searchQuery,
-                // Deliberately NOT searched on every keystroke — results only
-                // refresh when the user commits the query (Enter / search key)
-                // or applies a filter. This keeps provider calls intentional
-                // and prevents "random results" from firing mid-typing.
                 onValueChange = { searchQuery = it },
                 placeholder = { Text(stringResource(R.string.search_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -89,8 +96,6 @@ fun JobsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Dropdown filter bar — every dimension is applied client-side so
-            // results always reflect the user's selection, not provider dumps.
             JobFilterBar(
                 filter = (uiState as? JobsUiState.Success)?.filter ?: JobSearchFilter(),
                 onFilterChange = { viewModel.onEvent(JobsUiEvent.UpdateFilter(it)) },
@@ -106,11 +111,6 @@ fun JobsScreen(
             ) { state ->
                 when (state) {
                     is JobsUiState.Loading -> SkeletonList(itemCount = 6, showAvatar = true)
-                    is JobsUiState.Error -> AivanceError(
-                        message = state.message,
-                        onRetry = { viewModel.onEvent(JobsUiEvent.Refresh) },
-                        title = stringResource(R.string.jobs_unavailable)
-                    )
                     is JobsUiState.Success -> JobDiscoveryList(
                         jobs = state.jobs,
                         isSearching = state.isSearching,
@@ -124,6 +124,20 @@ fun JobsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun DiscoveryHeroSection(
+    targetRole: String,
+    matchCount: Int,
+    onSearchUpdate: (String) -> Unit
+) {
+    AivanceHeroCard(
+        title = if (targetRole.isNotBlank()) "Hunting for $targetRole" else "Discovery Hub",
+        description = "Found $matchCount active opportunities matching your profile.",
+        actionLabel = "Quick Match",
+        onClick = { onSearchUpdate(targetRole) }
+    )
 }
 
 /**
@@ -423,71 +437,95 @@ private fun JobDiscoveryCard(
     onBookmarkClick: () -> Unit
 ) {
     DashboardCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Surface(
-                shape = AivanceTheme.shapes.medium,
-                color = AivanceTheme.colors.accent.copy(alpha = 0.12f),
-                modifier = Modifier.size(44.dp)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(
-                        Icons.Rounded.Business,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp),
-                        tint = AivanceTheme.colors.accent
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    job.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Surface(
+                    shape = AivanceTheme.shapes.medium,
+                    color = AivanceTheme.colors.accent.copy(alpha = 0.12f),
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    MetaText(job.company)
-                    if (job.location.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Icon(Icons.Rounded.LocationOn, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
-                            MetaText(job.location)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Icon(
+                            Icons.Rounded.Business,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = AivanceTheme.colors.accent
+                        )
+                    }
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        job.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        MetaText(job.company)
+                        if (job.location.isNotBlank()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Icon(Icons.Rounded.LocationOn, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.secondary)
+                                MetaText(job.location)
+                            }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (job.remoteType == RemoteType.REMOTE || job.isRemote) {
-                        StatusChip(text = stringResource(R.string.remote), tone = BannerTone.INFO)
-                    }
-                    job.salaryRange?.let {
-                        StatusChip(text = it, tone = BannerTone.SUCCESS)
-                    }
-                    val matchScore = job.matchScore
-                    if (matchScore != null) {
-                        StatusChip(text = stringResource(R.string.ats_match, matchScore), tone = BannerTone.WARNING)
-                    }
-                    if (job.employmentType != EmploymentType.FULL_TIME) {
-                        StatusChip(text = job.employmentType.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }, tone = BannerTone.INFO)
-                    }
+                IconButton(onClick = onBookmarkClick) {
+                    Icon(
+                        Icons.Rounded.BookmarkBorder,
+                        contentDescription = stringResource(R.string.save_job),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
-            IconButton(onClick = onBookmarkClick) {
-                Icon(
-                    Icons.Rounded.BookmarkBorder,
-                    contentDescription = stringResource(R.string.save_job),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Spacer(Modifier.height(12.dp))
+
+            // Match Intelligence Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val matchScore = job.matchScore ?: 0
+                ScoreGauge(score = matchScore, size = 32.dp)
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (matchScore > 80) "High Match" else if (matchScore > 50) "Good Match" else "Potential Match",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (matchScore > 80) AivanceTheme.colors.success else AivanceTheme.colors.accent
+                    )
+                    Text(
+                        text = "Matches your ${job.experienceLevel.name.lowercase()} experience.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (job.remoteType == RemoteType.REMOTE || job.isRemote) {
+                    StatusChip(text = stringResource(R.string.remote), tone = BannerTone.INFO)
+                }
+                job.salaryRange?.let {
+                    StatusChip(text = it, tone = BannerTone.SUCCESS)
+                }
+                if (job.employmentType != EmploymentType.FULL_TIME) {
+                    StatusChip(text = job.employmentType.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }, tone = BannerTone.INFO)
+                }
             }
         }
     }

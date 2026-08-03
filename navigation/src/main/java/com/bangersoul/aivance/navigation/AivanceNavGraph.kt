@@ -13,18 +13,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavBackStack
@@ -36,31 +27,33 @@ import com.bangersoul.aivance.feature.ats.AtsScreen
 import com.bangersoul.aivance.feature.coverletter.CoverLetterScreen
 import com.bangersoul.aivance.feature.dashboard.DashboardScreen
 import com.bangersoul.aivance.feature.interview.InterviewViewModel
+import com.bangersoul.aivance.feature.interview.ui.PrepStudioScreen
 import com.bangersoul.aivance.feature.jobs.CompanyDetailScreen
 import com.bangersoul.aivance.feature.jobs.CompanyDetailViewModel
+import com.bangersoul.aivance.feature.jobs.JobComparisonScreen
 import com.bangersoul.aivance.feature.jobs.JobDetailsScreen
 import com.bangersoul.aivance.feature.jobs.JobsScreen
 import com.bangersoul.aivance.feature.jobs.SavedJobsScreen
 import com.bangersoul.aivance.feature.profile.*
 import com.bangersoul.aivance.feature.recruiter.RecruiterDashboardScreen
 import com.bangersoul.aivance.feature.recruiter.RecruiterViewModel
+import com.bangersoul.aivance.feature.resume.IntelligenceHubScreen
 import com.bangersoul.aivance.feature.resume.ResumeDetailScreen
 import com.bangersoul.aivance.feature.resume.ResumeDetailViewModel
 import com.bangersoul.aivance.feature.resume.ResumeEngineScreen
+import com.bangersoul.aivance.feature.resume.ResumeEngineViewModel
 import com.bangersoul.aivance.feature.tracker.TrackerScreen
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Top-level navigation for AiVance v2.
+ * Top-level navigation for AiVance v2 — Workflow-Driven.
  *
- * Two independent routing surfaces:
- *  1. Auth graph — Splash → Welcome → Auth → ProviderSetup (no bottom nav).
- *  2. Main graph — the 5-tab Career Operating System loop
- *     (Dashboard · Assistant · Resume · Jobs · Pipeline) plus detail screens.
- *
- * The app uses Navigation-3-lite: a single typed [NavBackStack] with manual
- * AnimatedContent dispatch. State is preserved across tab switches because
- * ViewModels are scoped to the activity and the back stack only rebuilds on
- * actual destination changes.
+ * Each primary hub (Dashboard, Intelligence, Discovery, Pipeline, PrepStudio)
+ * maintains its own independent backstack to ensure zero progress loss during
+ * workspace context switching.
  */
 @Composable
 fun AivanceNavGraph() {
@@ -81,105 +74,128 @@ fun AivanceNavGraph() {
     }
 
     AivanceAppShell {
-        AivanceMainNavGraph(initialDestination, authViewModel)
+        AivanceWorkflowNavGraph(initialDestination, authViewModel)
     }
 }
 
 @Composable
-private fun AivanceMainNavGraph(
+private fun AivanceWorkflowNavGraph(
     initialDestination: Destination,
     authViewModel: AuthenticationViewModel
 ) {
-    @Suppress("UNCHECKED_CAST")
-    val backStack = rememberNavBackStack(initialDestination) as NavBackStack<Destination>
-    val currentDestination = if (backStack.isNotEmpty()) backStack.last() else initialDestination
     val authState by authViewModel.uiState.collectAsStateWithLifecycle()
+    val isAuthed = authState is AuthenticationUiState.Authenticated
 
-    val onNavigate: (Destination) -> Unit = remember(backStack, authState) {
+    // ── Workspace State Management ──────────────────────────────────────────
+
+    // We maintain independent backstacks for each primary workspace hub.
+    val backstacks = Destination.rootDestinations.associateWith { root ->
+        @Suppress("UNCHECKED_CAST")
+        rememberNavBackStack(root) as NavBackStack<Destination>
+    }
+
+    // A separate backstack for the non-authenticated/onboarding flow.
+    @Suppress("UNCHECKED_CAST")
+    val authBackstack = rememberNavBackStack(
+        if (initialDestination in Destination.authDestinations) initialDestination else Destination.Splash
+    ) as NavBackStack<Destination>
+
+    // The current active root workspace. Defaults to Dashboard.
+    var activeWorkspace by remember { mutableStateOf<Destination>(Destination.Dashboard) }
+
+    val currentBackstack = if (isAuthed) {
+        backstacks[activeWorkspace] ?: backstacks[Destination.Dashboard]!!
+    } else {
+        authBackstack
+    }
+
+    val currentDestination = currentBackstack.last()
+
+    // ── Navigation Logic ──────────────────────────────────────────────────
+
+    val onNavigate: (Destination) -> Unit = remember(currentBackstack, isAuthed, backstacks, authBackstack) {
         { destination ->
-            val isAuthed = authState is AuthenticationUiState.Authenticated
             if (destination.isAuthenticatedDestination() && !isAuthed) {
-                // Protected destination while signed out → drop everything and
-                // show the auth flow.
-                while (backStack.isNotEmpty()) {
-                    backStack.removeAt(backStack.lastIndex)
-                }
-                backStack.add(Destination.Auth)
+                authBackstack.add(Destination.Auth)
+            } else if (destination in Destination.rootDestinations) {
+                activeWorkspace = destination
+            } else if (destination in Destination.authDestinations) {
+                authBackstack.add(destination)
             } else {
-                // Root tabs and auth-graph destinations replace the stack so
-                // back never returns to a stale screen (e.g. Dashboard → Login).
-                if (destination in Destination.rootDestinations ||
-                    destination in Destination.authDestinations
-                ) {
-                    while (backStack.isNotEmpty()) {
-                        backStack.removeAt(backStack.lastIndex)
-                    }
+                // ── Workflow-Aware Hub Switching ──────────────────────────────
+
+                val targetWorkspace = when {
+                    destination == Destination.Discovery -> Destination.Discovery
+
+                    destination is Destination.Ats ||
+                    destination is Destination.ResumeDetail ||
+                    destination == Destination.Intelligence ||
+                    destination == Destination.ResumeEngine -> Destination.Intelligence
+
+                    destination is Destination.CoverLetter ||
+                    destination == Destination.JobComparison ||
+                    destination is Destination.RecruiterDashboard -> Destination.Discovery
+
+                    destination == Destination.PrepStudio -> Destination.PrepStudio
+                    destination == Destination.Pipeline -> Destination.Pipeline
+                    else -> null
                 }
-                backStack.add(destination)
+
+                if (targetWorkspace != null && activeWorkspace != targetWorkspace) {
+                    activeWorkspace = targetWorkspace
+                }
+
+                val updatedBackstack = if (isAuthed) {
+                    backstacks[targetWorkspace ?: activeWorkspace] ?: currentBackstack
+                } else {
+                    authBackstack
+                }
+                updatedBackstack.add(destination)
             }
         }
     }
 
-    // Route the user into the correct surface whenever the auth state changes.
-    LaunchedEffect(authState) {
-        val authed = authState is AuthenticationUiState.Authenticated
-        if (authed && currentDestination in Destination.authDestinations &&
-            currentDestination != Destination.Dashboard
-        ) {
-            onNavigate(Destination.Dashboard)
-        } else if (!authed && currentDestination.isAuthenticatedDestination()) {
-            onNavigate(Destination.Auth)
+    LaunchedEffect(initialDestination) {
+        if (initialDestination in Destination.rootDestinations) {
+            activeWorkspace = initialDestination
         }
     }
 
-    // System-back behavior: pop one screen at a time. From a root tab this
-    // returns to the previous tab (or Dashboard for tabs reached from detail
-    // screens), so back never feels like it "exits from any tab". The app only
-    // finishes when back is pressed on the Dashboard root.
-    val isAuthSurface = currentDestination in Destination.authDestinations
-    val isOnRootTab = currentDestination in Destination.rootDestinations
-    BackHandler(
-        // Enabled on every main-graph screen, and additionally on non-Dashboard
-        // root tabs (tab switches replace the stack, leaving size == 1, so a
-        // plain size>1 guard would let back exit the app from any other tab).
-        enabled = !isAuthSurface && (backStack.size > 1 || (isOnRootTab && currentDestination != Destination.Dashboard))
-    ) {
-        if (backStack.size > 1) {
-            backStack.removeLastOrNull()
-        } else {
-            // Root tab other than home → send the user home instead of exiting.
-            onNavigate(Destination.Dashboard)
+    // ── System Back Logic ────────────────────────────────────────────────
+
+    val isAuthSurface = !isAuthed || currentDestination in Destination.authDestinations
+    BackHandler(enabled = currentBackstack.size > 1 || (!isAuthSurface && activeWorkspace != Destination.Dashboard)) {
+        if (currentBackstack.size > 1) {
+            currentBackstack.removeAt(currentBackstack.lastIndex)
+        } else if (!isAuthSurface && activeWorkspace != Destination.Dashboard) {
+            activeWorkspace = Destination.Dashboard
         }
     }
 
-    // Bottom navigation is part of the main graph shell, so it stays visible
-    // on every authenticated screen (including detail screens) — tab switching
-    // always works without hunting for a back arrow.
-    if (!isAuthSurface) {
+    // ── Adaptive UI Shell ────────────────────────────────────────────────
+
+    if (isAuthed && !isAuthSurface) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
-                Destination.rootDestinations.forEach { destination ->
+                Destination.rootDestinations.forEach { workspace ->
                     item(
-                        selected = currentDestination == destination ||
-                            // Highlight the owning tab for detail screens so the
-                            // user always sees where they are in the flow.
-                            (currentDestination is Destination.JobDetails && destination == Destination.Jobs),
-                        onClick = { onNavigate(destination) },
+                        selected = activeWorkspace == workspace,
+                        onClick = { activeWorkspace = workspace },
                         icon = {
-                            val tint = if (currentDestination == destination ||
-                                (currentDestination is Destination.JobDetails && destination == Destination.Jobs)
-                            ) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            destination.icon?.let { Icon(it, null, tint = tint) }
+                            val tint = if (activeWorkspace == workspace)
+                                MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            workspace.icon?.let { Icon(it, null, tint = tint) }
                         },
-                        label = { Text(stringResource(destination.labelRes)) }
+                        label = { Text(stringResource(workspace.labelRes)) }
                     )
                 }
             }
         ) {
-            NavHostContent(backStack, onNavigate, authViewModel)
+            NavHostContent(currentBackstack, onNavigate, authViewModel)
         }
     } else {
-        NavHostContent(backStack, onNavigate, authViewModel)
+        NavHostContent(currentBackstack, onNavigate, authViewModel)
     }
 }
 
@@ -199,7 +215,7 @@ private fun NavHostContent(
     ) { destination ->
         Box(Modifier.fillMaxSize()) {
             ScreenContent(destination, onNavigate, authViewModel) {
-                if (backStack.size > 1) backStack.removeLastOrNull()
+                if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
             }
         }
     }
@@ -213,12 +229,9 @@ private fun ScreenContent(
     onBack: () -> Unit
 ) {
     when (destination) {
-        // ── Auth graph ────────────────────────────────────────────────
         Destination.Splash -> {
             val splashScope = rememberCoroutineScope()
             SplashScreen(onSplashComplete = {
-                // P0: never hang on a slow session check. Wait up to 3s for the
-                // auth state to settle; on timeout, route to Welcome anyway.
                 splashScope.launch {
                     val settled = withTimeoutOrNull(3_000L) {
                         authViewModel.uiState
@@ -239,42 +252,26 @@ private fun ScreenContent(
             viewModel = hiltViewModel(),
             onNewUser = { onNavigate(Destination.ProviderSetup) },
             onReturningUser = {
-                // Re-read prefs so the auth guard sees the freshly persisted
-                // session; the LaunchedEffect(authState) below routes to the
-                // Dashboard once Authenticated is set. (Direct navigation would
-                // bounce off the authenticated-destination guard.)
                 authViewModel.onEvent(AuthenticationUiEvent.CheckAuth)
             },
             onBackToWelcome = { onNavigate(Destination.Welcome) }
         )
-        Destination.ProviderSetup -> OnboardingScreen(
+
+        Destination.Onboarding, Destination.ProviderSetup -> OnboardingScreen(
             viewModel = hiltViewModel(),
             onComplete = {
-                // Re-read prefs so the auth guard sees the freshly persisted
-                // session; LaunchedEffect(authState) then routes to Dashboard.
                 authViewModel.onEvent(AuthenticationUiEvent.CheckAuth)
             }
         )
 
-        // Legacy auth destinations kept for backward compatibility.
-        Destination.Login -> LoginScreen(
-            onLogin = { authViewModel.onEvent(AuthenticationUiEvent.Login(it)) },
-            onSkip = { onNavigate(Destination.Onboarding) }
-        )
-        Destination.Onboarding -> OnboardingScreen(
-            viewModel = hiltViewModel(),
-            onComplete = { authViewModel.onEvent(AuthenticationUiEvent.CheckAuth) }
-        )
-
-        // ── Main graph: root tabs ─────────────────────────────────────
         Destination.Dashboard -> DashboardScreen(
             viewModel = hiltViewModel(),
-            onNavigateToResume = { onNavigate(Destination.Resume) },
+            onNavigateToResume = { onNavigate(Destination.Intelligence) },
             onNavigateToTracker = { onNavigate(Destination.Pipeline) },
-            onNavigateToProfile = { onNavigate(Destination.Profile) },
+            onNavigateToProfile = { onNavigate(Destination.IdentityHub) },
             onNavigateToInterview = { onNavigate(Destination.PrepStudio) },
             onNavigateToAnalytics = { onNavigate(Destination.Analytics) },
-            onNavigateToJobs = { onNavigate(Destination.Jobs) },
+            onNavigateToJobs = { onNavigate(Destination.Discovery) },
             onNavigateToAssistant = { onNavigate(Destination.Assistant) },
             onNavigateToNotifications = { onNavigate(Destination.Notifications) }
         )
@@ -282,11 +279,17 @@ private fun ScreenContent(
             viewModel = hiltViewModel<AssistantViewModel>(),
             onSwitchProvider = { onNavigate(Destination.ProviderSetup) }
         )
-        Destination.Resume -> ResumeEngineScreen(
+        Destination.Intelligence -> IntelligenceHubScreen(
+            viewModel = hiltViewModel<ResumeEngineViewModel>(),
+            onNavigateToEngine = { onNavigate(Destination.ResumeEngine) },
+            onNavigateToAts = { jd -> onNavigate(Destination.Ats(jd)) },
+            onBack = onBack
+        )
+        Destination.ResumeEngine -> ResumeEngineScreen(
             viewModel = hiltViewModel(),
             onBack = onBack
         )
-        Destination.Jobs -> JobsScreen(
+        Destination.Discovery -> JobsScreen(
             viewModel = hiltViewModel(),
             onNavigateToDetails = { onNavigate(Destination.JobDetails(it)) },
             onNavigateToSavedJobs = { onNavigate(Destination.SavedJobs) }
@@ -296,29 +299,9 @@ private fun ScreenContent(
             onBack = onBack
         )
 
-        // ── Main graph: profile & settings hub ────────────────────────
-        Destination.Profile -> ProfileScreen(
+        Destination.IdentityHub -> IdentityHubScreen(
             viewModel = hiltViewModel(),
-            onBack = onBack,
-            onNavigateToSettings = { onNavigate(Destination.SettingsHub) },
-            onNavigateToProviders = { onNavigate(Destination.ProviderManagement) },
-            onNavigateToNotifications = { onNavigate(Destination.Notifications) },
-            onNavigateToAnalytics = { onNavigate(Destination.Analytics) },
-            onNavigateToLearning = { onNavigate(Destination.PrepStudio) },
-            onNavigateToSavedJobs = { onNavigate(Destination.SavedJobs) },
-            onNavigateToInterview = { onNavigate(Destination.PrepStudio) }
-        )
-        Destination.SettingsHub -> SettingsScreen(
-            viewModel = hiltViewModel(),
-            onBack = onBack,
-            onNavigateToProviders = { onNavigate(Destination.ProviderManagement) },
-            onNavigateToAnalytics = { onNavigate(Destination.Analytics) },
-            onNavigateToPrivacy = { onNavigate(Destination.PrivacyCenter) },
-            onNavigateToAppearance = { onNavigate(Destination.Appearance) },
-            onNavigateToAbout = { onNavigate(Destination.About) },
-            // Logout sets Unauthenticated directly — CheckAuth would still see
-            // onboardingCompleted == true and keep the user authenticated.
-            onSignOut = { authViewModel.onEvent(AuthenticationUiEvent.Logout) }
+            onBack = onBack
         )
         Destination.About -> AboutScreen(onBack = onBack)
         Destination.Analytics -> AnalyticsScreen(
@@ -326,7 +309,6 @@ private fun ScreenContent(
             onBack = onBack
         )
 
-        // ── Main graph: intelligence engines ──────────────────────────
         Destination.PrepStudio -> PrepStudioScreen(
             interviewViewModel = hiltViewModel<InterviewViewModel>(),
             onBack = onBack
@@ -341,15 +323,18 @@ private fun ScreenContent(
             viewModel = hiltViewModel(),
             onNavigateBack = onBack,
             jobId = destination.jobId,
-            onFindJobs = { onNavigate(Destination.Jobs) }
+            onFindJobs = { onNavigate(Destination.Discovery) }
         )
         Destination.SavedJobs -> SavedJobsScreen(
             viewModel = hiltViewModel(),
             onBack = onBack,
             onJobClick = { onNavigate(Destination.JobDetails(it)) }
         )
+        Destination.JobComparison -> JobComparisonScreen(
+            jobs = emptyList(), // In a real app, this would come from a WorkspaceManager or shared VM
+            onBack = onBack
+        )
 
-        // ── Main graph: detail screens ────────────────────────────────
         is Destination.JobDetails -> JobDetailsScreen(
             viewModel = hiltViewModel(),
             jobId = destination.jobId,
@@ -376,9 +361,7 @@ private fun ScreenContent(
             onBack = onBack
         )
 
-        // ── Settings sub-screens (reached from SettingsHub) ───────────
         Destination.Appearance -> AppearanceScreen(viewModel = hiltViewModel(), onBack = onBack)
-        Destination.AiSettings -> AiSettingsScreen(viewModel = hiltViewModel(), onBack = onBack)
         Destination.ProviderManagement -> ProviderManagementScreen(viewModel = hiltViewModel(), onBack = onBack)
         Destination.Notifications -> NotificationsScreen(viewModel = hiltViewModel(), onBack = onBack)
         Destination.PrivacyCenter -> PrivacyCenterScreen(

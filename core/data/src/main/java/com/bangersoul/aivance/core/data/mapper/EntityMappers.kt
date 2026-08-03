@@ -631,6 +631,11 @@ fun UserProfileEntity.toDomain(): UserProfile {
         location = location ?: "",
         skills = skills,
         experienceYears = experienceYears,
+        preferredIndustries = preferredIndustries,
+        salaryExpectation = salaryExpectation ?: "",
+        workPreference = workPreference ?: "REMOTE",
+        visaRequired = visaRequired,
+        noticePeriod = noticePeriod ?: "",
         createdDate = createdDate
     )
 }
@@ -652,6 +657,11 @@ fun UserProfile.toEntity(): UserProfileEntity {
         linkedinUrl = linkedinUrl,
         githubUrl = githubUrl,
         dateOfBirth = dateOfBirth,
+        preferredIndustries = preferredIndustries,
+        salaryExpectation = salaryExpectation,
+        workPreference = workPreference,
+        visaRequired = visaRequired,
+        noticePeriod = noticePeriod,
         createdDate = createdDate
     )
 }

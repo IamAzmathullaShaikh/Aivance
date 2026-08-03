@@ -1,4 +1,4 @@
-package com.bangersoul.aivance.navigation
+package com.bangersoul.aivance.feature.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bangersoul.aivance.feature.profile.R
 import com.bangersoul.aivance.core.designsystem.theme.DarkAccent
 import com.bangersoul.aivance.feature.profile.AuthUiEvent
 import com.bangersoul.aivance.feature.profile.AuthUiState
