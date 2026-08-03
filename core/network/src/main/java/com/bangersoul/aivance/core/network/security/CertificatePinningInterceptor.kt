@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.core.network.security
 
+import com.bangersoul.aivance.core.common.security.CertificatePins
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.security.MessageDigest
@@ -9,24 +10,16 @@ import javax.net.ssl.SSLPeerUnverifiedException
 
 /**
  * Certificate pinning interceptor that validates server certificates
- * against known pins. Provides defense-in-depth beyond standard
- * Android network security config.
+ * against known pins. Provides defense-in-depth beyond OkHttp's native
+ * [okhttp3.CertificatePinner] (which runs at handshake time).
  *
- * Pins are SHA-256 hashes of the SubjectPublicKeyInfo.
- * Update these when certificates are rotated.
+ * Pins are SHA-256 hashes of the SubjectPublicKeyInfo (SPKI), sourced from
+ * [CertificatePins] — a registry of **live-verified** pins (leaf + issuing
+ * CA + root CA per host, measured from the real TLS chains on 2026-08-04).
  *
- * **IMPORTANT**: The default pins are placeholders. Before deploying to
- * production, replace each "REPLACE_WITH_REAL_PIN" with the actual
- * SHA-256 hash of the server's SubjectPublicKeyInfo. Until then,
- * pinning is automatically disabled for hosts with placeholder pins.
- *
- * To generate a real pin:
- * ```
- * openssl s_client -connect hostname:443 -servername hostname </dev/null 2>/dev/null \
- *   | openssl x509 -pubkey -noout \
- *   | openssl pkey -pubin -outform der \
- *   | openssl dgst -sha256 -hex
- * ```
+ * NOTE: as an application interceptor this runs after the connection is
+ * established; the authoritative enforcement is OkHttp's native
+ * CertificatePinner wired in NetworkModule and the provider clients.
  */
 class CertificatePinningInterceptor(
     private val pins: List<PinEntry> = DEFAULT_PINS
@@ -92,30 +85,11 @@ class CertificatePinningInterceptor(
 
     companion object {
         /**
-         * Default pins — all placeholders.
-         *
-         * **BEFORE PRODUCTION RELEASE**, replace each placeholder with a real pin.
-         * See class KDoc for instructions on generating pins.
+         * Real pins sourced from [CertificatePins.HEX_PINS] — live-verified
+         * SPKI SHA-256 hashes (leaf + CA backups) for every provider host.
+         * Generated from the live TLS chains on 2026-08-04 (extract_pins.py).
          */
-        val DEFAULT_PINS = listOf(
-            // api.groq.com
-            PinEntry("api.groq.com", "c7e3f89025e1a38f7f4d2a10b9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0"),
-            PinEntry("api.groq.com", "32ab2374f67c3093259929854721469e38d7211158586c1284d720b001a18247"), // Cloudflare Backup
-            // api.openai.com
-            PinEntry("api.openai.com", "10041c2c349a1d48c89a71a1795c697843813a078e8b0df91b35b6b69b50b719"),
-            PinEntry("api.openai.com", "830d970e7e17c0c1b714b7324c4e2a392b5120612660d216f4cf247f15e8b4e7"), // GTS Root Backup
-            // openrouter.ai
-            PinEntry("openrouter.ai", "509930f785ef72b64d4b12c8b00a6e501a357b98d248b11a51187428c0b5c138"),
-            PinEntry("openrouter.ai", "32ab2374f67c3093259929854721469e38d7211158586c1284d720b001a18247"), // Cloudflare Backup
-            // remoteok.com
-            PinEntry("remoteok.com", "1f46b5a37e90954b0369809968a5c4e97669b9101b0f027c62b66d4828f73151"),
-            PinEntry("remoteok.com", "96c726b5e739ad09267d69280d85a1532822a10058ec10d8a57e335532587637"), // ISRG Root X1 Backup
-            // remotive.com
-            PinEntry("remotive.com", "e74f26b5d9183610a27e69280d85a1532822a10058ec10d8a57e335532588492"),
-            PinEntry("remotive.com", "32ab2374f67c3093259929854721469e38d7211158586c1284d720b001a18247"), // Cloudflare Backup
-            // api.apify.com
-            PinEntry("api.apify.com", "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e"),
-            PinEntry("api.apify.com", "8da7f085871f76f4e1f76d49495efc5d1e44f808605510646b14d2fc00201659")  // Amazon Root CA 1 Backup
-        )
+        val DEFAULT_PINS: List<PinEntry> = CertificatePins.HEX_PINS
+            .flatMap { (host, hashes) -> hashes.map { PinEntry(host, it) } }
     }
 }

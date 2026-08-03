@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Backup rules for Aivance.
-   Excludes sensitive data from cloud backup.
-   Note: the system automatically excludes the cache/ and no_backup/ directories,
-   so no explicit excludes are needed for them.
+   Backup rules for Aivance (API < 31 full backup).
+   Security audit S-05: the Room database contains plaintext PII (interview
+   transcripts, resume sections, cover letters, recruiter contacts, profile)
+   and its encrypted columns are keyed by an AndroidKeyStore master key that
+   NEVER leaves the device. Backing the DB up would (a) exfiltrate PII to
+   cloud backup and (b) restore a DB whose encrypted columns are unreadable on
+   the new device. The sanctioned data-portability path is the in-app
+   encrypted export/import (BackupExporter, AES-256-GCM + PBKDF2-600k).
+   The Tink keyset prefs are excluded for the same reason (master key absent
+   after restore) and the secrets DataStore is outside the backup domains.
 -->
 <full-backup-content>
-    <!-- App data to backup -->
+    <!-- Non-sensitive shared preferences (theme, language, toggles) -->
     <include domain="sharedpref" path="." />
-
-    <!-- Database (excluding analytics that stays local) -->
-    <include domain="database" path="." />
 
     <!-- Exclude sensitive data -->
     <exclude domain="sharedpref" path="auth_preferences.xml" />
     <exclude domain="sharedpref" path="crypto_key_store.xml" />
-    <exclude domain="database" path="analytics.db" />
-    <exclude domain="database" path="analytics.db-wal" />
-    <exclude domain="database" path="analytics.db-shm" />
+    <exclude domain="sharedpref" path="aivance_tink_prefs.xml" />
+    <exclude domain="sharedpref" path="aivance_security_prefs.xml" />
+    <exclude domain="sharedpref" path="aivance_backup_secure.xml" />
+
+    <!-- Room database: PII + device-keyed encryption — never in cloud backup -->
+    <exclude domain="database" path="." />
 </full-backup-content>

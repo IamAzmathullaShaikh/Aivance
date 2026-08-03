@@ -17,12 +17,6 @@ import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
-import java.security.SecureRandom
-import javax.crypto.Cipher
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
-import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -100,10 +94,14 @@ data class BackupUserProfile(
 class BackupExporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: AivanceDatabase,
-    private val json: Json
+    private val json: Json,
+    private val backupSecurity: BackupSecurity
 ) {
-    suspend fun exportBackup(passphrase: String = DEFAULT_PASSPHRASE): CoreResult<Uri> = withContext(Dispatchers.IO) {
+    suspend fun exportBackup(passphrase: String? = null): CoreResult<Uri> = withContext(Dispatchers.IO) {
         try {
+            // Device-bound secret when the caller doesn't supply one — never a
+            // hardcoded value (audit S-04).
+            val effectivePassphrase = passphrase ?: backupSecurity.devicePassphrase()
             val resumesEntities = database.resumeDao().getResumes().firstOrNull() ?: emptyList()
             val backupResumes = resumesEntities.map { r ->
                 val versions = database.resumeDao().getVersionsForResume(r.id).firstOrNull() ?: emptyList()
@@ -148,7 +146,7 @@ class BackupExporter @Inject constructor(
             )
 
             val jsonString = json.encodeToString(payload)
-            val encryptedBytes = encryptString(jsonString, passphrase)
+            val encryptedBytes = BackupSecurity.encryptString(jsonString, effectivePassphrase)
 
             val file = File(context.cacheDir, "aivance_backup_${System.currentTimeMillis()}.aivance_backup")
             FileOutputStream(file).use { it.write(encryptedBytes) }
@@ -166,34 +164,13 @@ class BackupExporter @Inject constructor(
     }
 
     companion object {
-        const val DEFAULT_PASSPHRASE = "AiVance_Secure_Backup_2026"
-        private val SALT = "AiVance_Backup_Salt_V1".toByteArray(Charsets.UTF_8)
+        // Re-exported stateless helpers (delegate to BackupSecurity) so existing
+        // callers and tests keep compiling. The KDF lives in BackupSecurity.
 
-        fun encryptString(plainText: String, passphrase: String): ByteArray {
-            val keySpec = deriveKey(passphrase)
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            val iv = ByteArray(12)
-            SecureRandom().nextBytes(iv)
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec, GCMParameterSpec(128, iv))
-            val ciphertext = cipher.doFinal(plainText.toByteArray(Charsets.UTF_8))
-            return iv + ciphertext
-        }
+        fun encryptString(plainText: String, passphrase: String): ByteArray =
+            BackupSecurity.encryptString(plainText, passphrase)
 
-        fun decryptBytes(encryptedData: ByteArray, passphrase: String): String {
-            val keySpec = deriveKey(passphrase)
-            val iv = encryptedData.copyOfRange(0, 12)
-            val ciphertext = encryptedData.copyOfRange(12, encryptedData.size)
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(Cipher.DECRYPT_MODE, keySpec, GCMParameterSpec(128, iv))
-            val decryptedBytes = cipher.doFinal(ciphertext)
-            return String(decryptedBytes, Charsets.UTF_8)
-        }
-
-        private fun deriveKey(passphrase: String): SecretKeySpec {
-            val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-            val spec = PBEKeySpec(passphrase.toCharArray(), SALT, 10000, 256)
-            val secretKey = factory.generateSecret(spec)
-            return SecretKeySpec(secretKey.encoded, "AES")
-        }
+        fun decryptBytes(encryptedData: ByteArray, passphrase: String): String =
+            BackupSecurity.decryptBytes(encryptedData, passphrase)
     }
 }

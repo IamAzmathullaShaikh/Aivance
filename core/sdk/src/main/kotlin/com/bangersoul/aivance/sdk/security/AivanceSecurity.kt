@@ -3,7 +3,6 @@ package com.bangersoul.aivance.sdk.security
 import android.content.Context
 import com.google.crypto.tink.KeyTemplates
 import com.google.crypto.tink.KeysetHandle
-import com.google.crypto.tink.aead.PredefinedAeadParameters
 import com.google.crypto.tink.config.TinkConfig
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
 import java.io.IOException
@@ -42,27 +41,4 @@ object AivanceSecurity {
             .keysetHandle
     }
 
-    /**
-     * Rotates the keyset by adding a new key and making it primary.
-     */
-    @Throws(GeneralSecurityException::class, IOException::class)
-    fun rotateKeyset(context: Context) {
-        val manager = AndroidKeysetManager.Builder()
-            .withSharedPref(context, KEYSET_NAME, PREF_FILE_NAME)
-            .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
-            .withMasterKeyUri(MASTER_KEY_URI)
-            .build()
-
-        val keysetHandle = manager.keysetHandle
-        val updatedKeysetHandle = KeysetHandle.newBuilder(keysetHandle)
-            .addEntry(
-                KeysetHandle.generateEntryFromParameters(PredefinedAeadParameters.AES256_GCM)
-                    .withRandomId()
-                    .makePrimary()
-            )
-            .build()
-
-        // In a real scenario, you would then save this updatedKeysetHandle back to storage.
-        // AndroidKeysetManager handles storage on build(), but here we've already built it.
-    }
 }

@@ -72,7 +72,7 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 - **Resolved in Phase 5**: Web Client ID `433186935073-elau2khhj78koof6puo1mrk2hifa26jt.apps.googleusercontent.com` injected into `google-services.json` for both release and debug variants (`client_type: 3`). `processDebugGoogleServices` confirmed `default_web_client_id` is now generated. Google Sign-In via Credential Manager is fully operational.
 
 ### V2-11 — ~~Certificate pinning remains disabled~~ ✅ RESOLVED
-- **Resolved in Phase 6**: Updated `CertificatePinningInterceptor` with real leaf SHA-256 Public Key Info pins and CA backup pins for `api.groq.com`, `api.openai.com`, `openrouter.ai`, `remoteok.com`, `remotive.com`, and `api.apify.com`.
+- **Resolved in Phase 6, re-verified in Security Certification sprint**: Phase 6 added leaf + CA pins to `CertificatePinningInterceptor`, but the Security Certification sprint proved those pins were **fabricated placeholders** (none of the 16 matched the live SPKI hashes; several were literal countdown sequences). Replaced with live-verified leaf + CA SPKI SHA-256 pins for all 9 provider hosts in the new `CertificatePins.kt` registry (`core:common`), enforced at handshake time via native OkHttp `CertificatePinner` in the DI client (`NetworkModule`) and both AI provider clients (`OpenAiBaseProvider`, `ClaudeProvider`). Re-verified 3/3 pins present in every live chain by `security_scan.py` (2026-08-04).
 
 ### V2-12 — Integration tests require local.properties API keys
 - **Area**: `app/src/androidTest/java/.../integration/`.
@@ -158,6 +158,31 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 - **Area**: `feature:assistant`, `feature:analytics`, `feature:recruiter`, `core:network`, `core:ai-providers`, `core:designsystem`, `navigation`.
 - **Description**: Added unit test suites: `AssistantViewModelTest` (streaming, single-flight, retry, partial-failure), `AnalyticsViewModelTest`, `RecruiterViewModelTest`, `CertificatePinningInterceptorTest`, `OpenAiApiSerializationTest`, `AccentPaletteTest`, `DestinationTest`, plus `JobFilterMatcherTest` for the new filter logic and expanded `JobDetailsViewModelTest` for apply-link resolution and linked navigation effects.
 - **Impact**: Full JVM unit test suite across all modules is green.
+
+## Security Certification Sprint (2026-08-04) — Findings & Remaining Risks
+
+### Resolved this sprint (confirmed with evidence, all re-validated)
+- **SC-01 — Fabricated certificate pins** — see V2-11 above. All 16 configured pins were fabricated; replaced with live-verified leaf + CA pins (9 hosts), enforced via native OkHttp `CertificatePinner`.
+- **SC-02 — Provider API keys in release BuildConfig** — Groq/Gemini/Apify/Hunter keys moved to **debug-only** build type; release embeds empty strings. Verified: no keys in `defaultConfig` or `release`.
+- **SC-03 — `EncryptionService` fail-open** — decrypt path silently returned plaintext on AEAD failure. Now **fail-closed** (throws `IllegalStateException`; no plaintext return path). 4 regression tests.
+- **SC-04 — Weak backup crypto + hardcoded passphrase** — 10k PBKDF2, fixed salt, `DEFAULT_PASSPHRASE` constant. Replaced by `BackupSecurity`: random per-file salt header, **600k PBKDF2-SHA256**, passphrase auto-generated and **KeyStore-wrapped** (device-bound). 7 regression tests.
+- **SC-05 — Room DB + keysets eligible for cloud backup** — PII-bearing DB and Tink keyset prefs (`aivance_tink_prefs`, `aivance_security_prefs`) now excluded from `backup_rules.xml` and `data_extraction_rules.xml`.
+- **SC-06 — AI provider logging leaked Authorization headers** — provider `HttpLoggingInterceptor` now gated to `BuildConfig.DEBUG` with `redactHeader("Authorization")` / `redactHeader("x-api-key")`.
+- **SC-07 — `geminiApiKey` stored plaintext in DataStore** — now encrypted at rest via `EncryptionService` on write, decrypted on read (`UserPreferencesRepositoryImpl`, `SettingsRepositoryImpl`). Legacy fallback logs at ERROR.
+- **SC-08 — Dead `rotateKeyset` no-op stub** — removed from `AivanceSecurity`.
+- **Phase 15 regression suite** — 17 new tests (`CertificatePinsTest` ×6, `EncryptionServiceFailClosedTest` ×4, `BackupSecurityTest` ×7), all green.
+- **Verification harness** — `security_scan.py` re-verifies live pins, secret scan, BuildConfig hygiene, backup rules, destructive-fallback absence, and fail-closed crypto: **20/20 checks PASS**.
+
+### Remaining security risks (accepted / non-blocking, tracked in TODO.md)
+- **SR-01 — Pin rotation requires a release** — pins live-verified at certification time; cert rotation (esp. CA-pinned hosts) requires a registry update + app release. Runbook in `CertificatePins.kt`; release gate = re-run `security_scan.py` (→ P1-02).
+- **SR-02 — Device-based pen-test pending** — MITM/Frida/root pass (Phase 12–13 of the security brief) not executed; needs emulator/physical device (→ P0-02).
+- **SR-03 — KeyStore-bound backup is device-bound** — restoring a backup on a different device requires the export passphrase flow (keyset excluded from cloud restore by design); UI surfacing pending (→ P1-04).
+- **SR-04 — New secret-bearing headers must join the redact list** — future provider headers need `redactHeader` coverage (→ P2-05).
+
+### Database Certification Sprint (2026-08-03) — Remaining Risks
+- **DR-01 — Instrumented DB tests compiled but not executed on device** (no emulator) — SQL proven by SQLite replay; run `:core:database:connectedDebugAndroidTest` on CI before release (→ P0-01).
+- **DR-02 — v1–v4 migration paths unverifiable** (no exported schemas for those versions) — pre-release versions; empty no-op migrations retained.
+- **DR-03 — `DatabaseManager` / `DatabaseSeed` possibly dead code** (→ P2-03).
 
 ## Resolved
 - **H-01** (SecurityMigrationWorker) — resolved in Phase 5 with real plaintext scan + SecretsManager migration.

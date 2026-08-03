@@ -50,9 +50,11 @@ class JobFeatureDaoTest {
         val company = CompanyEntity(
             id = 1,
             name = "Google",
+            domain = null,
             logoUrl = "logo.png",
             website = "google.com",
-            industry = "Tech"
+            industry = "Tech",
+            headquarters = null
         )
         companyDao.insertCompany(company)
 
@@ -61,9 +63,16 @@ class JobFeatureDaoTest {
             companyId = 1,
             title = "Android Developer",
             location = "Mountain View",
-            type = "Full-time",
-            salary = "$150k - $200k",
+            type = "FULL_TIME",
+            remoteType = null,
+            experienceLevel = null,
+            salaryMin = 150_000.0,
+            salaryMax = 200_000.0,
+            currency = "USD",
             description = "Develop cool apps",
+            descriptionHtml = null,
+            url = "https://jobs.google.com/1",
+            sourceProviderId = "GREENHOUSE",
             postedDate = System.currentTimeMillis()
         )
         jobDao.insertJob(job)
@@ -78,8 +87,34 @@ class JobFeatureDaoTest {
 
     @Test
     fun trackerIntegration() = runTest {
-        val companyId = companyDao.insertCompany(CompanyEntity(name = "Meta", logoUrl = "", website = "", industry = ""))
-        val jobId = jobDao.insertJob(JobEntity(companyId = companyId, title = "Software Engineer", location = "", type = "", salary = "", description = "", postedDate = 1000L))
+        val companyId = companyDao.insertCompany(
+            CompanyEntity(
+                name = "Meta",
+                domain = null,
+                logoUrl = "",
+                website = "",
+                industry = "",
+                headquarters = null
+            )
+        )
+        val jobId = jobDao.insertJob(
+            JobEntity(
+                companyId = companyId,
+                title = "Software Engineer",
+                location = "",
+                type = "FULL_TIME",
+                remoteType = null,
+                experienceLevel = null,
+                salaryMin = null,
+                salaryMax = null,
+                currency = null,
+                description = "",
+                descriptionHtml = null,
+                url = "",
+                sourceProviderId = "UNKNOWN",
+                postedDate = 1000L
+            )
+        )
 
         val application = JobApplicationEntity(
             id = 1,

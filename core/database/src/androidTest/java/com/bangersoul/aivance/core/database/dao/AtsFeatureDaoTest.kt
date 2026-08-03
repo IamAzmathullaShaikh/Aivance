@@ -9,6 +9,7 @@ import com.bangersoul.aivance.core.database.AivanceDatabase
 import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
 import com.bangersoul.aivance.core.database.model.ResumeEntity
 import com.bangersoul.aivance.core.database.model.ResumeSectionEntity
+import com.bangersoul.aivance.core.database.model.ResumeVersionEntity
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -44,16 +45,23 @@ class AtsFeatureDaoTest {
         val resume = ResumeEntity(
             id = 1,
             name = "John_Doe_Resume.pdf",
-            text = "Experienced Android Developer...",
             dateCreated = System.currentTimeMillis(),
             lastModified = System.currentTimeMillis()
         )
         resumeDao.insertResume(resume)
 
-        // 2. Insert Resume Sections
+        // 2. Insert a version and its sections (sections are keyed by versionId)
+        resumeDao.insertVersion(
+            ResumeVersionEntity(
+                id = 1,
+                resumeId = 1,
+                versionName = "Main Version",
+                templateId = "modern"
+            )
+        )
         val sections = listOf(
-            ResumeSectionEntity(resumeId = 1, title = "Experience", content = "...", sectionOrder = 0),
-            ResumeSectionEntity(resumeId = 1, title = "Skills", content = "...", sectionOrder = 1)
+            ResumeSectionEntity(versionId = 1, title = "Experience", content = "...", sectionOrder = 0, sectionType = "EXPERIENCE"),
+            ResumeSectionEntity(versionId = 1, title = "Skills", content = "...", sectionOrder = 1, sectionType = "SKILLS")
         )
         resumeDao.insertSections(sections)
 
@@ -74,20 +82,22 @@ class AtsFeatureDaoTest {
         val savedResume = resumeDao.getResumeById(1)
         assertThat(savedResume?.name).isEqualTo("John_Doe_Resume.pdf")
 
-        resumeDao.getSectionsForResume(1).test {
+        resumeDao.getSectionsForVersion(1).test {
             val savedSections = awaitItem()
             assertThat(savedSections).hasSize(2)
             assertThat(savedSections[0].title).isEqualTo("Experience")
         }
 
-        val savedAnalysis = atsDao.getAtsResultById(1)
-        assertThat(savedAnalysis?.score).isEqualTo(92)
-        assertThat(savedAnalysis?.resumeId).isEqualTo(1)
+        atsDao.getLatestAtsResult().test {
+            val savedAnalysis = awaitItem()
+            assertThat(savedAnalysis?.score).isEqualTo(92)
+            assertThat(savedAnalysis?.resumeId).isEqualTo(1)
+        }
     }
 
     @Test
     fun deleteResume_cascadesToAnalysis() = runTest {
-        val resume = ResumeEntity(id = 1, name = "test.pdf", text = "", dateCreated = 0, lastModified = 0)
+        val resume = ResumeEntity(id = 1, name = "test.pdf", dateCreated = 0, lastModified = 0)
         resumeDao.insertResume(resume)
 
         val analysis = ResumeAnalysisEntity(
@@ -106,7 +116,8 @@ class AtsFeatureDaoTest {
         resumeDao.deleteResume(resume)
 
         // Analysis should be gone due to ForeignKey CASCADE
-        val result = atsDao.getAtsResultById(1)
-        assertThat(result).isNull()
+        atsDao.getLatestAtsResult().test {
+            assertThat(awaitItem()).isNull()
+        }
     }
 }

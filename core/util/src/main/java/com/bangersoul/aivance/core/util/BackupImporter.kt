@@ -26,17 +26,21 @@ import javax.inject.Singleton
 class BackupImporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: AivanceDatabase,
-    private val json: Json
+    private val json: Json,
+    private val backupSecurity: BackupSecurity
 ) {
     suspend fun importBackup(
         uri: Uri,
-        passphrase: String = BackupExporter.DEFAULT_PASSPHRASE
+        passphrase: String? = null
     ): CoreResult<Unit> = withContext(Dispatchers.IO) {
         try {
             val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                 ?: return@withContext Result.Failure(DomainError("Could not read backup file"))
 
-            val jsonString = BackupExporter.decryptBytes(bytes, passphrase)
+            // Same-device restore resolves the device-bound secret automatically;
+            // cross-device restore requires the explicit passphrase.
+            val effectivePassphrase = passphrase ?: backupSecurity.devicePassphrase()
+            val jsonString = BackupSecurity.decryptBytes(bytes, effectivePassphrase)
             val payload = json.decodeFromString<AivanceBackupPayload>(jsonString)
 
             // Restore User Profiles

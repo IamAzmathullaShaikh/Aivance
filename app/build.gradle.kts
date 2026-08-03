@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
     alias(libs.plugins.google.services)
-    id("androidx.baselineprofile")
 }
 
 // Phase 4 (STEP 3): real-API integration-test keys. Read from the gitignored
@@ -32,12 +31,6 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Phase 4 integration-test keys (see local.properties).
-        buildConfigField("String", "APIFY_API_KEY", "\"${integrationApiKey("apifyApiKey")}\"")
-        buildConfigField("String", "GROQ_API_KEY", "\"${integrationApiKey("groqApiKey")}\"")
-        buildConfigField("String", "GEMINI_API_KEY", "\"${integrationApiKey("geminiApiKey")}\"")
-        buildConfigField("String", "HUNTER_API_KEY", "\"${integrationApiKey("hunterApiKey")}\"")
     }
 
     signingConfigs {
@@ -77,6 +70,14 @@ android {
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+
+            // Phase 4 integration-test keys (see local.properties). Debug-only:
+            // androidTest runs against the debug variant, and release APKs must
+            // never embed real provider credentials in BuildConfig.
+            buildConfigField("String", "APIFY_API_KEY", "\"${integrationApiKey("apifyApiKey")}\"")
+            buildConfigField("String", "GROQ_API_KEY", "\"${integrationApiKey("groqApiKey")}\"")
+            buildConfigField("String", "GEMINI_API_KEY", "\"${integrationApiKey("geminiApiKey")}\"")
+            buildConfigField("String", "HUNTER_API_KEY", "\"${integrationApiKey("hunterApiKey")}\"")
         }
     }
 

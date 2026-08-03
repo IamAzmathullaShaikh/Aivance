@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import app.cash.turbine.test
 import com.bangersoul.aivance.core.database.AivanceDatabase
 import com.bangersoul.aivance.core.database.model.InterviewMessageEntity
 import com.bangersoul.aivance.core.database.model.InterviewSessionEntity
@@ -42,6 +41,7 @@ class InterviewFeatureDaoTest {
             InterviewSessionEntity(
                 id = 1,
                 targetRole = "Android Developer",
+                type = "BEHAVIORAL",
                 difficulty = "Medium",
                 dateStarted = Instant.now(),
                 isCompleted = false,
@@ -49,17 +49,16 @@ class InterviewFeatureDaoTest {
             )
         )
 
-        val messages = listOf(
-            InterviewMessageEntity(sessionId = sessionId, role = "AI", text = "Tell me about yourself", timestamp = Instant.now()),
+        interviewDao.insertMessage(
+            InterviewMessageEntity(sessionId = sessionId, role = "AI", text = "Tell me about yourself", timestamp = Instant.now())
+        )
+        interviewDao.insertMessage(
             InterviewMessageEntity(sessionId = sessionId, role = "USER", text = "I am a developer", timestamp = Instant.now())
         )
-        interviewDao.insertMessages(messages)
 
-        interviewDao.getInterviewSessionWithMessages(sessionId).test {
-            val sessionWithMessages = awaitItem()
-            assertThat(sessionWithMessages).isNotNull()
-            assertThat(sessionWithMessages?.session?.targetRole).isEqualTo("Android Developer")
-            assertThat(sessionWithMessages?.messages).hasSize(2)
-        }
+        val sessionWithMessages = interviewDao.getInterviewSessionWithMessagesById(sessionId)
+        assertThat(sessionWithMessages).isNotNull()
+        assertThat(sessionWithMessages?.session?.targetRole).isEqualTo("Android Developer")
+        assertThat(sessionWithMessages?.messages).hasSize(2)
     }
 }

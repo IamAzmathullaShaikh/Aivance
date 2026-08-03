@@ -74,14 +74,19 @@ class AivanceFeatureDaoTest {
     fun providerConfigIntegration() = runTest {
         val config = ProviderConfigurationEntity(
             provider = "GEMINI",
-            apiKey = "key123",
+            type = "AI",
             baseUrl = null,
-            settings = emptyMap()
+            selectedModel = null,
+            actorId = null,
+            settings = emptyMap(),
+            isEnabled = true
         )
         aiAnalyticsDao.insertProviderConfig(config)
 
         val savedConfig = aiAnalyticsDao.getProviderConfig("GEMINI")
-        assertThat(savedConfig?.apiKey).isEqualTo("key123")
+        assertThat(savedConfig?.type).isEqualTo("AI")
+        assertThat(savedConfig?.isEnabled).isTrue()
+        assertThat(savedConfig?.settings).isEmpty()
     }
 
     @Test

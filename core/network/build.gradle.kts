@@ -30,7 +30,8 @@ android {
             buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
         }
         release {
-            buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+            // Never embed real provider credentials in release BuildConfig.
+            buildConfigField("String", "GEMINI_API_KEY", "\"\"")
         }
     }
 }

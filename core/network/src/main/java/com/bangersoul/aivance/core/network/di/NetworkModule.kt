@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.core.network.di
 
+import com.bangersoul.aivance.core.common.security.CertificatePins
 import com.bangersoul.aivance.core.network.BuildConfig
 import com.bangersoul.aivance.core.network.security.CertificatePinningInterceptor
 import dagger.Module
@@ -57,9 +58,20 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideCertificatePinner(): okhttp3.CertificatePinner {
+        val builder = okhttp3.CertificatePinner.Builder()
+        CertificatePins.OKHTTP_PINS.forEach { (host, pins) ->
+            builder.add(host, *pins.toTypedArray())
+        }
+        return builder.build()
+    }
+
+    @Provides
+    @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
-        pinningInterceptor: CertificatePinningInterceptor
+        pinningInterceptor: CertificatePinningInterceptor,
+        certificatePinner: okhttp3.CertificatePinner
     ): OkHttpClient {
         val connectionSpec = ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
             .tlsVersions(TlsVersion.TLS_1_2, TlsVersion.TLS_1_3)
@@ -68,6 +80,10 @@ object NetworkModule {
 
         return OkHttpClient.Builder()
             .connectionSpecs(listOf(connectionSpec))
+            // Native CertificatePinner runs during the TLS handshake — this is
+            // the authoritative pinning enforcement (application interceptors
+            // see a null connection on first request and cannot enforce).
+            .certificatePinner(certificatePinner)
             .addInterceptor(loggingInterceptor)
             .addInterceptor(pinningInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)

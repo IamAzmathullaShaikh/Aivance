@@ -53,11 +53,11 @@ object DatabaseModule {
             AivanceDatabase.MIGRATION_19_20,
             AivanceDatabase.MIGRATION_20_21,
             AivanceDatabase.MIGRATION_21_22,
-            AivanceDatabase.MIGRATION_22_23
+            AivanceDatabase.MIGRATION_22_23,
+            AivanceDatabase.MIGRATION_23_24
         )
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
         .setQueryExecutor(Executors.newFixedThreadPool(4))
-        .fallbackToDestructiveMigration()
         .build()
 
     @Provides

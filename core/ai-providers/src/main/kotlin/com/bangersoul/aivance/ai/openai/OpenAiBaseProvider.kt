@@ -1,7 +1,9 @@
 package com.bangersoul.aivance.ai.openai
 
+import com.bangersoul.aivance.core.aiproviders.BuildConfig
 import com.bangersoul.aivance.core.common.enums.MessageRole
 import com.bangersoul.aivance.core.common.result.ProviderError
+import com.bangersoul.aivance.core.common.security.CertificatePins
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
@@ -69,10 +71,21 @@ abstract class OpenAiBaseProvider(
         updateStatus(ProviderStatus.Initializing)
         try {
             val logging = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                // Never log request/response bodies or auth headers outside debug
+                // builds: release traffic carries Bearer API keys + full prompt/answer text.
+                level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                else HttpLoggingInterceptor.Level.NONE
+                redactHeader("Authorization")
+                redactHeader("x-api-key")
+            }
+
+            val pinnerBuilder = okhttp3.CertificatePinner.Builder()
+            CertificatePins.OKHTTP_PINS.forEach { (host, pins) ->
+                pinnerBuilder.add(host, *pins.toTypedArray())
             }
 
             val client = OkHttpClient.Builder()
+                .certificatePinner(pinnerBuilder.build())
                 .addInterceptor(logging)
                 .build()
 
