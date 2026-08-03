@@ -69,37 +69,47 @@ class JobsViewModel @Inject constructor(
         }
     }
 
+    private var searchJob: kotlinx.coroutines.Job? = null
+
     private fun search(query: String? = null) {
-        val current = _uiState.value as? JobsUiState.Success ?: return
+        val current = _uiState.value as? JobsUiState.Success ?: JobsUiState.Success()
         val newFilter = query?.let { current.filter.copy(query = it) } ?: current.filter
 
-        viewModelScope.launch {
-            _uiState.value = JobsUiState.Loading
+        _uiState.value = current.copy(filter = newFilter, isSearching = true)
+
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             trackEventUseCase(TrackEventRequest("job_discovery_search"))
 
             val result = searchJobsUseCase(SearchJobsRequest(filter = newFilter))
             when (result) {
                 is Result.Success -> {
-                    _uiState.value = JobsUiState.Success(jobs = result.data, filter = newFilter)
+                    _uiState.value = JobsUiState.Success(jobs = result.data, filter = newFilter, isSearching = false)
                 }
                 is Result.Failure -> {
-                    _uiState.value = JobsUiState.Error(result.error.message)
+                    val message = result.error.message ?: "Failed to load jobs"
+                    if (current.jobs.isEmpty()) {
+                        _uiState.value = JobsUiState.Error(message)
+                    } else {
+                        _uiState.value = JobsUiState.Success(jobs = current.jobs, filter = newFilter, isSearching = false)
+                        _effects.send(JobsUiEffect.ShowSnackbar(message))
+                    }
                 }
             }
         }
     }
 
     private fun updateFilter(filter: JobSearchFilter) {
-        val current = _uiState.value as? JobsUiState.Success ?: return
-        _uiState.value = current.copy(filter = filter)
+        val current = _uiState.value as? JobsUiState.Success ?: JobsUiState.Success()
+        _uiState.value = current.copy(filter = filter, isSearching = true)
         search()
     }
 
     /** Resets every filter dimension (keeps the free-text query). */
     private fun clearFilters() {
-        val current = _uiState.value as? JobsUiState.Success ?: return
+        val current = _uiState.value as? JobsUiState.Success ?: JobsUiState.Success()
         val cleared = JobSearchFilter(query = current.filter.query)
-        _uiState.value = current.copy(filter = cleared)
+        _uiState.value = current.copy(filter = cleared, isSearching = true)
         search(cleared.query)
     }
 

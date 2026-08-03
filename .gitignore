@@ -56,3 +56,5 @@ keystore.jks
 /feature/tracker/build/
 /feature/tracker/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
 /navigation/build/
+.screenshots/
+.agents/

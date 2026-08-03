@@ -32,6 +32,7 @@ class JobRepositoryImplTest {
 
     @Before
     fun setUp() {
+        coEvery { jobDao.getJobsWithDetails() } returns kotlinx.coroutines.flow.flowOf(emptyList())
         repository = JobRepositoryImpl(jobDao, companyDao, providerRegistry, normalizer, filterMatcher)
     }
 

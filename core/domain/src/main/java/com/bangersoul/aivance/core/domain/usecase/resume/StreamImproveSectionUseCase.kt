@@ -31,8 +31,10 @@ class StreamImproveSectionUseCase @Inject constructor(
         val versions = (versionsResult as? Result.Success)?.data
             ?: throw Exception("Failed to fetch versions")
         val original = versions.find { it.id == input.versionId }
-            ?: throw Exception("Version not found")
-        val section = original.sections.firstOrNull { it.title == input.sectionTitle }
+            ?: versions.firstOrNull()
+            ?: throw Exception("No resume version found to improve")
+        val section = original.sections.firstOrNull { it.title.equals(input.sectionTitle, ignoreCase = true) }
+            ?: original.sections.firstOrNull()
             ?: throw Exception("Section '${input.sectionTitle}' not found")
 
         val promptBuilder = StringBuilder(

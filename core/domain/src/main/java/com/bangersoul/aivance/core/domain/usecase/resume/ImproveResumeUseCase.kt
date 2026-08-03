@@ -31,7 +31,7 @@ class ImproveResumeUseCase @Inject constructor(
         return runCatchingCore {
             val versionsResult = resumeRepository.getVersions(input.resumeId).firstOrNull()
             val versions = (versionsResult as? Result.Success)?.data ?: throw Exception("Failed to fetch versions")
-            val original = versions.find { it.id == input.versionId } ?: throw Exception("Version not found")
+            val original = versions.find { it.id == input.versionId } ?: versions.firstOrNull() ?: throw Exception("No resume version found to improve")
 
             val promptBuilder = StringBuilder("Please improve the following resume section for better clarity, impact, and phrasing.")
             if (!input.jobDescription.isNullOrBlank()) {

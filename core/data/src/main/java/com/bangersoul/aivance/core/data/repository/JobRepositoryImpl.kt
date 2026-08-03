@@ -65,7 +65,10 @@ class JobRepositoryImpl @Inject constructor(
                 }
             }
 
-            val aggregated = deferredResults.awaitAll().flatten()
+            val providerResults = deferredResults.awaitAll().flatten()
+            val aggregated = providerResults.ifEmpty {
+                jobDao.getJobsWithDetails().firstOrNull()?.map { it.toDomain() } ?: emptyList()
+            }
 
             // Client-side filtering: provider APIs only honour a subset of the
             // filter (mostly query + location), so apply every dimension here to

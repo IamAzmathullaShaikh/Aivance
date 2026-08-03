@@ -38,12 +38,14 @@ class JobFilterMatcher @Inject constructor() {
         }
 
         if (filter.employmentTypes.isNotEmpty() &&
+            job.employmentType != EmploymentType.OTHER &&
             filter.employmentTypes.none { it == job.employmentType }
         ) {
             return false
         }
 
         if (filter.experienceLevels.isNotEmpty() &&
+            job.experienceLevel != ExperienceLevel.NOT_SPECIFIED &&
             filter.experienceLevels.none { it == job.experienceLevel }
         ) {
             return false
