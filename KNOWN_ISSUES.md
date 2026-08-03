@@ -29,7 +29,8 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 - **Area**: `feature:analytics`.
 - **Description**: Interview improvement timeline and achievement cards require accumulated analytics history.
 - **Impact**: Charts render empty/partial for new users.
-- **Mitigation**: Data accumulates over time; honest empty states are shown.
+### M-04 — ~~Excessive binder transaction overload during tab navigation~~ ✅ RESOLVED
+- **Resolved in End-to-End Device Pass**: `TrackerViewModel` now manages `loadJob: Job?` to cancel prior flow collection coroutines before launching new ones. Eliminates duplicate Room `combine().collect` collectors on database writes and prevents Android OS from terminating cached app processes due to binder transaction limits during rapid tab navigation.
 
 ## 🟢 Low
 

@@ -52,6 +52,8 @@ class TrackerViewModel @Inject constructor(
     private val _effects = Channel<String>(Channel.BUFFERED)
     val effects: Flow<String> = _effects.receiveAsFlow()
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     init {
         loadData()
     }
@@ -69,7 +71,8 @@ class TrackerViewModel @Inject constructor(
     }
 
     private fun loadData() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.value = TrackerUiState.Loading
 
             combine(
@@ -111,7 +114,6 @@ class TrackerViewModel @Inject constructor(
                             transition.error.message ?: "Failed to update stage"
                         )
                     }
-                    loadData()
                 }
             }
         }
@@ -121,7 +123,6 @@ class TrackerViewModel @Inject constructor(
         viewModelScope.launch {
             repository.deleteApplication(id)
             closeApplication()
-            loadData()
         }
     }
 
@@ -198,7 +199,6 @@ class TrackerViewModel @Inject constructor(
                     _effects.send(cacheResult.error.message ?: "Failed to prepare job")
                 }
             }
-            loadData()
         }
     }
 }
