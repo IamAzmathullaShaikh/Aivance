@@ -80,6 +80,60 @@ Prioritized, effort-tagged remediation backlog derived from the **Database Certi
 
 ---
 
+## Reference Repository Utilization (2026-08-04)
+
+Research-backed integration opportunities from the 8 referenced OSS repos, mapped against AiVance's architecture (`core:job-providers`, `JobMapper`, Resume Engine, Prep Studio, Tracker).
+
+**License gate:** AiVance is proprietary (commercial, Play Store). Only **MIT/ISC**-licensed code may be ported. **AGPL-3.0 and unlicensed** repos are *reference only* — their patterns may be reimplemented from scratch, never copied.
+
+| Repo | License | Verdict |
+|---|---|---|
+| [speedyapply/JobSpy](https://github.com/speedyapply/JobSpy) | MIT | ✅ Port patterns: new job providers, salary normalization, proxy rotation |
+| [remoteintech/remote-jobs](https://github.com/remoteintech/remote-jobs) | ISC | ✅ Dataset integration: remote-company catalog |
+| [amruthpillai/reactive-resume](https://github.com/amruthpillai/reactive-resume) | MIT | ✅ Adopt JSON Resume schema standard |
+| [MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search) | MIT | ✅ Port fit-scoring + STAR prep workflows |
+| [lukasz-madon/awesome-remote-job](https://github.com/lukasz-madon/awesome-remote-job) | community list | ✅ Curated resources content |
+| [GodsScion/Auto_job_applier_linkedIn](https://github.com/GodsScion/Auto_job_applier_linkedIn) | AGPL-3.0 | ⚠️ Reference only — reimplement patterns from scratch |
+| [navchandar/Naukri](https://github.com/navchandar/Naukri) | none | ⚠️ Reference only — profile-freshness concept |
+| [lordzohar/Naukri-autoapply-bot](https://github.com/lordzohar/Naukri-autoapply-bot) | none | ⚠️ Reference only — quota-tracking pattern |
+
+### R-01 — Add JobSpy-modeled job providers (ZipRecruiter, Glassdoor, Bayt, Naukri)
+- **Effort:** L · **Priority:** P2 · **Area:** `:core:job-providers`
+- **Why:** AiVance's LinkedIn/Indeed run on paid Apify actors. JobSpy (MIT) demonstrates direct-HTTP request flows for ZipRecruiter, Glassdoor, Google, Bayt, bdjobs and Naukri behind one normalized `JobPost` schema — porting the flow + rotating-proxy/retry patterns adds free sources and reduces Apify dependency. Also port its salary normalization (interval, `enforce_annual_salary`) into `JobMapper.parseSalary`.
+- **AC:** New providers registered in `JobProvidersModule`; each maps through `JobMapper` into `JobListing`; MockWebServer unit tests per provider; health checks pass; search aggregation includes the new sources when configured.
+
+### R-02 — Remote-company catalog from remoteintech/remote-jobs
+- **Effort:** M · **Priority:** P1 · **Area:** `:core:job-providers`, `companies` tables
+- **Why:** ISC-licensed dataset of hundreds of remote-friendly companies with structured metadata (`remote_policy`, `region`, `company_size`, `technologies`, `careers_url`). Enables remote-first filtering and company enrichment in Job Discovery without scraping.
+- **AC:** Catalog seeded from a bundled/generated snapshot; discovery filters by remote policy + technologies; `JobDetailsViewModel` enriches the company view from the catalog; refresh tooling documented.
+
+### R-03 — JSON Resume import/export (reactive-resume schema)
+- **Effort:** M · **Priority:** P1 · **Area:** `feature:resume` Resume Engine, `core:util`
+- **Why:** reactive-resume (MIT) is built on the open **JSON Resume** standard. AiVance already exports PDF/DOCX; adding JSON Resume round-trip gives interoperability with reactive-resume and other builders plus a stable portable format.
+- **AC:** Export current `ResumeVersion` to `resume.json` (JSON Resume schema v1.0.0); import validates and maps `basics`/`sections`/`work`/`education` back into versioned sections; round-trip unit tests.
+
+### R-04 — AI job-fit scoring (ai-job-search workflow)
+- **Effort:** M · **Priority:** P1 · **Area:** `feature:jobs`, `JobFilterMatcher`, AI providers
+- **Why:** ai-job-search (MIT) ranks listings on skills/experience/culture/location dimensions via a fit matrix. AiVance has AI providers + a structured matcher; adding a fit-score pipeline turns discovery from filter-only into ranked-by-fit.
+- **AC:** `fitScore` computed per listing (LLM-assisted, cached); discovery shows a fit badge/sort; degrades gracefully to a rule-based fallback when no AI provider is configured.
+
+### R-05 — STAR interview prep packs (ai-job-search `/interview`)
+- **Effort:** S · **Priority:** P2 · **Area:** `feature:interview` Prep Studio
+- **Why:** ai-job-search generates stage-specific STAR prep and roleplay via LLM. AiVance's Prep Studio can reuse the same prompt structure through its existing AI providers.
+- **AC:** Prep Studio generates STAR-format question packs for a chosen role; answers persist into interview sessions; uses the existing streaming path.
+
+### R-06 — Remote-work resources hub (awesome-remote-job)
+- **Effort:** S · **Priority:** P2 · **Area:** `feature:profile` About/Resources
+- **Why:** Curated lists of job boards, interview-prep platforms and remote-first companies make a useful reference screen.
+- **AC:** Resources screen with categorized links (boards, prep, companies); static content with localized strings.
+
+### R-07 — Apply-assist keyword rules + daily quota awareness (reference-only)
+- **Effort:** M · **Priority:** P2 · **Area:** `feature:jobs`, `feature:tracker`
+- **Why:** Auto_job_applier_linkedIn (AGPL — reference only) uses blacklist/whitelist keywords and confirm-before-submit; Naukri bots (unlicensed — reference only) track daily application quotas. Reimplement these UX patterns from scratch: keyword exclusions in job filters + a daily application counter in Tracker.
+- **AC:** Job filters support exclude/include keyword chips; Tracker shows today's application count vs. a configurable daily cap; no code from AGPL/unlicensed repos is copied (patterns reimplemented only).
+
+---
+
 ## Tracking
 
 - Sprint status, acceptance evidence, and certification reports: `DATABASE_CERTIFICATION.artifact.md`, `SECURITY_CERTIFICATION.artifact.md`.
