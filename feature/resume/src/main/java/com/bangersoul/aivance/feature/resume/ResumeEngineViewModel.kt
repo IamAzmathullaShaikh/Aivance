@@ -50,7 +50,8 @@ sealed interface ResumeEngineState {
         val resume: Resume,
         val version: ResumeVersion,
         val analysis: ResumeAnalysis,
-        val score: Int
+        val score: Int,
+        val jdText: String = ""
     ) : ResumeEngineState
     data class Optimizing(
         val resume: Resume,
@@ -298,7 +299,8 @@ class ResumeEngineViewModel @Inject constructor(
                         resume = current.resume,
                         version = current.version,
                         analysis = result.data.analysis,
-                        score = result.data.atsResult.score
+                        score = result.data.atsResult.score,
+                        jdText = current.jdText
                     )
                 }
                 is Result.Failure -> enterError("ATS Scan", result.error.message)
@@ -316,7 +318,10 @@ class ResumeEngineViewModel @Inject constructor(
             ?: (current as? ResumeEngineState.AtsResult)?.version
             ?: (current as? ResumeEngineState.Preview)?.version
             ?: return
-        _state.value = ResumeEngineState.Optimizing(resume, version)
+        val jdText = (current as? ResumeEngineState.AtsScanning)?.jdText
+            ?: (current as? ResumeEngineState.AtsResult)?.jdText
+            ?: ""
+        _state.value = ResumeEngineState.Optimizing(resume, version, jdText = jdText)
     }
 
     private fun improveSection(sectionTitle: String) {
