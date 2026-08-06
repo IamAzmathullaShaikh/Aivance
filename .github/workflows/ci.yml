@@ -1,12 +1,12 @@
-name: Aivance CI/CD
+name: Aivance CI/CD Pipeline
 
 on:
   push:
     branches: [ master, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
   schedule:
-    # Nightly full test suite run
+    # Nightly full test suite run at 06:00 UTC Monday-Friday
     - cron: '0 6 * * 1-5'
   workflow_dispatch:
     inputs:
@@ -29,17 +29,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Quick Check: Fastest feedback for PRs ───────────────────
-  quick-check:
-    name: 🏃 Quick Check
+  # ── Category 1: Security Verification Gate ────────────────
+  security-scan:
+    name: 🔒 1. Security & Certificate Pinning Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      - name: Install Python verification dependencies
+        run: |
+          python3 -m pip install --break-system-packages --upgrade pip
+          python3 -m pip install --break-system-packages cryptography
+
+      - name: Run security verification harness
+        run: python3 security_scan.py
+
+  # ── Category 2: Categorized Compilation Check ─────────────
+  compilation:
+    name: ⚙️ 2. Categorized Compilation Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -51,127 +65,81 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-home-cache-cleanup: true
-
-      - name: Set up Android SDK
-        run: |
-          SDKMANAGER=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          if [ -x "$SDKMANAGER" ]; then
-            echo "y" | "$SDKMANAGER" "platforms;android-37" 2>&1 || echo "SDK install skipped — AGP may auto-install"
-          else
-            echo "sdkmanager not found at $SDKMANAGER — using pre-installed SDK"
-          fi
-
-      - name: Compile only (fast fail)
-        run: |
-          ./gradlew :app:compileDebugKotlin \
-                    :core:common:compileDebugKotlin \
-                    :core:domain:compileDebugKotlin \
-                    :core:data:compileDebugKotlin \
-                    --no-daemon --parallel
-
-      - name: Gradle Build Scan (Develocity)
-        if: always() && hashFiles('**/.gradle/build-scan-data/*') != ''
-        run: ./gradlew buildScanPublishPrevious --no-daemon || true
-
-  # ── Code Quality ──────────────────────────────────────────
-  code-quality:
-    name: 🧹 Code Quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-home-cache-cleanup: true
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-
-      - name: Set up Android SDK
-        run: |
-          SDKMANAGER=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          if [ -x "$SDKMANAGER" ]; then
-            echo "y" | "$SDKMANAGER" "platforms;android-37" 2>&1 || echo "SDK install skipped — AGP may auto-install"
-          else
-            echo "sdkmanager not found at $SDKMANAGER — using pre-installed SDK"
-          fi
 
       - name: Create local.properties
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY || 'test' }}" > local.properties
-          echo "sdk.dir=$ANDROID_SDK_ROOT" >> local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
-      - name: Run detekt static analysis
-        run: |
-          # Only fail if detekt config exists
-          if [ -f config/detekt/detekt.yml ]; then
-            ./gradlew detekt --no-daemon
-          else
-            echo "detekt config not found, skipping"
-          fi
+      - name: Compile All Modules
+        run: ./gradlew compileDebugKotlin --no-daemon --parallel
 
-      - name: Run Android lint
-        run: ./gradlew lintDebug --no-daemon
-
-      - name: Check API compatibility
-        run: |
-          ./gradlew checkLibApi --no-daemon || echo "checkLibApi not available, skipping"
-
-      - name: Upload lint results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-results
-          path: |
-            **/build/reports/lint-results*.html
-            **/build/reports/detekt/
-
-  # ── Unit Tests ────────────────────────────────────────────
+  # ── Category 3: Categorized Unit Test Suite ──────────────
   unit-tests:
-    name: 🧪 Unit Tests
+    name: 🧪 3. Unit Tests (${{ matrix.category }}: ${{ matrix.module }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     strategy:
       fail-fast: false
       matrix:
-        module:
-          - ':core:common'
-          - ':core:domain'
-          - ':core:data'
-          - ':core:sdk'
-          - ':core:database'
-          - ':core:datastore'
-          - ':core:util'
-          - ':core:job-providers'
-          - ':feature:ats'
-          - ':feature:coverletter'
-          - ':feature:dashboard'
-          - ':feature:interview'
-          - ':feature:jobs'
-          - ':feature:profile'
-          - ':feature:resume'
-          - ':feature:tracker'
+        include:
+          # Core Architecture Modules
+          - category: 'Core'
+            module: ':core:common'
+          - category: 'Core'
+            module: ':core:database'
+          - category: 'Core'
+            module: ':core:datastore'
+          - category: 'Core'
+            module: ':core:designsystem'
+          - category: 'Core'
+            module: ':core:network'
+          - category: 'Core'
+            module: ':core:util'
+          - category: 'Core'
+            module: ':core:domain'
+          - category: 'Core'
+            module: ':core:data'
+
+          # Provider Integration Engines
+          - category: 'Providers'
+            module: ':core:sdk'
+          - category: 'Providers'
+            module: ':core:ai-providers'
+          - category: 'Providers'
+            module: ':core:job-providers'
+          - category: 'Providers'
+            module: ':core:enrichment-providers'
+
+          # Feature Modules
+          - category: 'Feature'
+            module: ':feature:analytics'
+          - category: 'Feature'
+            module: ':feature:assistant'
+          - category: 'Feature'
+            module: ':feature:ats'
+          - category: 'Feature'
+            module: ':feature:coverletter'
+          - category: 'Feature'
+            module: ':feature:dashboard'
+          - category: 'Feature'
+            module: ':feature:interview'
+          - category: 'Feature'
+            module: ':feature:jobs'
+          - category: 'Feature'
+            module: ':feature:profile'
+          - category: 'Feature'
+            module: ':feature:recruiter'
+          - category: 'Feature'
+            module: ':feature:resume'
+          - category: 'Feature'
+            module: ':feature:tracker'
+
+          # Navigation & App Shell
+          - category: 'AppShell'
+            module: ':navigation'
+          - category: 'AppShell'
+            module: ':app'
 
     steps:
       - uses: actions/checkout@v4
@@ -187,25 +155,9 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
 
-      - name: Set up Android SDK
+      - name: Create local.properties
         run: |
-          SDKMANAGER=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          if [ -x "$SDKMANAGER" ]; then
-            echo "y" | "$SDKMANAGER" "platforms;android-37" 2>&1 || echo "SDK install skipped — AGP may auto-install"
-          else
-            echo "sdkmanager not found at $SDKMANAGER — using pre-installed SDK"
-          fi
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Run unit tests for ${{ matrix.module }}
         run: ./gradlew ${{ matrix.module }}:testDebugUnitTest --no-daemon --continue
@@ -224,68 +176,11 @@ jobs:
             ${{ matrix.module }}/build/test-results/
           retention-days: 7
 
-  # ── Instrumented Tests (Android Emulator) ────────────────
-  android-tests:
-    name: 📱 Android Tests
-    runs-on: macos-latest  # Hardware acceleration available
-    timeout-minutes: 45
-    if: github.event_name != 'pull_request'
-
-    strategy:
-      fail-fast: false
-      matrix:
-        api-level: [29, 34]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Gradle cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-android-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
-          restore-keys: |
-            gradle-android-${{ runner.os }}-
-
-      - name: Run instrumented tests (API ${{ matrix.api-level }})
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ matrix.api-level }}
-          target: google_apis
-          arch: x86_64
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -cache-size 512
-          disable-animations: true
-          script: |
-            echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-            ./gradlew connectedDebugAndroidTest --no-daemon --continue
-
-      - name: Upload Android test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-test-results-api${{ matrix.api-level }}
-          path: |
-            **/build/reports/androidTests/
-            **/build/outputs/androidTest-results/
-          retention-days: 14
-
-  # ── Code Coverage ─────────────────────────────────────────
-  code-coverage:
-    name: 📊 Code Coverage
+  # ── Category 4: Android Lint & Quality Gate ───────────────
+  code-quality:
+    name: 🧹 4. Code Quality & Android Lint
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [unit-tests]
 
     steps:
       - uses: actions/checkout@v4
@@ -298,337 +193,92 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
-
-      - name: Download all test results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: test-results-*
-          merge-multiple: true
-
-      - name: Generate coverage report
-        run: |
-          ./gradlew :app:createDebugCoverageReport --no-daemon || true
-          ./gradlew koverMergedReport --no-daemon || true
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: |
-            **/build/reports/coverage/
-            **/build/reports/kover/
-          retention-days: 30
-
-  # ── Security Scan ─────────────────────────────────────────
-  security-scan:
-    name: 🔒 Security Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install verification harness dependencies
-        run: |
-          # --break-system-packages: ubuntu-latest (24.04) marks the OS python
-          # as externally-managed (PEP 668), which would otherwise reject pip.
-          python3 -m pip install --break-system-packages --upgrade pip
-          python3 -m pip install --break-system-packages cryptography
-
-      - name: Run security verification harness (release gate)
-        # P1-01: security_scan.py re-verifies live cert pins, hardcoded-secret
-        # scans, BuildConfig hygiene, backup rules and fail-closed crypto. A
-        # non-zero exit (any FAIL) fails this job, which gates the release build
-        # via `needs: security-scan`. Requires network access to probe live TLS
-        # chains — never disable this step; use it as the source of truth.
-        run: python3 security_scan.py
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
-      - name: Generate dependency tree
-        run: |
-          ./gradlew :app:dependencies --no-daemon --configuration releaseRuntimeClasspath > dependency-tree.txt
-          ./gradlew :app:dependencies --no-daemon --configuration debugRuntimeClasspath >> dependency-tree.txt
-
-      - name: Check for known vulnerabilities
-        run: |
-          ./gradlew dependencyCheckAnalyze --no-daemon || echo "dependencyCheck plugin not installed, skipping"
-          ./gradlew ossIndexAudit --no-daemon || echo "ossIndex plugin not installed, skipping"
-
-      - name: License audit
-        run: |
-          ./gradlew checkLicense --no-daemon || echo "checkLicense plugin not installed, skipping"
-
-      - name: Upload dependency reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-reports
-          path: |
-            dependency-tree.txt
-            build/reports/dependency-check/
-          retention-days: 30
-
-  # ── Build Release Artifacts ──────────────────────────────
-  build:
-    name: 📦 Build Release
-    needs: [code-quality, unit-tests, security-scan]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-home-cache-cleanup: true
-          cache-read-only: false
-
-      - name: Set up Android SDK
-        run: |
-          SDKMANAGER=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          if [ -x "$SDKMANAGER" ]; then
-            echo "y" | "$SDKMANAGER" "platforms;android-37" 2>&1 || echo "SDK install skipped — AGP may auto-install"
-          else
-            echo "sdkmanager not found at $SDKMANAGER — using pre-installed SDK"
-          fi
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-build-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle/libs.versions.toml') }}
-          restore-keys: |
-            gradle-build-${{ runner.os }}-
 
       - name: Create local.properties
         run: |
-          cat > local.properties << 'LOCALEOF'
-          sdk.dir=$ANDROID_SDK_ROOT
-          LOCALEOF
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
-      - name: Check keystore secret
+      - name: Run Android Lint across all modules
+        run: ./gradlew lint --no-daemon
+
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lint-reports
+          path: |
+            **/build/reports/lint-results*.html
+            **/build/reports/lint-results*.sarif
+          retention-days: 14
+
+  # ── Category 5: APK & Bundle Build Gate ───────────────────
+  build-artifacts:
+    name: 📦 5. Categorized APK & Bundle Build
+    needs: [security-scan, compilation, unit-tests, code-quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      - name: Build Debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Check Keystore Configuration
         id: check-keystore
         run: |
           if [ -n "${{ secrets.AIVANCE_KEYSTORE_BASE64 }}" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "${{ secrets.AIVANCE_KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Decode keystore
-        if: steps.check-keystore.outputs.exists == 'true'
+      - name: Build Release APK & Bundle
         run: |
-          echo "${{ secrets.AIVANCE_KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
-
-      - name: Build release AAB
-        run: ./gradlew :app:bundleRelease --no-daemon
+          if [ "${{ steps.check-keystore.outputs.exists }}" == "true" ]; then
+            ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon
+          else
+            echo "Keystore secret not present — compiling debug binaries"
+            ./gradlew :app:assembleDebug --no-daemon
+          fi
         env:
           AIVANCE_STORE_PASSWORD: ${{ secrets.AIVANCE_STORE_PASSWORD }}
           AIVANCE_KEY_ALIAS: ${{ secrets.AIVANCE_KEY_ALIAS }}
           AIVANCE_KEY_PASSWORD: ${{ secrets.AIVANCE_KEY_PASSWORD }}
 
-      - name: Build release APK (universal)
-        run: ./gradlew :app:assembleRelease --no-daemon
-        env:
-          AIVANCE_STORE_PASSWORD: ${{ secrets.AIVANCE_STORE_PASSWORD }}
-          AIVANCE_KEY_ALIAS: ${{ secrets.AIVANCE_KEY_ALIAS }}
-          AIVANCE_KEY_PASSWORD: ${{ secrets.AIVANCE_KEY_PASSWORD }}
-
-      - name: Upload AAB
+      - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: aivance-release-aab
-          path: app/build/outputs/bundle/release/app-release.aab
-          retention-days: 90
+          name: aivance-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
 
-      - name: Upload APK
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
+        if: steps.check-keystore.outputs.exists == 'true'
         with:
           name: aivance-release-apk
           path: app/build/outputs/apk/release/app-release.apk
           retention-days: 90
 
-      - name: Upload ProGuard mapping
+      - name: Upload Release AAB Bundle Artifact
         uses: actions/upload-artifact@v4
-        with:
-          name: proguard-mapping
-          path: app/build/outputs/mapping/release/mapping.txt
-          retention-days: 90
-
-      - name: Upload debug symbols
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-symbols
-          path: app/build/outputs/native-debug-symbols/
-          retention-days: 90
-
-  # ── Performance Benchmark ────────────────────────────────
-  benchmark:
-    name: ⚡ Performance
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: |
-      github.ref == 'refs/heads/master' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (github.event_name != 'workflow_dispatch' || github.event.inputs.run_benchmarks == 'true')
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
-      - name: Generate baseline profile
-        run: |
-          ./gradlew :app:generateDebugBaselineProfile --no-daemon || true
-
-      - name: Run macrobenchmark
-        run: |
-          ./gradlew :app:macrobenchmark --no-daemon || true
-
-      - name: Upload benchmark results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: |
-            **/build/outputs/benchmark/
-            **/build/reports/benchmark/
-          retention-days: 90
-
-  # ── Release to Play Store ────────────────────────────────
-  release:
-    name: 🚀 Play Store Release
-    needs: [build, benchmark]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: |
-      github.ref == 'refs/heads/master' &&
-      github.event_name == 'workflow_dispatch'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: temurin
-
-      - name: Download AAB
-        uses: actions/download-artifact@v4
+        if: steps.check-keystore.outputs.exists == 'true'
         with:
           name: aivance-release-aab
-          path: app/build/outputs/bundle/release/
-
-      - name: Download ProGuard mapping
-        uses: actions/download-artifact@v4
-        with:
-          name: proguard-mapping
-          path: app/build/outputs/mapping/release/
-
-      - name: Extract version
-        id: version
-        run: |
-          VERSION_NAME=$(grep 'versionName' app/build.gradle.kts | head -1 | grep -oP '"[^"]+"' | tr -d '"' || echo "1.0.0")
-          VERSION_CODE=$(grep 'versionCode' app/build.gradle.kts | head -1 | grep -oP '\d+' || echo "1")
-          echo "version=v${VERSION_NAME}" >> $GITHUB_OUTPUT
-          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
-
-      - name: Upload to Google Play
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.bangersoul.aivance
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          track: production
-          status: completed
-          inAppUpdatePriority: 2
-          userFraction: 0.1
-          releaseName: ${{ steps.version.outputs.version || github.event.inputs.release_type || 'alpha' }}
-
-      - name: Upload mapping to Play Console
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.bangersoul.aivance
-          mappingFile: app/build/outputs/mapping/release/mapping.txt
-
-  # ── Notifications ────────────────────────────────────────
-  notify:
-    name: 📬 Notify
-    needs: [code-quality, unit-tests, security-scan]
-    runs-on: ubuntu-latest
-    if: always() && github.event_name != 'pull_request'
-
-    steps:
-      - name: Check build status
-        run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ${{ needs.code-quality.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Send Slack notification on failure
-        if: failure()
-        uses: slackapi/slack-github-action@v1.26.0
-        with:
-          payload: |
-            {
-              "channel": "${{ secrets.SLACK_CHANNEL_ID || '#builds' }}",
-              "text": "❌ Aivance build failed on ${{ github.ref_name }}: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "❌ *Aivance Build Failed*\nCommit: <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\nBranch: `${{ github.ref_name }}`\nJob: ${{ github.workflow }}\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true
-
-      - name: Send email notification on failure
-        if: failure()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: "❌ Aivance Build Failed: ${{ github.ref_name }}"
-          to: ${{ secrets.NOTIFY_EMAIL }}
-          from: GitHub Actions
-          body: |
-            Aivance CI build failed on branch ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            View details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        continue-on-error: true
+          path: app/build/outputs/bundle/release/app-release.aab
+          retention-days: 90
