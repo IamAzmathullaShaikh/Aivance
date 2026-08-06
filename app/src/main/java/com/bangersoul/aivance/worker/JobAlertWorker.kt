@@ -4,8 +4,9 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.bangersoul.aivance.core.common.enums.JobSortOrder
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
-import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.domain.repository.JobRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -27,9 +28,14 @@ class JobAlertWorker @AssistedInject constructor(
         Timber.i("JobAlertWorker: executing background job alert scan")
         return try {
             val filter = JobSearchFilter(query = "Android Developer")
-            val results = jobRepository.searchJobs(filter)
-            if (results is Result.Success) {
-                Timber.i("JobAlertWorker: scan complete — found %d matching jobs", results.data.size)
+            val results = jobRepository.searchJobs(filter, JobSortOrder.RELEVANCE)
+            when (results) {
+                is CoreResult.Success -> {
+                    Timber.i("JobAlertWorker: scan complete — found %d matching jobs", results.data.size)
+                }
+                is CoreResult.Failure -> {
+                    Timber.w("JobAlertWorker: search returned failure: %s", results.error.message)
+                }
             }
             Result.success()
         } catch (e: Exception) {
