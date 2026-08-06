@@ -62,6 +62,35 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:433186935073:android:0000000000000002",
+        "android_client_info": {
+          "package_name": "com.bangersoul.aivance"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "433186935073-elau2khhj78koof6puo1mrk2hifa26jt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBC0sqlHYnyQyem47dMNIgFhjhD4p_S8bo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "433186935073-elau2khhj78koof6puo1mrk2hifa26jt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

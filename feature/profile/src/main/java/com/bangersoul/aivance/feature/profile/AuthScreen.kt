@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -232,8 +233,9 @@ fun AuthScreen(
 
         Spacer(Modifier.height(16.dp))
 
+        val context = LocalContext.current
         OutlinedButton(
-            onClick = { viewModel.onEvent(AuthUiEvent.ContinueWithGoogle) },
+            onClick = { viewModel.onEvent(AuthUiEvent.ContinueWithGoogle(context)) },
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = MaterialTheme.shapes.medium
         ) {

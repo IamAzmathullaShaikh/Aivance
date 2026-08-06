@@ -27,6 +27,7 @@ class AnalyticsRepositoryImpl @Inject constructor(
     private val workflowRepository: ApplicationWorkflowRepository,
     private val recruiterRepository: RecruiterIntelligenceRepository,
     private val userRepository: com.bangersoul.aivance.core.domain.repository.UserRepository,
+    private val interviewRepository: com.bangersoul.aivance.core.domain.repository.InterviewRepository,
     private val kpiEngine: KPIEngine,
     private val scoreEngine: CareerScoreEngine,
     private val intelEngine: CareerIntelligenceEngine,
@@ -42,13 +43,26 @@ class AnalyticsRepositoryImpl @Inject constructor(
 
     override suspend fun createSnapshot(): CoreResult<Long> = runCatchingCore {
         val apps = workflowRepository.getApplications().firstOrNull()?.getOrNull() ?: emptyList()
-        // Aggregating all recruiters from all companies
+        val sessions = interviewRepository.getSessions().firstOrNull()?.getOrNull() ?: emptyList()
+        val atsResults = atsDao.getAtsResults().firstOrNull() ?: emptyList()
+        val reports = atsResults.map { entity ->
+            AtsReport(
+                resumeVersionId = entity.resumeId,
+                jobDescriptionId = 0,
+                overallScore = entity.score,
+                matchPercentage = entity.score
+            )
+        }
+        val readiness = if (sessions.isNotEmpty()) {
+            sessions.mapNotNull { it.feedback?.overallScore }.takeIf { it.isNotEmpty() }?.average()?.toInt() ?: 75
+        } else 75
+
         val recruiters = apps.flatMap { app ->
             recruiterRepository.getRecruitersForCompany(app.jobId).firstOrNull()?.getOrNull() ?: emptyList()
         }.distinctBy { it.id }
 
         val interviewRate = kpiEngine.calculateInterviewRate(apps)
-        val scoreBreakdown = scoreEngine.calculateCompositeScore(emptyList(), recruiters, apps.size)
+        val scoreBreakdown = scoreEngine.calculateCompositeScore(reports, recruiters, apps.size, readiness)
 
         val snapshot = AnalyticsSnapshot(
             kpis = mapOf("interview_rate" to interviewRate),
@@ -96,11 +110,13 @@ class AnalyticsRepositoryImpl @Inject constructor(
             atsDao.getAtsResults(),
             workflowRepository.getApplications(),
             userRepository.getProfile(),
+            interviewRepository.getSessions(),
             analyticsDao.getSnapshots()
-        ) { atsResults, appsRes, profileRes, snapshots ->
+        ) { atsResults, appsRes, profileRes, interviewRes, snapshots ->
             runCatchingCore {
                 val apps = appsRes.getOrNull() ?: emptyList()
                 val profile = profileRes.getOrNull()
+                val sessions = interviewRes.getOrNull() ?: emptyList()
                 val recruiters = apps.flatMap { app ->
                     recruiterRepository.getRecruitersForCompany(app.jobId).firstOrNull()?.getOrNull() ?: emptyList()
                 }.distinctBy { it.id }
@@ -114,14 +130,18 @@ class AnalyticsRepositoryImpl @Inject constructor(
                     )
                 }
 
+                val readiness = if (sessions.isNotEmpty()) {
+                    sessions.mapNotNull { it.feedback?.overallScore }.takeIf { it.isNotEmpty() }?.average()?.toInt() ?: 75
+                } else 75
+
                 intelEngine.calculateIntelligence(
                     latestAtsReports = reports,
                     recruiters = recruiters,
                     applications = apps,
-                    interviewReadiness = 75 // Mock readiness for now
+                    interviewReadiness = readiness
                 ).copy(
-                    weeklyReview = if (apps.isNotEmpty()) {
-                        "Hey ${profile?.fullName?.substringBefore(" ") ?: ""}, this week you applied to ${apps.size} roles and engaged with ${recruiters.size} recruiters. Your interview readiness is increasing."
+                    weeklyReview = if (apps.isNotEmpty() || sessions.isNotEmpty()) {
+                        "Hey ${profile?.fullName?.substringBefore(" ") ?: ""}, this week you applied to ${apps.size} roles, engaged with ${recruiters.size} recruiters, and completed ${sessions.size} mock interview sessions."
                     } else null
                 )
             }

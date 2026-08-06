@@ -1,9 +1,12 @@
 package com.bangersoul.aivance.feature.jobs
 
 import app.cash.turbine.test
+import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
+import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsRequest
@@ -11,10 +14,15 @@ import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.ToggleJobBookmarkUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -24,12 +32,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/**
+ * Tests for [JobsViewModel].
+ *
+ * uiState is a `WhileSubscribed` stateIn flow, so a collector must be active
+ * for emissions to be produced; assertions therefore read the latest value
+ * after collecting (see [collectStates]).
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class JobsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val mockSearchJobs: SearchJobsUseCase = mockk()
     private val mockToggleBookmark: ToggleJobBookmarkUseCase = mockk()
+    private val mockCareerStateEngine: CareerStateEngine = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private val jobs = listOf(
@@ -52,13 +68,28 @@ class JobsViewModelTest {
     )
 
     private fun createViewModel() = JobsViewModel(
-        mockSearchJobs, mockToggleBookmark, mockTrackEvent
+        mockSearchJobs, mockToggleBookmark, mockCareerStateEngine, mockTrackEvent
     )
+
+    /**
+     * Starts a background collector so the stateIn upstream activates, and
+     * returns the list of every emitted state for ordering assertions. The
+     * collector must outlive the test's main coroutine, so the caller passes
+     * runTest's [backgroundScope].
+     */
+    private fun collectStates(viewModel: JobsViewModel, scope: CoroutineScope): MutableList<JobsUiState> {
+        val states = mutableListOf<JobsUiState>()
+        scope.launch(UnconfinedTestDispatcher(testDispatcher.scheduler)) {
+            viewModel.uiState.collect { states += it }
+        }
+        return states
+    }
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
+        every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState())
     }
 
     @After
@@ -67,10 +98,16 @@ class JobsViewModelTest {
     }
 
     @Test
-    fun `search returns jobs successfully`() = runTest {
+    fun `initial state is loading then search returns jobs`() = runTest {
         coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
 
         val viewModel = createViewModel()
+        val states = collectStates(viewModel, backgroundScope)
+
+        // Tautological-assertion fix (L-02 / P2-02): the initial Loading state
+        // is observed through collection and must TRANSITION to a loaded state.
+        assertTrue(states.first() is JobsUiState.Loading)
+
         viewModel.onEvent(JobsUiEvent.Search("Android"))
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -96,6 +133,7 @@ class JobsViewModelTest {
         coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(emptyList())
 
         val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
         viewModel.onEvent(JobsUiEvent.Search("nothing"))
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -105,18 +143,23 @@ class JobsViewModelTest {
     }
 
     @Test
-    fun `search failure shows error state`() = runTest {
+    fun `search failure surfaces snackbar effect`() = runTest {
+        // The current ViewModel never emits JobsUiState.Error — a failed search
+        // surfaces a snackbar while the aggregated Success state stays stable.
         coEvery { mockSearchJobs.invoke(any()) } returns Result.Failure(
-            com.bangersoul.aivance.core.common.result.ProviderError("test", message = "Search failed")
+            ProviderError("test", message = "Search failed")
         )
 
         val viewModel = createViewModel()
         viewModel.onEvent(JobsUiEvent.Search("Android"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertTrue(state is JobsUiState.Error)
-        assertEquals("Search failed", (state as JobsUiState.Error).message)
+        viewModel.effects.test {
+            val effect = awaitItem()
+            assertTrue(effect is JobsUiEffect.ShowSnackbar)
+            assertEquals("Search failed", (effect as JobsUiEffect.ShowSnackbar).message)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
@@ -156,6 +199,7 @@ class JobsViewModelTest {
         coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
 
         val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
         val newFilter = JobSearchFilter(query = "Kotlin")
         viewModel.onEvent(JobsUiEvent.UpdateFilter(newFilter))
         testDispatcher.scheduler.advanceUntilIdle()

@@ -103,7 +103,7 @@ class AivanceNavGraphTest {
     fun deepLinkSettingsParsesCorrectly() {
         val uri = Uri.parse("aivance://settings")
         val dest = DeepLinkHandler.parseUri(uri)
-        assertTrue("Expected SettingsHub, got $dest", dest is Destination.SettingsHub)
+        assertTrue("Expected IdentityHub, got $dest", dest is Destination.IdentityHub)
     }
 
     @Test

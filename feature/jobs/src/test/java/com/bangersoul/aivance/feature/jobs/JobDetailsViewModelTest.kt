@@ -7,6 +7,8 @@ import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.JobRepository
+import com.bangersoul.aivance.core.domain.repository.crm.CompanyIntelligenceRepository
+import com.bangersoul.aivance.core.domain.repository.crm.RecruiterIntelligenceRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.GetJobDetailsUseCase
@@ -34,6 +36,8 @@ class JobDetailsViewModelTest {
     private val mockToggleBookmark: ToggleJobBookmarkUseCase = mockk()
     private val mockJobRepository: JobRepository = mockk()
     private val mockApplicationWorkflowRepository: ApplicationWorkflowRepository = mockk()
+    private val mockCompanyIntelligence: CompanyIntelligenceRepository = mockk()
+    private val mockRecruiterIntelligence: RecruiterIntelligenceRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private val sampleJob = JobListing(
@@ -52,6 +56,8 @@ class JobDetailsViewModelTest {
         toggleJobBookmarkUseCase = mockToggleBookmark,
         jobRepository = mockJobRepository,
         applicationWorkflowRepository = mockApplicationWorkflowRepository,
+        companyIntelligenceRepository = mockCompanyIntelligence,
+        recruiterIntelligenceRepository = mockRecruiterIntelligence,
         trackEventUseCase = mockTrackEvent
     )
 
@@ -61,6 +67,9 @@ class JobDetailsViewModelTest {
         coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
         coEvery { mockGetJobDetails.invoke("job_1") } returns Result.Success(sampleJob)
         coEvery { mockGetJobDetails.invoke("") } returns Result.Failure(DomainError("Job ID not provided"))
+        // The detail load enriches the listing with company + recruiter data;
+        // no company is found for the sample listing, so no recruiters resolve.
+        coEvery { mockCompanyIntelligence.getCompanyByName("Google") } returns null
     }
 
     @After
@@ -69,10 +78,18 @@ class JobDetailsViewModelTest {
     }
 
     @Test
-    fun `loading state on init with valid jobId`() {
+    fun `loading state on init with valid jobId transitions to success`() = runTest {
         val viewModel = createViewModel()
 
+        // Tautological-assertion fix (L-02 / P2-02): the initial Loading state
+        // must be verified to TRANSITION to the loaded state, not asserted in
+        // isolation.
         assertTrue(viewModel.uiState.value is JobDetailsUiState.Loading)
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        val state = viewModel.uiState.value
+        assertTrue(state is JobDetailsUiState.Success)
+        assertEquals("Android Engineer", (state as JobDetailsUiState.Success).job.title)
     }
 
     @Test

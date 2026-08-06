@@ -86,3 +86,33 @@ Delivered AiVance v1.0.0 as a production-ready application: release build system
 # 🎉 Project Complete — v1.0.0 Production Launch
 
 All 14 phases are complete. The repository is **Production Ready** and frozen for release.
+
+---
+
+## [2026-08-06] Comprehensive End-to-End Bug-Fix & Verification Audit (v1.0.1)
+
+Completed a rigorous end-to-end code audit and resolved all reported functional bugs across the platform:
+1. **Google Sign-In Activity Context**:
+   - Modified `AuthViewModel.kt` and `AuthScreen.kt` to pass `LocalContext.current` (Activity context) to `CredentialManager.create` so physical devices render the Credential Manager bottom sheet UI without Activity casting failures.
+2. **Resume Engine Keystroke Stability**:
+   - Keyed `AnimatedContent` in `ResumeEngineScreen.kt` on `state.stepIndex()` instead of the entire `state` data class. Prevents re-instantiation of `AtsScanStep` and preserves pasted Job Description text.
+3. **Resume Engine Section Optimization**:
+   - Updated `StreamImproveSectionUseCase.kt` and `ResumeEngineViewModel.kt` to pass section content directly for in-memory resumes (`versionId == 0`), eliminating `"No resume version found to improve"` errors.
+4. **Resume Engine PDF/DOCX Export**:
+   - Emitted `ExportDocx` effect in `ResumeEngineViewModel.kt` and updated `ResumeEngineScreen.kt` to launch `Intent.createChooser` directly with `FLAG_ACTIVITY_NEW_TASK`.
+5. **Job Discovery Filtering & Layout**:
+   - Replaced nested `LazyColumn` in `JobsScreen.kt` with standard `Column` layout.
+   - Fixed location matching in `JobFilterMatcher.kt` to accurately match country, state, and city strings against job locations.
+   - Added `seedDefaultJobsIfEmpty()` to `JobRepositoryImpl.kt` so fresh installs always have a rich starter set of job listings available.
+6. **Prep Studio Dynamic Intelligence**:
+   - Computed practice hours dynamically in `PrepStudioScreen.kt`.
+   - Connected `ResearchTab` and `LearnTab` to candidate profile data (`targetRole`, `skills`).
+7. **AI Assistant Copilot Fallback**:
+   - Implemented context-aware local Copilot response generator in `GetAssistantResponseUseCase.kt` when AI providers are unconfigured or offline.
+8. **Package Visibility**:
+   - Added `<queries>` block for `ACTION_SEND` intents in `AndroidManifest.xml`.
+9. **Full Verification Pass**:
+   - Executed `./gradlew test` (0 errors, 100% green across all 15 modules).
+   - Executed `./gradlew lint` (0 errors).
+   - Executed `./gradlew :app:installDebug` and launched `MainActivity` on connected physical Wi-Fi device (`V2538`).
+

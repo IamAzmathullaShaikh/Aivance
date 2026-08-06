@@ -10,7 +10,7 @@
    The Tink keyset prefs are excluded for the same reason (master key absent
    after restore) and the secrets DataStore is outside the backup domains.
 -->
-<full-backup-content>
+<full-backup-content xmlns:tools="http://schemas.android.com/tools">
     <!-- Non-sensitive shared preferences (theme, language, toggles) -->
     <include domain="sharedpref" path="." />
 
@@ -22,5 +22,5 @@
     <exclude domain="sharedpref" path="aivance_backup_secure.xml" />
 
     <!-- Room database: PII + device-keyed encryption — never in cloud backup -->
-    <exclude domain="database" path="." />
+    <exclude domain="database" path="." tools:ignore="FullBackupContent" />
 </full-backup-content>

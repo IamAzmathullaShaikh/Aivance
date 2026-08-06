@@ -106,7 +106,8 @@ fun ResumeEngineScreen(
             when (effect) {
                 is ResumeEngineEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 is ResumeEngineEffect.ExportResult -> shareResumeFile(context, effect.text, effect.fileName)
-                is ResumeEngineEffect.ExportPdf -> shareResumePdf(context, effect.uri)
+                is ResumeEngineEffect.ExportPdf -> shareResumeExportFile(context, effect.uri, "application/pdf")
+                is ResumeEngineEffect.ExportDocx -> shareResumeExportFile(context, effect.uri, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                 ResumeEngineEffect.Finished -> onBack()
             }
         }
@@ -129,11 +130,11 @@ fun ResumeEngineScreen(
             EngineStepper(currentStep = state.stepIndex())
 
             AnimatedContent(
-                targetState = state,
+                targetState = state.stepIndex(),
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
                 label = "ResumeEngineTransition"
-            ) { current ->
-                when (current) {
+            ) { _ ->
+                when (val current = state) {
                     is ResumeEngineState.Import -> ImportStep(
                         onFileImported = { viewModel.onEvent(ResumeEngineEvent.ImportFile(it)) },
                         onOcrTextExtracted = { viewModel.onEvent(ResumeEngineEvent.ImportOcrText(it)) },
@@ -1067,15 +1068,21 @@ private fun ErrorStep(
     }
 }
 
-/** Shares a generated PDF (Phase 4 STEP 2) via ACTION_SEND with the app's FileProvider. */
-private fun shareResumePdf(context: android.content.Context, uri: Uri) {
+/** Shares a generated PDF/DOCX file via ACTION_SEND with the app's FileProvider. */
+private fun shareResumeExportFile(context: android.content.Context, uri: Uri, mimeType: String) {
     val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = "application/pdf"
+        type = mimeType
         putExtra(android.content.Intent.EXTRA_STREAM, uri)
         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
     }
-    if (shareIntent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(android.content.Intent.createChooser(shareIntent, context.getString(R.string.export_resume)))
+    val chooserIntent = android.content.Intent.createChooser(shareIntent, context.getString(R.string.export_resume)).apply {
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+        context.startActivity(chooserIntent)
+    } catch (e: Exception) {
+        android.util.Log.e("ResumeEngine", "Failed to launch share chooser", e)
     }
 }
 
@@ -1094,15 +1101,8 @@ private fun shareResumeFile(context: android.content.Context, text: String, file
         "${context.packageName}.fileprovider",
         file
     )
-    val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = if (fileName.endsWith(".doc", ignoreCase = true)) "application/msword" else "text/plain"
-        putExtra(android.content.Intent.EXTRA_STREAM, uri)
-        putExtra(android.content.Intent.EXTRA_TEXT, text)
-        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    if (shareIntent.resolveActivity(context.packageManager) != null) {
-        context.startActivity(android.content.Intent.createChooser(shareIntent, context.getString(R.string.export_resume)))
-    }
+    val mimeType = if (fileName.endsWith(".doc", ignoreCase = true)) "application/msword" else "text/plain"
+    shareResumeExportFile(context, uri, mimeType)
 }
 
 

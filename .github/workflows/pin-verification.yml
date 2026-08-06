@@ -1,0 +1,106 @@
+name: Pin Re-verification
+
+# P1-02: Scheduled live-pin re-verification + rotation runbook.
+#
+# Certificate pins in core/common/.../CertificatePins.kt are live-verified at
+# certification time. Certificate authorities rotate leaf/intermediate/root
+# certificates on their own schedule (notably Amazon CA 1 and Google Trust
+# Services R4), which silently invalidates pins. This workflow runs the
+# security_scan.py harness weekly; any mismatch fails the job AND opens a
+# pin-drift issue so the registry can be updated (runbook is in the
+# CertificatePins.kt KDoc) before production breaks.
+#
+# Rotation runbook: see CertificatePins.kt — re-harvest SPKI hashes, update
+# OKHTTP_PINS + HEX_PINS, re-run `python security_scan.py` (must be 20/20),
+# ship as a hotfix.
+
+on:
+  schedule:
+    # Weekly, Monday 03:17 UTC — off-peak for GitHub Actions scheduling.
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: pin-verification
+  cancel-in-progress: false
+
+jobs:
+  verify-pins:
+    name: 🔐 Verify live certificate pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install verification harness dependencies
+        run: |
+          # --break-system-packages: ubuntu-latest (24.04) marks the OS python
+          # as externally-managed (PEP 668), which would otherwise reject pip.
+          python3 -m pip install --break-system-packages --upgrade pip
+          python3 -m pip install --break-system-packages cryptography
+
+      - name: Run security verification harness
+        id: pins
+        continue-on-error: true
+        run: |
+          set +e
+          python3 security_scan.py > pin-verification-report.txt 2>&1
+          status=$?
+          cat pin-verification-report.txt
+          echo "scan_exit=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pin-verification-report
+          path: pin-verification-report.txt
+          retention-days: 30
+
+      - name: Open drift issue when pins no longer match
+        if: steps.pins.outputs.scan_exit != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPORT=$(sed -n '1,60p' pin-verification-report.txt | sed 's/`//g')
+          # Quoted heredoc keeps the body literal (the ``` fences must not be
+          # command-substituted); the report is spliced in afterwards so it is
+          # actually expanded.
+          BODY=$(cat <<'EOF'
+          **Certificate pin drift detected** — `security_scan.py` found registered pins that no longer match the live TLS chains.
+
+          This usually means a CA rotated a leaf/intermediate/root certificate (e.g. Amazon CA 1, GTS R4). Requests to the affected hosts fail closed until the registry is updated.
+
+          ## Rotation runbook
+          Follow the steps in the `CertificatePins.kt` KDoc (P1-02):
+          1. Re-harvest SPKI SHA-256 hashes for the failing hosts (`extract_pins.py` or `openssl s_client -showcerts`).
+          2. Update `OKHTTP_PINS` (base64) and `HEX_PINS` (hex) for those hosts only.
+          3. Re-run `python security_scan.py` — must be 20/20 PASS.
+          4. Ship as a v1.0.x hotfix. Never remove a pin to "fix" a connection.
+
+          ## Verification report (first 60 lines)
+          ```
+          __REPORT__
+          ```
+          EOF
+          )
+          BODY="${BODY/__REPORT__/$REPORT}"
+          if ! gh issue list --state open --label "pin-drift" --limit 1 --json number -q '.[0]' | grep -q .; then
+            gh issue create \
+              --title "⚠️ Certificate pin drift — re-verify CertificatePins.kt" \
+              --body "$BODY" \
+              --label "pin-drift"
+          else
+            echo "An open pin-drift issue already exists — skipping duplicate creation."
+          fi
+
+      - name: Fail the job on drift
+        if: steps.pins.outputs.scan_exit != '0'
+        run: |
+          echo "::error::Certificate pin drift detected — see pin-drift issue. Runbook in CertificatePins.kt (P1-02)."
+          exit 1

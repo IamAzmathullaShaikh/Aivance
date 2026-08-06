@@ -1,11 +1,16 @@
 package com.bangersoul.aivance.feature.assistant
 
-import com.bangersoul.aivance.core.common.model.UserProfile
+import com.bangersoul.aivance.core.common.model.CareerState
+import com.bangersoul.aivance.core.common.model.ProfileState
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.engine.CareerIntent
+import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
+import com.bangersoul.aivance.core.domain.engine.ContextEngine
+import com.bangersoul.aivance.core.domain.engine.IntentEngine
+import com.bangersoul.aivance.core.domain.engine.PromptOrchestrator
 import com.bangersoul.aivance.core.domain.repository.AssistantRepository
 import com.bangersoul.aivance.core.domain.usecase.assistant.AssistantRequest
 import com.bangersoul.aivance.core.domain.usecase.assistant.GetAssistantResponseUseCase
-import com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCase
 import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import io.mockk.coEvery
@@ -34,7 +39,10 @@ class AssistantViewModelTest {
     private val mockRepository: AssistantRepository = mockk()
     private val mockResponseUseCase: GetAssistantResponseUseCase = mockk()
     private val mockProviderManager: ProviderManager = mockk()
-    private val mockLoadProfile: LoadProfileUseCase = mockk()
+    private val mockStateEngine: CareerStateEngine = mockk()
+    private val mockContextEngine: ContextEngine = mockk()
+    private val mockIntentEngine: IntentEngine = mockk()
+    private val mockPromptOrchestrator: PromptOrchestrator = mockk()
 
     @Before
     fun setUp() {
@@ -43,9 +51,13 @@ class AssistantViewModelTest {
         every { mockProviderManager.providerStatuses } returns MutableStateFlow(
             mapOf("groq" to ProviderStatus.Active)
         )
-        every { mockLoadProfile.invoke() } returns flowOf(
-            Result.Success(UserProfile(fullName = "Azmath", email = "a@b.c"))
+        // The Copilot workspace drives the assistant off the CareerState engine
+        // rather than a one-shot LoadProfile use case.
+        every { mockStateEngine.state } returns MutableStateFlow(
+            CareerState(profile = ProfileState(name = "Azmath Shaik", targetRole = "Software Engineer"))
         )
+        every { mockIntentEngine.detectIntent(any(), any()) } returns CareerIntent.RESUME_HELP
+        every { mockPromptOrchestrator.buildCopilotPrompt(any(), any(), any()) } returns "copilot-prompt"
     }
 
     @After
@@ -57,7 +69,10 @@ class AssistantViewModelTest {
         mockRepository,
         mockResponseUseCase,
         mockProviderManager,
-        mockLoadProfile
+        mockStateEngine,
+        mockContextEngine,
+        mockIntentEngine,
+        mockPromptOrchestrator
     )
 
     @Test

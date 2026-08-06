@@ -39,10 +39,30 @@ object NetworkModule {
         coerceInputValues = true
     }
 
+    /**
+     * Shared OkHttp logging interceptor, active only in DEBUG builds.
+     *
+     * Secret-bearing headers are ALWAYS redacted — even in debug the values
+     * would otherwise reach logcat and could leak into crash reports
+     * (SC-06, P2-05). This covers the AI providers' `Authorization` /
+     * `x-api-key` and provider-specific headers such as USAJobs'
+     * `Authorization-Key`. Any future header that can carry a secret must be
+     * added here; keep this list in sync with the per-provider redaction in
+     * `core:ai-providers` (OpenAiBaseProvider, ClaudeProvider).
+     *
+     * Known caveat: `redactHeader` covers headers only — secrets sent as query
+     * parameters (Hunter.io `api_key`, Apify `token`) still appear in the
+     * debug-level request URL line. They are already excluded from release
+     * builds (level NONE); if that exposure ever needs closing, providers must
+     * move secrets into headers or the logger must be swapped for a custom one.
+     */
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor =
         HttpLoggingInterceptor().apply {
+            redactHeader("Authorization")
+            redactHeader("x-api-key")
+            redactHeader("Authorization-Key")
             level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
             } else {

@@ -13,7 +13,8 @@ data class StreamImproveSectionRequest(
     val versionId: Long,
     val sectionTitle: String,
     val jobDescription: String? = null,
-    val feedback: String = ""
+    val feedback: String = "",
+    val sectionContent: String? = null
 )
 
 /**
@@ -27,15 +28,17 @@ class StreamImproveSectionUseCase @Inject constructor(
     private val aiRepository: AiRepository
 ) {
     fun stream(input: StreamImproveSectionRequest): Flow<String> = flow {
-        val versionsResult = resumeRepository.getVersions(input.resumeId).firstOrNull()
-        val versions = (versionsResult as? Result.Success)?.data
-            ?: throw Exception("Failed to fetch versions")
-        val original = versions.find { it.id == input.versionId }
-            ?: versions.firstOrNull()
-            ?: throw Exception("No resume version found to improve")
-        val section = original.sections.firstOrNull { it.title.equals(input.sectionTitle, ignoreCase = true) }
-            ?: original.sections.firstOrNull()
-            ?: throw Exception("Section '${input.sectionTitle}' not found")
+        val targetContent = if (!input.sectionContent.isNullOrBlank()) {
+            input.sectionContent
+        } else {
+            val versionsResult = resumeRepository.getVersions(input.resumeId).firstOrNull()
+            val versions = (versionsResult as? Result.Success)?.data.orEmpty()
+            val original = versions.find { it.id == input.versionId }
+                ?: versions.firstOrNull()
+            val section = original?.sections?.firstOrNull { it.title.equals(input.sectionTitle, ignoreCase = true) }
+                ?: original?.sections?.firstOrNull()
+            section?.content ?: throw Exception("No section content found for '${input.sectionTitle}'")
+        }
 
         val promptBuilder = StringBuilder(
             "Please improve the following resume section for better clarity, impact, and phrasing."
@@ -47,7 +50,7 @@ class StreamImproveSectionUseCase @Inject constructor(
             promptBuilder.append(" Also consider this feedback: ${input.feedback}.")
         }
 
-        aiRepository.streamAnalyzeText(section.content, promptBuilder.toString())
+        aiRepository.streamAnalyzeText(targetContent, promptBuilder.toString())
             .collect { chunk -> emit(chunk) }
     }
 }

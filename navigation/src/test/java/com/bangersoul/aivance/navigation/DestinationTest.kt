@@ -14,10 +14,10 @@ class DestinationTest {
         assertEquals(
             listOf(
                 Destination.Dashboard,
-                Destination.Assistant,
-                Destination.Resume,
-                Destination.Jobs,
-                Destination.Pipeline
+                Destination.Intelligence,
+                Destination.Discovery,
+                Destination.Pipeline,
+                Destination.PrepStudio
             ),
             Destination.rootDestinations
         )
@@ -71,7 +71,7 @@ class DestinationTest {
     fun `v2 career destinations carry labels`() {
         assertEquals("Prep Studio", Destination.PrepStudio.label)
         assertEquals("Pipeline", Destination.Pipeline.label)
-        assertEquals("Settings", Destination.SettingsHub.label)
+        assertEquals("Identity Hub", Destination.IdentityHub.label)
         assertEquals("Company", Destination.CompanyDetail("x").label)
         assertEquals("Provider Setup", Destination.ProviderSetup.label)
         assertEquals("Sign In", Destination.Auth.label)

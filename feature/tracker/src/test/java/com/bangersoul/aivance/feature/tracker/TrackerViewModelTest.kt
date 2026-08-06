@@ -3,18 +3,23 @@ package com.bangersoul.aivance.feature.tracker
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.Application
 import com.bangersoul.aivance.core.common.model.ApplicationStage
+import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
+import com.bangersoul.aivance.core.domain.usecase.workflow.TaskGeneratorUseCase
 import com.bangersoul.aivance.core.domain.workflow.WorkflowEngine
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -32,14 +37,18 @@ class TrackerViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val mockRepository: ApplicationWorkflowRepository = mockk()
     private val mockAnalyticsRepository: AnalyticsRepository = mockk()
+    private val mockTaskGenerator: TaskGeneratorUseCase = mockk()
+    private val mockCareerStateEngine: CareerStateEngine = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
     private val mockJobRepository: JobRepository = mockk()
 
     private lateinit var viewModel: TrackerViewModel
 
     private fun buildViewModel(): TrackerViewModel {
-        val workflowEngine = WorkflowEngine(mockRepository, mockAnalyticsRepository)
-        return TrackerViewModel(mockRepository, workflowEngine, mockTrackEvent, mockJobRepository)
+        val workflowEngine = WorkflowEngine(mockRepository, mockAnalyticsRepository, mockTaskGenerator)
+        return TrackerViewModel(
+            mockRepository, workflowEngine, mockCareerStateEngine, mockTrackEvent, mockJobRepository
+        )
     }
 
     private val stages = listOf(
@@ -61,6 +70,8 @@ class TrackerViewModelTest {
         coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
         coEvery { mockAnalyticsRepository.createSnapshot() } returns Result.Success(1L)
         coEvery { mockRepository.getStages() } returns flowOf(Result.Success(stages))
+        every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState())
+        coEvery { mockTaskGenerator.invoke(any()) } returns Result.Success(Unit)
     }
 
     @After

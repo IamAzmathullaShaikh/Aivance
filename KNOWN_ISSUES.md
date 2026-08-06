@@ -37,11 +37,8 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 ### L-01 — ~~Deprecation warnings in tests~~ ✅ RESOLVED
 - **Resolved in Phase 6**: Updated test suites and dependencies for `ResumeEngineViewModelTest` to use non-deprecated model constructors and mocked exporters.
 
-### L-02 — Tautological initial-state tests
-- **Area**: Several ViewModel tests (e.g., `loading state on init`).
-- **Description**: Some tests assert only the trivial initial state value.
-- **Impact**: Low signal, no false failures.
-- **Mitigation**: Strengthen over time; not release-blocking.
+### L-02 — ~~Tautological initial-state tests~~ ✅ RESOLVED
+- **Resolved in 2026-08-04 hardening pass**: `JobDetailsViewModelTest` / `DashboardViewModelTest` loading-state tests now assert the Loading → loaded transition. The Career-OS refactor had also left **stale non-compiling tests** across `feature:dashboard` (DashboardViewModelTest, ComposeScreenTests), `feature:jobs` (JobsViewModelTest), `feature:interview` (InterviewViewModelTest), `feature:tracker` (TrackerViewModelTest), `feature:assistant` (AssistantViewModelTest), `feature:profile` (ProfileViewModelTest, SettingsViewModelTest) and `navigation` (DestinationTest, AivanceNavGraphTest) — all repaired or removed (stale tests for **deleted** ViewModels were deleted, per the Phase-13 pattern). `testDebugUnitTest` for every module is green again.
 
 ---
 
@@ -182,7 +179,7 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 ### Database Certification Sprint (2026-08-03) — Remaining Risks
 - **DR-01 — Instrumented DB tests compiled but not executed on device** (no emulator) — SQL proven by SQLite replay; run `:core:database:connectedDebugAndroidTest` on CI before release (→ P0-01).
 - **DR-02 — v1–v4 migration paths unverifiable** (no exported schemas for those versions) — pre-release versions; empty no-op migrations retained.
-- **DR-03 — `DatabaseManager` / `DatabaseSeed` possibly dead code** (→ P2-03).
+- **DR-03 — ~~`DatabaseManager` / `DatabaseSeed` possibly dead code~~ ✅ RESOLVED** (2026-08-04): zero consumers confirmed; both classes deleted, DI bindings removed. `DatabaseSeed` fabricated demo data ("Jane Doe"/fake jobs) — removed per the no-fake-data rule. Orphaned `DashboardRepository`/`DashboardRepositoryImpl`/`DashboardModule` (no consumers after the Career-HQ rewrite) also removed.
 
 ## Resolved
 - **H-01** (SecurityMigrationWorker) — resolved in Phase 5 with real plaintext scan + SecretsManager migration.

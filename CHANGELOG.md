@@ -56,3 +56,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adzuna & USAJobs dormant until free API keys are entered.
 - `SecurityMigrationWorker` is a skeleton; destructive plaintext cleanup planned for v1.1 (DB v21).
 - Localization (i18n) and cloud sync are roadmap items, not in v1.0.0.
+
+## [1.0.1] - 2026-08-06
+
+### Fixed — End-to-End Core Bug Fixes & Stability
+- **Google Sign-In Activity Context**: Fixed Credential Manager bottom sheet invocation by passing `LocalContext.current` Activity context in `AuthScreen.kt` and `AuthViewModel.kt`.
+- **Resume Engine Step 4 Text Input**: Resolved automatic text clearing on keystroke/paste by keying `AnimatedContent` on `state.stepIndex()` instead of target `state` object.
+- **Resume Engine Step 5 Optimization**: Fixed section optimization failure for in-memory resumes (`versionId == 0`) by passing current section content directly to `StreamImproveSectionUseCase.kt`.
+- **Resume Engine Step 7 Export**: Corrected PDF & DOCX export effect handling and intent chooser launching with `FLAG_ACTIVITY_NEW_TASK`.
+- **Job Discovery Filtering & Fallbacks**: Fixed nested `LazyColumn` height constraint issue in `JobsScreen.kt`, updated `JobFilterMatcher.kt` structured location matching, and added automatic database seed fallback (`seedDefaultJobsIfEmpty`) in `JobRepositoryImpl.kt`.
+- **Prep Studio Real Data Integration**: Dynamic practice hours computation, candidate profile-driven company research and interview edge insights in `PrepStudioScreen.kt`.
+- **AI Assistant Copilot Fallback**: Added context-aware local Copilot response generator in `GetAssistantResponseUseCase.kt` when remote LLM providers are unconfigured or unreachable.
+- **Package Visibility**: Added `<queries>` block for `ACTION_SEND` intents in `AndroidManifest.xml`.
+

@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.bangersoul.aivance.core.database.AivanceDatabase
-import com.bangersoul.aivance.core.database.DatabaseManager
-import com.bangersoul.aivance.core.database.DatabaseSeed
 import com.bangersoul.aivance.core.database.converter.EncryptedTypeConverters
 import com.bangersoul.aivance.core.database.dao.*
 import dagger.Module
@@ -59,21 +57,6 @@ object DatabaseModule {
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
         .setQueryExecutor(Executors.newFixedThreadPool(4))
         .build()
-
-    @Provides
-    @Singleton
-    fun provideDatabaseManager(
-        database: AivanceDatabase,
-        @ApplicationContext context: Context
-    ): DatabaseManager = DatabaseManager(database, context)
-
-    @Provides
-    @Singleton
-    fun provideDatabaseSeed(
-        profileDao: ProfileDao,
-        companyDao: CompanyDao,
-        jobDao: JobDao
-    ): DatabaseSeed = DatabaseSeed(profileDao, companyDao, jobDao)
 
     @Provides
     fun provideAivanceDao(database: AivanceDatabase): AivanceDao = database.aivanceDao()

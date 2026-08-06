@@ -40,7 +40,19 @@ class BackupImporter @Inject constructor(
             // Same-device restore resolves the device-bound secret automatically;
             // cross-device restore requires the explicit passphrase.
             val effectivePassphrase = passphrase ?: backupSecurity.devicePassphrase()
-            val jsonString = BackupSecurity.decryptBytes(bytes, effectivePassphrase)
+            val jsonString = try {
+                BackupSecurity.decryptBytes(bytes, effectivePassphrase)
+            } catch (e: Exception) {
+                if (passphrase == null) {
+                    return@withContext Result.Failure(
+                        DomainError("Passphrase required for cross-device backup restore", e)
+                    )
+                } else {
+                    return@withContext Result.Failure(
+                        DomainError("Invalid passphrase. Backup decryption failed.", e)
+                    )
+                }
+            }
             val payload = json.decodeFromString<AivanceBackupPayload>(jsonString)
 
             // Restore User Profiles

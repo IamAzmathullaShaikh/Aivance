@@ -164,7 +164,7 @@ def main():
     # ── [5] Backup rules exclude DB + keysets ─────────────────────────────
     for name in ("backup_rules.xml", "data_extraction_rules.xml"):
         xml = (ROOT / f"app/src/main/res/xml/{name}").read_text(encoding="utf-8")
-        excl_db = '<exclude domain="database" path="." />' in xml
+        excl_db = '<exclude domain="database" path="."' in xml
         excl_keyset = ("aivance_tink_prefs" in xml and "aivance_security_prefs" in xml)
         check(f"{name} excludes DB", excl_db)
         check(f"{name} excludes keyset prefs", excl_keyset)

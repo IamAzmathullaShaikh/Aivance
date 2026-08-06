@@ -2,16 +2,20 @@ package com.bangersoul.aivance.job.di
 
 import com.bangersoul.aivance.job.adzuna.AdzunaProvider
 import com.bangersoul.aivance.job.arbeitnow.ArbeitnowProvider
+import com.bangersoul.aivance.job.bayt.BaytProvider
 import com.bangersoul.aivance.job.cache.JobCache
 import com.bangersoul.aivance.job.cache.RoomJobCache
+import com.bangersoul.aivance.job.glassdoor.GlassdoorProvider
 import com.bangersoul.aivance.job.greenhouse.GreenhouseProvider
 import com.bangersoul.aivance.job.indeed.IndeedProvider
 import com.bangersoul.aivance.job.jobicy.JobicyProvider
 import com.bangersoul.aivance.job.lever.LeverProvider
 import com.bangersoul.aivance.job.linkedin.LinkedInProvider
+import com.bangersoul.aivance.job.naukri.NaukriProvider
 import com.bangersoul.aivance.job.remoteok.RemoteOKProvider
 import com.bangersoul.aivance.job.remotive.RemotiveProvider
 import com.bangersoul.aivance.job.usajobs.USAJobsProvider
+import com.bangersoul.aivance.job.ziprecruiter.ZipRecruiterProvider
 import com.bangersoul.aivance.sdk.api.JobProvider
 import dagger.Binds
 import dagger.Module
@@ -152,6 +156,50 @@ abstract class JobProvidersModule {
             retrofit: Retrofit
         ): JobProvider {
             return USAJobsProvider("", jobCache = jobCache, okHttpClient = okHttpClient, baseRetrofit = retrofit)
+        }
+
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideZipRecruiterProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return ZipRecruiterProvider(jobCache, okHttpClient, retrofit)
+        }
+
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideGlassdoorProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return GlassdoorProvider(jobCache, okHttpClient, retrofit)
+        }
+
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideBaytProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return BaytProvider(jobCache, okHttpClient, retrofit)
+        }
+
+        @Provides
+        @Singleton
+        @IntoSet
+        fun provideNaukriProvider(
+            jobCache: JobCache,
+            okHttpClient: OkHttpClient,
+            retrofit: Retrofit
+        ): JobProvider {
+            return NaukriProvider(jobCache, okHttpClient, retrofit)
         }
     }
 }

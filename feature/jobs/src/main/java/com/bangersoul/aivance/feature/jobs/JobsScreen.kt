@@ -171,128 +171,123 @@ private fun JobFilterBar(
             filter.minExperienceYears != null ||
             filter.maxExperienceYears != null
 
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterDropdown(
-                    label = if (filter.country.isNotBlank()) filter.country else stringResource(R.string.country),
-                    expanded = countryExpanded,
-                    onExpandedChange = { countryExpanded = it },
-                    options = LocationCatalog.countryOptions,
-                    selected = filter.country,
-                    modifier = Modifier.weight(1f)
-                ) { selected ->
-                    val newState = LocationCatalog.statesFor(selected).firstOrNull().orEmpty()
-                    val newCity = LocationCatalog.citiesFor(selected, newState).firstOrNull().orEmpty()
-                    onFilterChange(
-                        filter.copy(
-                            country = selected,
-                            state = if (selected == LocationCatalog.REMOTE) "" else newState,
-                            city = if (selected == LocationCatalog.REMOTE) "" else newCity,
-                            location = if (selected == LocationCatalog.REMOTE) "Remote" else ""
-                        )
+    val employmentOptions = listOf(
+        EmploymentType.FULL_TIME, EmploymentType.PART_TIME,
+        EmploymentType.INTERNSHIP, EmploymentType.APPRENTICESHIP,
+        EmploymentType.CONTRACT
+    ).associateWith { it.uiLabel() }
+
+    val remoteOptions = listOf(
+        RemoteType.ON_SITE, RemoteType.REMOTE, RemoteType.HYBRID
+    ).associateWith { it.uiLabel() }
+
+    val experienceOptions = ExperienceBuckets.options.associateWith { stringResource(it.labelRes) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterDropdown(
+                label = if (filter.country.isNotBlank()) filter.country else stringResource(R.string.country),
+                expanded = countryExpanded,
+                onExpandedChange = { countryExpanded = it },
+                options = LocationCatalog.countryOptions,
+                selected = filter.country,
+                modifier = Modifier.weight(1f)
+            ) { selected ->
+                val newState = LocationCatalog.statesFor(selected).firstOrNull().orEmpty()
+                val newCity = LocationCatalog.citiesFor(selected, newState).firstOrNull().orEmpty()
+                onFilterChange(
+                    filter.copy(
+                        country = selected,
+                        state = if (selected == LocationCatalog.REMOTE) "" else newState,
+                        city = if (selected == LocationCatalog.REMOTE) "" else newCity,
+                        location = if (selected == LocationCatalog.REMOTE) "Remote" else ""
                     )
-                }
-                FilterDropdown(
-                    label = if (filter.state.isNotBlank()) filter.state else stringResource(R.string.state),
-                    expanded = stateExpanded,
-                    onExpandedChange = { stateExpanded = it },
-                    options = LocationCatalog.statesFor(filter.country),
-                    selected = filter.state,
-                    modifier = Modifier.weight(1f),
-                    enabled = filter.country.isNotBlank() && filter.country != LocationCatalog.REMOTE
-                ) { selected ->
-                    val newCity = LocationCatalog.citiesFor(filter.country, selected).firstOrNull().orEmpty()
-                    onFilterChange(filter.copy(state = selected, city = newCity))
-                }
+                )
+            }
+            FilterDropdown(
+                label = if (filter.state.isNotBlank()) filter.state else stringResource(R.string.state),
+                expanded = stateExpanded,
+                onExpandedChange = { stateExpanded = it },
+                options = LocationCatalog.statesFor(filter.country),
+                selected = filter.state,
+                modifier = Modifier.weight(1f),
+                enabled = filter.country.isNotBlank() && filter.country != LocationCatalog.REMOTE
+            ) { selected ->
+                val newCity = LocationCatalog.citiesFor(filter.country, selected).firstOrNull().orEmpty()
+                onFilterChange(filter.copy(state = selected, city = newCity))
             }
         }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterDropdown(
-                    label = if (filter.city.isNotBlank()) filter.city else stringResource(R.string.city),
-                    expanded = cityExpanded,
-                    onExpandedChange = { cityExpanded = it },
-                    options = LocationCatalog.citiesFor(filter.country, filter.state),
-                    selected = filter.city,
-                    modifier = Modifier.weight(1f),
-                    enabled = filter.state.isNotBlank()
-                ) { selected ->
-                    onFilterChange(filter.copy(city = selected))
-                }
-                val employmentOptions = listOf(
-                    EmploymentType.FULL_TIME, EmploymentType.PART_TIME,
-                    EmploymentType.INTERNSHIP, EmploymentType.APPRENTICESHIP,
-                    EmploymentType.CONTRACT
-                ).associateWith { it.uiLabel() }
-                FilterDropdown(
-                    label = filter.employmentTypes.firstOrNull()?.let { it.uiLabel() }
-                        ?: stringResource(R.string.type),
-                    expanded = typeExpanded,
-                    onExpandedChange = { typeExpanded = it },
-                    options = employmentOptions.values.toList(),
-                    selected = filter.employmentTypes.firstOrNull()?.let { it.uiLabel() }.orEmpty(),
-                    modifier = Modifier.weight(1f)
-                ) { selected ->
-                    val mapped = employmentOptions.entries.firstOrNull { it.value == selected }?.key
-                    onFilterChange(
-                        filter.copy(employmentTypes = if (mapped != null) listOf(mapped) else emptyList())
-                    )
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterDropdown(
+                label = if (filter.city.isNotBlank()) filter.city else stringResource(R.string.city),
+                expanded = cityExpanded,
+                onExpandedChange = { cityExpanded = it },
+                options = LocationCatalog.citiesFor(filter.country, filter.state),
+                selected = filter.city,
+                modifier = Modifier.weight(1f),
+                enabled = filter.state.isNotBlank()
+            ) { selected ->
+                onFilterChange(filter.copy(city = selected))
+            }
+            FilterDropdown(
+                label = filter.remoteType?.let { it.uiLabel() } ?: stringResource(R.string.workplace),
+                expanded = workplaceExpanded,
+                onExpandedChange = { workplaceExpanded = it },
+                options = remoteOptions.values.toList(),
+                selected = filter.remoteType?.let { it.uiLabel() }.orEmpty(),
+                modifier = Modifier.weight(1f)
+            ) { selected ->
+                val mapped = remoteOptions.entries.firstOrNull { it.value == selected }?.key
+                onFilterChange(filter.copy(remoteType = mapped))
             }
         }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val remoteOptions = listOf(
-                    RemoteType.ON_SITE, RemoteType.REMOTE, RemoteType.HYBRID
-                ).associateWith { it.uiLabel() }
-                FilterDropdown(
-                    label = filter.remoteType?.let { it.uiLabel() } ?: stringResource(R.string.workplace),
-                    expanded = workplaceExpanded,
-                    onExpandedChange = { workplaceExpanded = it },
-                    options = remoteOptions.values.toList(),
-                    selected = filter.remoteType?.let { it.uiLabel() }.orEmpty(),
-                    modifier = Modifier.weight(1f)
-                ) { selected ->
-                    val mapped = remoteOptions.entries.firstOrNull { it.value == selected }?.key
-                    onFilterChange(filter.copy(remoteType = mapped))
-                }
-                val experienceOptions = ExperienceBuckets.options.associateWith { stringResource(it.labelRes) }
-                FilterDropdown(
-                    label = experienceLabel(filter),
-                    expanded = experienceExpanded,
-                    onExpandedChange = { experienceExpanded = it },
-                    options = experienceOptions.values.toList(),
-                    selected = experienceLabel(filter),
-                    modifier = Modifier.weight(1f)
-                ) { selected ->
-                    val bucket = experienceOptions.entries.firstOrNull { it.value == selected }?.key
-                    onFilterChange(
-                        filter.copy(
-                            minExperienceYears = bucket?.min,
-                            maxExperienceYears = bucket?.max
-                        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterDropdown(
+                label = filter.employmentTypes.firstOrNull()?.let { it.uiLabel() }
+                    ?: stringResource(R.string.type),
+                expanded = typeExpanded,
+                onExpandedChange = { typeExpanded = it },
+                options = employmentOptions.values.toList(),
+                selected = filter.employmentTypes.firstOrNull()?.let { it.uiLabel() }.orEmpty(),
+                modifier = Modifier.weight(1f)
+            ) { selected ->
+                val mapped = employmentOptions.entries.firstOrNull { it.value == selected }?.key
+                onFilterChange(
+                    filter.copy(employmentTypes = if (mapped != null) listOf(mapped) else emptyList())
+                )
+            }
+            FilterDropdown(
+                label = experienceLabel(filter),
+                expanded = experienceExpanded,
+                onExpandedChange = { experienceExpanded = it },
+                options = experienceOptions.values.toList(),
+                selected = experienceLabel(filter),
+                modifier = Modifier.weight(1f)
+            ) { selected ->
+                val bucket = experienceOptions.entries.firstOrNull { it.value == selected }?.key
+                onFilterChange(
+                    filter.copy(
+                        minExperienceYears = bucket?.min,
+                        maxExperienceYears = bucket?.max
                     )
-                }
+                )
             }
         }
         if (hasActiveFilters) {
-            item {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    TextButton(onClick = onClear) {
-                        Icon(Icons.Rounded.FilterAltOff, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.clear_all_filters))
-                    }
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TextButton(onClick = onClear) {
+                    Icon(Icons.Rounded.FilterAltOff, null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(R.string.clear_all_filters))
                 }
             }
         }

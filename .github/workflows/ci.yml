@@ -329,6 +329,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install verification harness dependencies
+        run: |
+          # --break-system-packages: ubuntu-latest (24.04) marks the OS python
+          # as externally-managed (PEP 668), which would otherwise reject pip.
+          python3 -m pip install --break-system-packages --upgrade pip
+          python3 -m pip install --break-system-packages cryptography
+
+      - name: Run security verification harness (release gate)
+        # P1-01: security_scan.py re-verifies live cert pins, hardcoded-secret
+        # scans, BuildConfig hygiene, backup rules and fail-closed crypto. A
+        # non-zero exit (any FAIL) fails this job, which gates the release build
+        # via `needs: security-scan`. Requires network access to probe live TLS
+        # chains — never disable this step; use it as the source of truth.
+        run: python3 security_scan.py
+
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:

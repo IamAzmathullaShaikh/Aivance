@@ -105,8 +105,47 @@ fun PrivacyCenterScreen(
 
             if (uiState is PrivacyUiState.Success) {
                 Text((uiState as PrivacyUiState.Success).message, color = MaterialTheme.colorScheme.primary)
+            } else if (uiState is PrivacyUiState.Error) {
+                Text((uiState as PrivacyUiState.Error).message, color = MaterialTheme.colorScheme.error)
             }
         }
+    }
+
+    if (uiState is PrivacyUiState.RequiresPassphrase) {
+        val req = uiState as PrivacyUiState.RequiresPassphrase
+        var passphraseInput by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { /* Modal */ },
+            title = { Text("Backup Passphrase Required") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (req.isRetry) "Invalid passphrase. Please re-enter the export passphrase for this backup file."
+                        else "This backup was created on another device or with a custom passphrase. Enter your backup export passphrase to decrypt and restore data."
+                    )
+                    OutlinedTextField(
+                        value = passphraseInput,
+                        onValueChange = { passphraseInput = it },
+                        label = { Text("Export Passphrase") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = passphraseInput.isNotBlank(),
+                    onClick = { viewModel.importData(req.uri, passphraseInput) }
+                ) {
+                    Text("Decrypt & Restore")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.importData(req.uri, null) /* cancels dialog flow */ }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     if (showDeleteConfirm) {

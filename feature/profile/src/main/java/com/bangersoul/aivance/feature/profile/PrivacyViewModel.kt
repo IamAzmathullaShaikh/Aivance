@@ -22,6 +22,7 @@ sealed interface PrivacyUiState {
     data object Processing : PrivacyUiState
     data class Success(val message: String, val exportUri: Uri? = null) : PrivacyUiState
     data class Error(val message: String) : PrivacyUiState
+    data class RequiresPassphrase(val uri: Uri, val isRetry: Boolean = false) : PrivacyUiState
 }
 
 @HiltViewModel
@@ -50,14 +51,22 @@ class PrivacyViewModel @Inject constructor(
         }
     }
 
-    fun importData(uri: Uri) {
+    fun importData(uri: Uri, passphrase: String? = null) {
         viewModelScope.launch {
             _uiState.value = PrivacyUiState.Processing
             trackEventUseCase(TrackEventRequest("privacy_data_import"))
-            val result = backupImporter.importBackup(uri)
+            val result = backupImporter.importBackup(uri, passphrase)
             when (result) {
                 is Result.Success -> _uiState.value = PrivacyUiState.Success("Backup restored successfully!")
-                is Result.Failure -> _uiState.value = PrivacyUiState.Error(result.error.message)
+                is Result.Failure -> {
+                    if (result.error.message.contains("Passphrase required", ignoreCase = true) ||
+                        result.error.message.contains("Invalid passphrase", ignoreCase = true)
+                    ) {
+                        _uiState.value = PrivacyUiState.RequiresPassphrase(uri, isRetry = passphrase != null)
+                    } else {
+                        _uiState.value = PrivacyUiState.Error(result.error.message)
+                    }
+                }
             }
         }
     }

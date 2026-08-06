@@ -1,7 +1,9 @@
 package com.bangersoul.aivance.feature.analytics
 
 import com.bangersoul.aivance.core.common.model.AnalyticsSnapshot
+import com.bangersoul.aivance.core.common.model.CareerIntelligence
 import com.bangersoul.aivance.core.common.model.CareerRecommendation
+import com.bangersoul.aivance.core.common.model.PredictiveMetrics
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
@@ -40,6 +42,12 @@ class AnalyticsViewModelTest {
         priority = "HIGH",
         category = "RESUME"
     )
+    private val intelligence = CareerIntelligence(
+        careerScore = 80,
+        dimensionScores = mapOf("ats" to 80),
+        predictions = PredictiveMetrics(70, 60, "Good job"),
+        health = emptyList()
+    )
 
     @Before
     fun setUp() {
@@ -58,6 +66,7 @@ class AnalyticsViewModelTest {
     fun `success loads snapshot and recommendations`() = runTest(testDispatcher) {
         every { mockRepository.getSnapshots() } returns flowOf(Result.Success(listOf(snapshot)))
         every { mockRepository.getActiveRecommendations() } returns flowOf(Result.Success(listOf(recommendation)))
+        every { mockRepository.getCareerIntelligence() } returns flowOf(Result.Success(intelligence))
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -76,6 +85,7 @@ class AnalyticsViewModelTest {
             Result.Failure(com.bangersoul.aivance.core.common.result.DomainError("db down"))
         )
         every { mockRepository.getActiveRecommendations() } returns flowOf(Result.Success(emptyList()))
+        every { mockRepository.getCareerIntelligence() } returns flowOf(Result.Success(intelligence))
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -87,6 +97,7 @@ class AnalyticsViewModelTest {
     fun `refresh reloads from loading`() = runTest(testDispatcher) {
         every { mockRepository.getSnapshots() } returns flowOf(Result.Success(emptyList()))
         every { mockRepository.getActiveRecommendations() } returns flowOf(Result.Success(emptyList()))
+        every { mockRepository.getCareerIntelligence() } returns flowOf(Result.Success(intelligence))
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -101,6 +112,7 @@ class AnalyticsViewModelTest {
     fun `dismissRecommendation calls repository`() = runTest(testDispatcher) {
         every { mockRepository.getSnapshots() } returns flowOf(Result.Success(emptyList()))
         every { mockRepository.getActiveRecommendations() } returns flowOf(Result.Success(emptyList()))
+        every { mockRepository.getCareerIntelligence() } returns flowOf(Result.Success(intelligence))
         coEvery { mockRepository.dismissRecommendation(any()) } returns Result.Success(Unit)
 
         val viewModel = createViewModel()
@@ -109,6 +121,6 @@ class AnalyticsViewModelTest {
         viewModel.dismissRecommendation(1L)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coEvery { mockRepository.dismissRecommendation(1L) }
+        io.mockk.coVerify { mockRepository.dismissRecommendation(1L) }
     }
 }

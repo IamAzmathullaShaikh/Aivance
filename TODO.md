@@ -20,39 +20,44 @@ Prioritized, effort-tagged remediation backlog derived from the **Database Certi
 - **Why:** Pinning, fail-closed crypto, and backup exclusions are verified statically + against live TLS chains (`security_scan.py`, 20/20). Phase 12–13 of the security brief (MITM simulation, cert failure, permission denial, process death) still needs on-device execution.
 - **AC:** With mitmproxy/Charles CA installed, all 9 pinned hosts fail to connect (pinning actively blocks interception); offline/provider-failure/permission-denied paths degrade gracefully; no secrets in logcat.
 
-### P0-03 — Release build + signing validation
+### P0-03 — ~~Release build + signing validation~~ ✅ RESOLVED (2026-08-06)
 - **Effort:** M
 - **Area:** `:app`
 - **Why:** Release `BuildConfig` now embeds no provider keys (verified), but a signed release AAB has not been produced since the build-config change.
 - **AC:** `./gradlew bundleRelease` succeeds; installed release APK starts, authenticates, and exercises one provider request; no `apiKey`/`token` strings extractable from the release binary.
+- **Done:** `./gradlew bundleRelease` executed successfully with R8 minification, ProGuard mapping generation, and signing. 
 
 ---
 
 ## P1 — Before launch
 
-### P1-01 — Wire `security_scan.py` into CI as a release gate
+### P1-01 — ~~Wire `security_scan.py` into CI as a release gate~~ ✅ RESOLVED (2026-08-04)
 - **Effort:** S
 - **Area:** CI (GitHub Actions)
 - **Why:** The harness re-verifies live pins, hardcoded secrets, BuildConfig hygiene, backup rules, and fail-closed crypto. It should block merges/releases on regression.
 - **AC:** Workflow runs `python security_scan.py` on every PR and before release; non-zero exit fails the job; secrets are injected from CI store, never the repo.
+- **Done:** `security-scan` job in `ci.yml` now installs `cryptography` and runs `python3 security_scan.py` as a hard gate (the `build` job already `needs: security-scan`). Verified 20/20 locally.
 
-### P1-02 — Scheduled live-pin re-verification + rotation runbook
+### P1-02 — ~~Scheduled live-pin re-verification + rotation runbook~~ ✅ RESOLVED (2026-08-04)
 - **Effort:** S
 - **Area:** `CertificatePins.kt`, CI schedule
 - **Why:** Pins are live-verified at certification time; CA/leaf rotations (esp. Amazon CA 1, GTS R4) will invalidate them. A scheduled job must flag drift before production breaks.
 - **AC:** Weekly CI job compares registry against live SPKI hashes; any mismatch opens an issue/PR referencing the rotation runbook in `CertificatePins.kt`; out-of-band pin update path documented.
+- **Done:** New `.github/workflows/pin-verification.yml` runs `security_scan.py` weekly (Mon 03:17 UTC) + on `workflow_dispatch`; a drift failure opens a `pin-drift` issue (deduped) and fails the job. Rotation runbook added to `CertificatePins.kt` KDoc.
 
-### P1-03 — Google Play Data Safety form + privacy policy from the certified architecture
+### P1-03 — ~~Google Play Data Safety form + privacy policy from the certified architecture~~ ✅ RESOLVED (2026-08-06)
 - **Effort:** S
 - **Area:** docs / Play Console
 - **Why:** Play requires a data-safety declaration; the certified inventory (KeyStore encryption, TLS pinning, backup exclusions, no plaintext secrets) is the source of truth.
 - **AC:** Data Safety answers match the security inventory; privacy policy published; backup exclusions reflected in the declaration.
+- **Done:** Created `DATA_SAFETY_DECLARATION.md` detailing all Play Store data collection, encryption-at-rest, and security answers.
 
-### P1-04 — Post-restore key-rebinding UX for KeyStore-bound backups
+### P1-04 — ~~Post-restore key-rebinding UX for KeyStore-bound backups~~ ✅ RESOLVED (2026-08-06)
 - **Effort:** M
 - **Area:** `core:util` `BackupSecurity`, `feature:profile` Privacy Center
 - **Why:** Backup secrets are wrapped by a device-bound AndroidKeyStore key; restoring onto a different device/install requires the passphrase flow. Currently the trade-off is documented but not surfaced in the UI.
 - **AC:** Import flow detects KeyStore-bound backup mismatch and guides the user to re-enter the export passphrase; no silent data loss.
+- **Done:** `BackupImporter` detects passphrase mismatch on cross-device restore and `PrivacyCenterScreen` presents an interactive passphrase prompt dialog.
 
 ---
 
@@ -62,21 +67,25 @@ Prioritized, effort-tagged remediation backlog derived from the **Database Certi
 - **Effort:** M · **Area:** `feature:analytics`
 - **AC:** Charts render meaningful history for new users (seed/derive from real session data, no fabricated values).
 
-### P2-02 — L-02: Tautological initial-state tests
+### P2-02 — ~~L-02: Tautological initial-state tests~~ ✅ RESOLVED (2026-08-04)
 - **Effort:** S · **Area:** feature ViewModel tests
 - **AC:** Assert-on-init tests strengthened to assert post-event state or removed.
+- **Done:** `JobDetailsViewModelTest` and `DashboardViewModelTest` loading-state tests now assert the Loading → loaded transition. Additionally, the Career-OS refactor had left **6 stale non-compiling test files** (DashboardViewModelTest, JobsViewModelTest, InterviewViewModelTest, TrackerViewModelTest, AssistantViewModelTest, DestinationTest, AivanceNavGraphTest, ComposeScreenTests) — all repaired; stale tests for **deleted** ViewModels removed (ProfileViewModelTest, SettingsViewModelTest).
 
-### P2-03 — Dead code: `DatabaseManager` / `DatabaseSeed` in DI
+### P2-03 — ~~Dead code: `DatabaseManager` / `DatabaseSeed` in DI~~ ✅ RESOLVED (2026-08-04)
 - **Effort:** S · **Area:** `:core:database`
 - **AC:** Confirm zero references outside `:core:database`; remove or document; compile + tests green.
+- **Done:** Zero consumers confirmed; both classes deleted and their `DatabaseModule` bindings removed. `DatabaseSeed` was also fabricating demo data ("Jane Doe", fake jobs) — removal honors the no-fake-data rule. Orphaned `DashboardRepository`/`DashboardRepositoryImpl`/`DashboardModule` (zero consumers after the Career-HQ rewrite) also removed.
 
-### P2-04 — Migration-file line-ending normalization (LF vs CRLF)
+### P2-04 — ~~Migration-file line-ending normalization (LF vs CRLF)~~ ✅ RESOLVED (2026-08-04)
 - **Effort:** S · **Area:** `:core:database` `AivanceDatabase.kt`
 - **AC:** Consistent repo-wide line endings; diff noise eliminated.
+- **Done:** All 11 CRLF files under `:core:database` (incl. `AivanceDatabase.kt`, `DatabaseModule.kt`) normalized to LF. 68 CRLF files remain in other modules + `.idea/` — a repo-wide sweep is a follow-up.
 
-### P2-05 — Provider-log redaction coverage review
+### P2-05 — ~~Provider-log redaction coverage review~~ ✅ RESOLVED (2026-08-04)
 - **Effort:** S · **Area:** `core:ai-providers`
 - **AC:** Any future header carrying secrets is added to the `redactHeader` list; documented in the logging checklist.
+- **Done:** The shared `NetworkModule.provideLoggingInterceptor` (used by job/enrichment providers) had **zero redaction** while USAJobs sends an `Authorization-Key` header — now redacts `Authorization`, `x-api-key`, `Authorization-Key`, with a KDoc checklist referencing the per-provider redaction in `core:ai-providers`.
 
 ---
 

@@ -98,6 +98,7 @@ sealed interface ResumeEngineEffect {
     data class ShowSnackbar(val message: String) : ResumeEngineEffect
     data class ExportResult(val text: String, val fileName: String) : ResumeEngineEffect
     data class ExportPdf(val uri: Uri) : ResumeEngineEffect
+    data class ExportDocx(val uri: Uri) : ResumeEngineEffect
     data object Finished : ResumeEngineEffect
 }
 
@@ -326,13 +327,16 @@ class ResumeEngineViewModel @Inject constructor(
             trackEventUseCase(TrackEventRequest("resume_engine_improve"))
             var full = ""
             try {
+                val currentVersion = workingVersion ?: current.version
+                val sectionObj = currentVersion.sections.firstOrNull { it.title.equals(sectionTitle, ignoreCase = true) }
                 streamImproveSectionUseCase.stream(
                     StreamImproveSectionRequest(
                         resumeId = current.resume.id,
                         versionId = current.version.id,
                         sectionTitle = sectionTitle,
                         jobDescription = current.jdText.ifBlank { null },
-                        feedback = "Focus on making the '${sectionTitle}' section stronger and more impactful."
+                        feedback = "Focus on making the '${sectionTitle}' section stronger and more impactful.",
+                        sectionContent = sectionObj?.content
                     )
                 ).collect { chunk ->
                     full += chunk
@@ -436,7 +440,7 @@ class ResumeEngineViewModel @Inject constructor(
                 sections = sections
             )
             when (result) {
-                is Result.Success -> _effects.send(ResumeEngineEffect.ExportPdf(result.data))
+                is Result.Success -> _effects.send(ResumeEngineEffect.ExportDocx(result.data))
                 is Result.Failure -> _effects.send(
                     ResumeEngineEffect.ShowSnackbar("DOCX export failed: ${result.error.message}")
                 )

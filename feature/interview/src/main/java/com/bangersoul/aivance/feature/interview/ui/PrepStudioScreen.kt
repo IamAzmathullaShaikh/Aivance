@@ -174,7 +174,7 @@ private fun PrepStudioHero(
                     }
                     Column {
                         Text("Practice", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("12.5 hrs", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text("${String.format("%.1f", readinessScore * 0.15)} hrs", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -294,19 +294,22 @@ private fun ResearchTab(viewModel: InterviewViewModel) {
         }
 
         item {
+            val role = state.careerState?.profile?.targetRole?.ifBlank { null } ?: "Target Role"
+            val topSkills = state.careerState?.profile?.skills.orEmpty().take(3).joinToString(", ").ifBlank { "Architecture, Problem Solving" }
             InsightCard(
-                text = "For ${state.careerState?.profile?.targetRole ?: "your role"}, focus on demonstrating 'Scale' and 'Technical Leadership'.",
+                text = "For $role, focus on demonstrating '$topSkills' and technical leadership.",
                 icon = Icons.Rounded.AutoAwesome
             )
         }
 
         item {
+            val targetRole = state.careerState?.profile?.targetRole?.ifBlank { "Technology Leader" } ?: "Technology Leader"
             SectionHeader(title = "Company Research")
             AivanceWorkspaceCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Company Overview", fontWeight = FontWeight.Bold)
+                    Text("$targetRole Overview", fontWeight = FontWeight.Bold)
                     Text(
-                        "Mission-driven organization focused on innovation and user experience. Known for high technical standards.",
+                        "Top organizations hiring for $targetRole look for strong engineering principles, scalable design patterns, and cross-functional team execution.",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -314,15 +317,17 @@ private fun ResearchTab(viewModel: InterviewViewModel) {
         }
 
         item {
+            val primarySkill = state.careerState?.profile?.skills?.firstOrNull() ?: "Core Domain"
+            val secondarySkill = state.careerState?.profile?.skills?.getOrNull(1) ?: "System Architecture"
             SectionHeader(title = "Your Interview Edge")
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Rounded.CheckCircle, null, tint = AivanceTheme.colors.success, modifier = Modifier.size(18.dp))
-                    Text("Strong match in 'System Design'", style = MaterialTheme.typography.bodyMedium)
+                    Text("Strong candidate match in '$primarySkill'", style = MaterialTheme.typography.bodyMedium)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Icon(Icons.Rounded.Info, null, tint = AivanceTheme.colors.warning, modifier = Modifier.size(18.dp))
-                    Text("Refresh knowledge in 'Unit Testing'", style = MaterialTheme.typography.bodyMedium)
+                    Text("Refresh knowledge in '$secondarySkill' for live coding rounds", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -735,7 +740,7 @@ private fun LearnTab(viewModel: LearningHubViewModel) {
                     onClick = {
                         viewModel.onEvent(
                             LearningHubUiEvent.GetRecommendations(
-                                currentSkills = "",
+                                currentSkills = targetRole,
                                 targetRole = targetRole
                             )
                         )

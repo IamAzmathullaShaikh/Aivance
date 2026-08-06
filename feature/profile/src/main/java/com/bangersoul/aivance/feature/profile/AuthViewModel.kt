@@ -52,7 +52,7 @@ sealed interface AuthUiEvent {
     ) : AuthUiEvent
 
     /** Google is the intended identity provider; wired once Firebase is configured. */
-    data object ContinueWithGoogle : AuthUiEvent
+    data class ContinueWithGoogle(val context: Context? = null) : AuthUiEvent
 }
 
 /**
@@ -78,7 +78,7 @@ class AuthViewModel @Inject constructor(
     fun onEvent(event: AuthUiEvent) {
         when (event) {
             is AuthUiEvent.ContinueWithEmail -> continueWithEmail(event)
-            AuthUiEvent.ContinueWithGoogle -> continueWithGoogle()
+            is AuthUiEvent.ContinueWithGoogle -> continueWithGoogle(event.context)
         }
     }
 
@@ -118,15 +118,13 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    private fun continueWithGoogle() {
+    private fun continueWithGoogle(context: Context? = null) {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
 
             try {
-                // The google-services plugin only generates default_web_client_id
-                // when google-services.json contains a web OAuth client. Without it
-                // Credential Manager cannot mint a Google ID token for Firebase Auth.
-                val webClientId = resolveWebClientId(appContext)
+                val targetContext = context ?: appContext
+                val webClientId = resolveWebClientId(targetContext)
                 if (webClientId.isNullOrBlank()) {
                     _uiState.value = AuthUiState.Error(
                         "Google Sign-In needs a web client ID in google-services.json. " +
@@ -136,7 +134,7 @@ class AuthViewModel @Inject constructor(
                     return@launch
                 }
 
-                val credentialManager = CredentialManager.create(appContext)
+                val credentialManager = CredentialManager.create(targetContext)
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
                     .setServerClientId(webClientId)
@@ -146,7 +144,7 @@ class AuthViewModel @Inject constructor(
                     .addCredentialOption(googleIdOption)
                     .build()
 
-                val result = credentialManager.getCredential(appContext, request)
+                val result = credentialManager.getCredential(targetContext, request)
                 val credential = result.credential
 
                 val idToken = if (credential is CustomCredential &&

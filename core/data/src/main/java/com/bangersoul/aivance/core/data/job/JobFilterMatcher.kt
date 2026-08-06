@@ -70,16 +70,17 @@ class JobFilterMatcher @Inject constructor() {
     }
 
     private fun matchesStructuredLocation(job: JobListing, filter: JobSearchFilter): Boolean {
-        val jobLocation = job.location.lowercase()
-        // "Remote" is a valid city/state/country answer for remote roles.
-        fun matchesPart(part: String): Boolean {
-            if (part.isBlank()) return true
-            val p = part.lowercase()
-            return jobLocation.contains(p) || p == "remote"
+        val jobLoc = job.location.lowercase()
+        if (filter.country == "Remote" || filter.location.equals("Remote", ignoreCase = true)) {
+            return job.isRemote || job.remoteType == RemoteType.REMOTE || jobLoc.contains("remote")
         }
-        return matchesPart(filter.city) &&
-            matchesPart(filter.state) &&
-            matchesPart(filter.country)
+        val cityMatch = filter.city.isBlank() || jobLoc.contains(filter.city.lowercase())
+        val stateMatch = filter.state.isBlank() || jobLoc.contains(filter.state.lowercase())
+        val countryMatch = filter.country.isBlank() ||
+            jobLoc.contains(filter.country.lowercase()) ||
+            (filter.country == "United States" && (jobLoc.contains("us") || jobLoc.contains("usa") || stateMatch || cityMatch)) ||
+            (filter.country == "India" && (jobLoc.contains("india") || jobLoc.contains("in") || stateMatch || cityMatch))
+        return cityMatch && stateMatch && countryMatch
     }
 
     private fun matchesRemoteType(job: JobListing, remoteType: RemoteType): Boolean {

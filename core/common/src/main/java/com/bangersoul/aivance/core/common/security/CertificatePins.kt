@@ -30,6 +30,29 @@ package com.bangersoul.aivance.core.common.security
  *   GTS Root R4                     mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=
  *   Amazon RSA 2048 M04             G9LNNAql897egYsabashkzUCTEJkWBzgoEtk8X/678c=
  *   Amazon Root CA 1                ++MBgDH5WGvL9Bcn5Be30cRcL0f5O+NyoXuWtQdX1aI=
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * PIN ROTATION RUNBOOK (P1-02)
+ * ────────────────────────────────────────────────────────────────────────────
+ * Pins are verified against the LIVE TLS chains at certification time and by
+ * the weekly scheduled CI job (.github/workflows/pin-verification.yml). If a
+ * certificate authority rotates a leaf/intermediate/root (e.g. Amazon CA 1,
+ * GTS R4 re-issuance), requests will fail closed and the app needs a release.
+ *
+ * 1. Detect drift: the weekly `pin-verification` workflow runs
+ *    `python security_scan.py`; a failure opens a pin-drift issue automatically.
+ * 2. Re-harvest: regenerate the registry with `python extract_pins.py` (or
+ *    `openssl s_client -connect <host>:443 -showcerts` + SPKI SHA-256), keeping
+ *    the leaf pin plus the new intermediate/root CA pins for each host.
+ * 3. Update BOTH maps below (OKHTTP_PINS in base64 `sha256/...` form and
+ *    HEX_PINS in lowercase hex) for the affected hosts only.
+ * 4. Re-verify locally: `python security_scan.py` must report 20/20 PASS.
+ * 5. Release: ship the registry update as a hotfix on v1.0.x; do NOT rely on
+ *    pin removal — a missing pin degrades to host verification, not a bypass.
+ * 6. Document the rotation in CHANGELOG.md and this file's verification block.
+ *
+ * ⚠️ Keep OKHTTP_PINS and HEX_PINS for the SAME host in sync (same certs).
+ * ⚠️ Never remove a pin to "fix" a connection — investigate the chain first.
  */
 object CertificatePins {
 

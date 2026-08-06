@@ -1,91 +1,90 @@
 package com.bangersoul.aivance.feature.dashboard
 
 import app.cash.turbine.test
-import com.bangersoul.aivance.core.common.model.JobListing
-import com.bangersoul.aivance.core.common.model.UserProfile
+import com.bangersoul.aivance.core.common.model.CareerRecommendation
+import com.bangersoul.aivance.core.common.model.CareerState
+import com.bangersoul.aivance.core.common.model.DiscoveryState
+import com.bangersoul.aivance.core.common.model.GrowthState
+import com.bangersoul.aivance.core.common.model.IntelligenceState
+import com.bangersoul.aivance.core.common.model.PipelineState
+import com.bangersoul.aivance.core.common.model.ProfileState
+import com.bangersoul.aivance.core.common.model.UpcomingInterviewShort
 import com.bangersoul.aivance.core.common.result.Result
-import com.bangersoul.aivance.core.domain.repository.JobRepository
+import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
+import com.bangersoul.aivance.core.domain.engine.NavigationIntent
+import com.bangersoul.aivance.core.domain.engine.NavigationWorkflowEngine
+import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
-import com.bangersoul.aivance.core.domain.usecase.user.LoadProfileUseCase
-import com.bangersoul.aivance.feature.dashboard.domain.DashboardData
-import com.bangersoul.aivance.feature.dashboard.domain.DashboardRepository
-import com.bangersoul.aivance.feature.dashboard.domain.JobRecommendation
-import com.bangersoul.aivance.feature.dashboard.domain.RecentActivity
-import com.bangersoul.aivance.feature.dashboard.domain.ResumeStatus
-import com.bangersoul.aivance.feature.dashboard.domain.UpcomingInterview
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val mockDashboardRepository: DashboardRepository = mockk()
-    private val mockJobRepository: JobRepository = mockk()
-    private val mockLoadProfile: LoadProfileUseCase = mockk()
+    private val mockStateEngine: CareerStateEngine = mockk()
+    private val mockNavWorkflowEngine: NavigationWorkflowEngine = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: DashboardViewModel
 
-    private fun sampleData() = DashboardData(
-        profileCompletion = 75,
-        resumeStatus = ResumeStatus(fileName = "resume.pdf", uploadedDate = LocalDate.now()),
-        atsScore = 85,
-        activeApplications = 5,
-        interviewPrepStatus = "Scheduled",
-        careerScore = 78,
-        upcomingInterviews = listOf(
-            UpcomingInterview(id = "1", company = "Google", role = "Android Engineer", dateTime = "Fri 10:00")
-        ),
-        jobRecommendations = listOf(
-            JobRecommendation(id = "1", title = "Senior Android Engineer", company = "Acme")
-        ),
-        recentActivity = listOf(
-            RecentActivity(id = "1", description = "Applied to Acme", date = LocalDate.now())
-        )
-    )
+    /**
+     * A real [StateFlow] whose collection throws — lets the error test drive
+     * the ViewModel's catch branch without a cold-flow type mismatch.
+     */
+    private fun throwingStateFlow(): StateFlow<CareerState> = object : StateFlow<CareerState> {
+        override val replayCache: List<CareerState> get() = emptyList()
+        override val value: CareerState get() = CareerState()
+        override suspend fun collect(collector: FlowCollector<CareerState>): Nothing =
+            throw RuntimeException("boom")
+    }
 
-    private fun job(id: String) = JobListing(
-        id = id,
-        title = "Android Engineer",
-        company = "Acme",
-        description = "desc",
-        url = "https://acme.com/jobs",
-        sourceProvider = "test"
+    private fun sampleCareerState() = CareerState(
+        profile = ProfileState(name = "Azmath Shaik", targetRole = "Software Engineer"),
+        intelligence = IntelligenceState(atsScore = 85),
+        discovery = DiscoveryState(savedJobsCount = 3),
+        pipeline = PipelineState(
+            activeApplications = 5,
+            upcomingInterviews = listOf(
+                UpcomingInterviewShort(id = "1", company = "Google", role = "Android Engineer", dateTime = "Fri 10:00")
+            )
+        ),
+        growth = GrowthState(careerScore = 78),
+        recommendations = listOf(
+            CareerRecommendation(
+                id = 1,
+                title = "Polish Resume",
+                description = "Your resume needs keyword polish.",
+                priority = "HIGH",
+                category = "RESUME"
+            )
+        )
     )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        every { mockStateEngine.state } returns MutableStateFlow(sampleCareerState())
+        every { mockNavWorkflowEngine.getRecommendedDestination(any()) } returns
+            NavigationIntent.Action(label = "Search Jobs", route = "job_search")
         coEvery { mockTrackEvent.invoke(any()) } returns Result.Success(Unit)
-        every { mockDashboardRepository.getDashboardData() } returns MutableStateFlow(sampleData())
-        every { mockJobRepository.getSavedJobs() } returns MutableStateFlow(
-            Result.Success(listOf(job("1"), job("2"), job("3")))
-        )
-        every { mockLoadProfile.invoke() } returns MutableStateFlow(
-            Result.Success(
-                UserProfile(
-                    fullName = "Azmath Shaik",
-                    email = "azmath@aivance.com",
-                    targetRole = "Software Engineer"
-                )
-            )
-        )
     }
 
     @After
@@ -94,37 +93,51 @@ class DashboardViewModelTest {
     }
 
     private fun createViewModel() = DashboardViewModel(
-        mockDashboardRepository,
-        mockJobRepository,
-        mockLoadProfile,
+        mockStateEngine,
+        mockNavWorkflowEngine,
         mockTrackEvent
     )
 
     @Test
-    fun `initial state is loading`() {
+    fun `initial state is loading then aggregates career state`() = runTest(testDispatcher) {
         viewModel = createViewModel()
 
+        // Tautological-assertion fix (L-02 / P2-02): the initial Loading state
+        // must be observed transitioning into the fully aggregated state.
         assertTrue(viewModel.uiState.value.isLoading)
-    }
-
-    @Test
-    fun `aggregates real data into career HQ state`() = runTest(testDispatcher) {
-        viewModel = createViewModel()
 
         viewModel.uiState.test {
-            // Skip the initial Loading emission
+            // Skip the initial Loading emission(s).
             skipItems(1)
             val state = awaitItem()
 
-            assertTrue(!state.isLoading)
+            assertFalse(state.isLoading)
+            assertEquals("Hello, Azmath", state.greeting)
+            assertEquals("Software Engineer", state.userDesignation)
             assertEquals(78, state.careerScore)
             assertEquals(85, state.atsScore)
             assertEquals(5, state.activeApplications)
-            assertEquals(3, state.savedJobs)
             assertEquals("Fri 10:00", state.nextInterview)
-            assertEquals("Software Engineer", state.userDesignation)
-            assertTrue(state.greeting.contains("Azmath"))
-            assertEquals(1, state.recentActivity.size)
+            assertEquals(3, state.savedJobs)
+            assertEquals("AI Tip: Polish Resume", state.aiRecommendation)
+            assertEquals(NavigationIntent.Action("Search Jobs", "job_search"), state.nextBestAction)
+            assertTrue(state.recentActivity.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `emits error state when state engine fails`() = runTest(testDispatcher) {
+        every { mockStateEngine.state } returns throwingStateFlow()
+        viewModel = createViewModel()
+
+        viewModel.uiState.test {
+            // Initial Loading emission first...
+            assertTrue(awaitItem().isLoading)
+            // ...then the catch branch surfaces the error instead of hanging.
+            val errorState = awaitItem()
+            assertFalse(errorState.isLoading)
+            assertEquals("boom", errorState.error)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -165,5 +178,15 @@ class DashboardViewModelTest {
             assertTrue(awaitItem() is DashboardUiEffect.OpenSettings)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `trackEvent is forwarded with the given name`() = runTest(testDispatcher) {
+        viewModel = createViewModel()
+
+        viewModel.trackEvent("dashboard_retry")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockTrackEvent.invoke(match { it.eventName == "dashboard_retry" }) }
     }
 }
