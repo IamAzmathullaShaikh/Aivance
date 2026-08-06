@@ -38,6 +38,13 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.hilt.android)
     implementation(libs.timber)
+
+    // Play Integrity SDK (device/app attestation) — real implementation in
+    // PlayIntegrityManagerImpl, with graceful degradation when Play Services
+    // is absent. kotlinx-coroutines-play-services bridges Task → suspend.
+    implementation(libs.play.integrity)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.androidx.core.ktx)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)

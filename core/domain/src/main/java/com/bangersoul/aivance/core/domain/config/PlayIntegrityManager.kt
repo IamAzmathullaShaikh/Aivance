@@ -36,42 +36,4 @@ interface PlayIntegrityManager {
     )
 }
 
-/**
- * Default Play Integrity error types.
- * Standalone sealed hierarchy (not extending DomainError since DomainError is a data class).
- */
-sealed class IntegrityError(message: String, cause: Throwable? = null) {
-    class PlayServicesNotAvailable(cause: Throwable? = null) :
-        IntegrityError("Google Play Services not available", cause)
-    class NetworkError(cause: Throwable? = null) :
-        IntegrityError("Network error during integrity check", cause)
-    class InternalError(cause: Throwable? = null) :
-        IntegrityError("Internal integrity check error", cause)
-    class TimeoutError(cause: Throwable? = null) :
-        IntegrityError("Integrity check timed out", cause)
-}
 
-/**
- * Stub implementation for development/testing.
- * In production, replace with real Play Integrity SDK integration.
- */
-class PlayIntegrityManagerStub : PlayIntegrityManager {
-    override suspend fun verifyIntegrity(): CoreResult<PlayIntegrityManager.IntegrityVerdict> {
-        return Result.Success(
-            PlayIntegrityManager.IntegrityVerdict(
-                deviceIntegrity = true,
-                appRecognitionVerdict = true
-            )
-        )
-    }
-
-    override suspend fun verifyAppIntegrity(): CoreResult<PlayIntegrityManager.AppIntegrityStatus> {
-        return Result.Success(
-            PlayIntegrityManager.AppIntegrityStatus(
-                isGenuine = true,
-                packageName = "com.bangersoul.aivance",
-                versionCode = 1
-            )
-        )
-    }
-}

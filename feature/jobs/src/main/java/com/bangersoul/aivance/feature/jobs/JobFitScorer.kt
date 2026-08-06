@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.feature.jobs
 
 import com.bangersoul.aivance.core.common.model.JobListing
+import com.bangersoul.aivance.core.common.model.ProfileState
 import com.bangersoul.aivance.core.common.model.UserProfile
 
 object JobFitScorer {
@@ -43,6 +44,27 @@ object JobFitScorer {
 
         return score.coerceIn(10, 100)
     }
+
+    /**
+     * Overload driven by the career-state [ProfileState] (the shape the job
+     * discovery screens actually hold). Maps onto the richer [UserProfile]
+     * scorer — location is not modelled by [ProfileState], so the location
+     * branch is skipped while role/skills/remote matching still apply.
+     */
+    fun calculateFitScore(job: JobListing, profile: ProfileState): Int {
+        return calculateFitScore(job, profile.toUserProfile())
+    }
+
+    private fun ProfileState.toUserProfile(): UserProfile = UserProfile(
+        id = "user_default",
+        fullName = name,
+        email = "",
+        targetRole = targetRole,
+        skills = skills,
+        workPreference = workPreference,
+        salaryExpectation = salaryExpectation,
+        visaRequired = visaRequired
+    )
 
     /**
      * Filters out jobs matching excluded keywords (e.g., "unpaid", "commission-only", "senior" when looking for junior).

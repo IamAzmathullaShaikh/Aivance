@@ -120,16 +120,25 @@ class InterviewViewModel @Inject constructor(
                 _uiState.value = InterviewUiState.Active(session = session)
                 // Generate questions, then refresh the session so the screen shows them.
                 val questionsResult = interviewRepository.generateQuestions(session.id, 5)
-                if (questionsResult is Result.Success) {
-                    val withQuestions = interviewRepository.getQuestions(session.id).firstOrNull()?.getOrNull()
-                    val refreshed = withQuestions?.let { session.copy(questions = it) } ?: session
-                    _uiState.value = InterviewUiState.Active(session = refreshed)
+                val generated = if (questionsResult is Result.Success) {
+                    interviewRepository.getQuestions(session.id).firstOrNull()?.getOrNull().orEmpty()
                 } else {
-                    // Surface the real cause instead of leaving an eternal "Preparing…" state.
-                    _uiState.value = InterviewUiState.Error(
-                        (questionsResult as? Result.Failure)?.error?.message ?: "Failed to generate questions"
-                    )
+                    emptyList()
                 }
+                val questions = generated.ifEmpty {
+                    // No AI provider configured (or generation failed): seed the
+                    // session with a role-specific STAR prep pack (R-05) so the
+                    // user can still practice and the screen never dead-ends on
+                    // an eternal "Preparing…" state. Note: these in-memory
+                    // questions are not persisted to InterviewDao (they have no
+                    // session row), so a later session reload won't replay them.
+                    android.util.Log.w(
+                        "InterviewViewModel",
+                        "AI question generation unavailable — using STAR prep fallback"
+                    )
+                    STARPrepGenerator.generateStarPack(event.role)
+                }
+                _uiState.value = InterviewUiState.Active(session = session.copy(questions = questions))
             } else {
                 _uiState.value = InterviewUiState.Error(
                     (result as? Result.Failure)?.error?.message ?: "Failed to start session"

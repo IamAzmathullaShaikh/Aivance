@@ -138,6 +138,7 @@ fun ResumeEngineScreen(
                     is ResumeEngineState.Import -> ImportStep(
                         onFileImported = { viewModel.onEvent(ResumeEngineEvent.ImportFile(it)) },
                         onOcrTextExtracted = { viewModel.onEvent(ResumeEngineEvent.ImportOcrText(it)) },
+                        onJsonImported = { viewModel.onEvent(ResumeEngineEvent.ImportJsonText(it)) },
                         onExit = onBack
                     )
                     is ResumeEngineState.Parsing -> ParsingStep(current.progress)
@@ -174,6 +175,7 @@ fun ResumeEngineScreen(
                         versionName = current.version.versionName,
                         onExportPdf = { viewModel.onEvent(ResumeEngineEvent.ExportPdf) },
                         onExportDocx = { viewModel.onEvent(ResumeEngineEvent.ExportDocx) },
+                        onExportJson = { viewModel.onEvent(ResumeEngineEvent.ExportJson) },
                         onDone = { viewModel.onEvent(ResumeEngineEvent.Finish) }
                     )
                     is ResumeEngineState.Error -> ErrorStep(
@@ -269,6 +271,7 @@ private fun EngineStepper(currentStep: Int) {
 private fun ImportStep(
     onFileImported: (Uri) -> Unit,
     onOcrTextExtracted: (String) -> Unit,
+    onJsonImported: (String) -> Unit,
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
@@ -309,6 +312,21 @@ private fun ImportStep(
                     selectedUri = uri
                     selectedName = name
                     selectedSize = size
+                }
+            }
+        }
+    )
+    val jsonLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            if (uri != null) {
+                val text = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                if (text.isNullOrBlank()) {
+                    cameraNote = context.getString(R.string.json_import_empty)
+                } else {
+                    onJsonImported(text)
                 }
             }
         }
@@ -394,6 +412,19 @@ private fun ImportStep(
                     )
                     cameraUri = uri
                     cameraLauncher.launch(uri)
+                }
+            )
+        }
+        item {
+            ImportOptionCard(
+                icon = Icons.Rounded.FileDownload,
+                title = stringResource(R.string.import_json_resume),
+                subtitle = stringResource(R.string.json_resume_subtitle),
+                onClick = {
+                    sizeError = null
+                    jsonLauncher.launch(
+                        arrayOf("application/json", "application/octet-stream", "text/plain")
+                    )
                 }
             )
         }
@@ -987,6 +1018,7 @@ private fun ExportStep(
     versionName: String,
     onExportPdf: () -> Unit,
     onExportDocx: () -> Unit,
+    onExportJson: () -> Unit,
     onDone: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(32.dp)) {
@@ -1018,6 +1050,12 @@ private fun ExportStep(
         AivanceSecondaryButton(
             text = stringResource(R.string.export_as_docx),
             onClick = onExportDocx,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(8.dp))
+        AivanceSecondaryButton(
+            text = stringResource(R.string.export_as_json),
+            onClick = onExportJson,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(16.dp))
@@ -1101,7 +1139,11 @@ private fun shareResumeFile(context: android.content.Context, text: String, file
         "${context.packageName}.fileprovider",
         file
     )
-    val mimeType = if (fileName.endsWith(".doc", ignoreCase = true)) "application/msword" else "text/plain"
+    val mimeType = when {
+        fileName.endsWith(".doc", ignoreCase = true) -> "application/msword"
+        fileName.endsWith(".json", ignoreCase = true) -> "application/json"
+        else -> "text/plain"
+    }
     shareResumeExportFile(context, uri, mimeType)
 }
 

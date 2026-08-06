@@ -1,10 +1,10 @@
 package com.bangersoul.aivance.core.database.dao
 
 import android.content.Context
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.bangersoul.aivance.core.database.AivanceDatabase
+import com.bangersoul.aivance.core.database.buildTestDatabase
 import com.bangersoul.aivance.core.database.model.InterviewMessageEntity
 import com.bangersoul.aivance.core.database.model.InterviewSessionEntity
 import com.google.common.truth.Truth.assertThat
@@ -24,9 +24,7 @@ class InterviewFeatureDaoTest {
     @Before
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(context, AivanceDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
+        db = buildTestDatabase(context)
         interviewDao = db.interviewDao()
     }
 

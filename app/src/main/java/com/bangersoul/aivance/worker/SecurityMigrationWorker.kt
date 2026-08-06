@@ -19,9 +19,10 @@ import timber.log.Timber
  * are silently migrated to [SecretsManager] encrypted storage and stripped from the
  * DB row, preventing PII leakage via database backups or adb pull.
  *
- * The worker is **idempotent** — once it finishes without error it returns
- * [Result.success] and WorkManager will not re-enqueue it (enqueued with
- * [ExistingWorkPolicy.KEEP]).
+ * The worker is **idempotent** — a completed run leaves nothing to migrate, so
+ * re-running after an app restart (it is re-enqueued with
+ * [ExistingWorkPolicy.KEEP], which only dedupes while a run is still queued or
+ * in flight) is a cheap no-op scan.
  */
 @HiltWorker
 class SecurityMigrationWorker @AssistedInject constructor(

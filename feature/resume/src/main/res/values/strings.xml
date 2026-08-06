@@ -33,6 +33,9 @@
     <string name="docx_subtitle">Word documents</string>
     <string name="scan_camera">Scan with Camera</string>
     <string name="scan_camera_subtitle">Capture a resume with your camera</string>
+    <string name="import_json_resume">Import JSON Resume</string>
+    <string name="json_resume_subtitle">Standard JSON Resume format (.json)</string>
+    <string name="json_import_empty">The selected file contained no text.</string>
     <string name="file_too_large">File exceeds the 10MB limit.</string>
     <string name="no_text_found">No text found in the photo. Try a clearer image or use PDF/DOCX.</string>
     <string name="ocr_failed">OCR failed: %1$s. Use PDF/DOCX instead.</string>
@@ -82,6 +85,7 @@
     <string name="export_title">Step 7 — Export</string>
     <string name="export_as_pdf">Export as PDF</string>
     <string name="export_as_docx">Export as DOCX</string>
+    <string name="export_as_json">Export as JSON Resume</string>
     <string name="done">Done</string>
     <string name="step_failed">%1$s failed</string>
     <string name="export_resume">Export Resume</string>

@@ -11,6 +11,7 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.util.DocxExporter
 import com.bangersoul.aivance.core.util.PdfExporter
+import com.bangersoul.aivance.feature.resume.jsonresume.JsonResumeConverter
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.AtsScoreRequest
@@ -90,6 +91,8 @@ sealed interface ResumeEngineEvent {
     data class SaveVersion(val versionName: String) : ResumeEngineEvent
     data object ExportPdf : ResumeEngineEvent
     data object ExportDocx : ResumeEngineEvent
+    data object ExportJson : ResumeEngineEvent
+    data class ImportJsonText(val rawText: String) : ResumeEngineEvent
     data object Finish : ResumeEngineEvent
     data object Retry : ResumeEngineEvent
     data object Back : ResumeEngineEvent
@@ -149,9 +152,42 @@ class ResumeEngineViewModel @Inject constructor(
             is ResumeEngineEvent.SaveVersion -> saveVersion(event.versionName)
             ResumeEngineEvent.ExportPdf -> exportPdf()
             ResumeEngineEvent.ExportDocx -> exportDocx()
+            ResumeEngineEvent.ExportJson -> exportJson()
+            is ResumeEngineEvent.ImportJsonText -> importJsonText(event.rawText)
             ResumeEngineEvent.Finish -> finish()
             ResumeEngineEvent.Retry -> retry()
             ResumeEngineEvent.Back -> back()
+        }
+    }
+
+    /**
+     * Imports a JSON Resume document (R-03): parses the standard schema via
+     * [JsonResumeConverter] and drops the user straight into the Preview step,
+     * exactly like the OCR path — nothing is persisted until the Save step.
+     */
+    private fun importJsonText(rawText: String) {
+        if (rawText.isBlank()) {
+            enterError("Import", "The selected file contained no JSON Resume data.")
+            return
+        }
+        viewModelScope.launch {
+            _state.value = ResumeEngineState.Parsing(0.5f)
+            trackEventUseCase(TrackEventRequest("resume_engine_json_import"))
+            try {
+                val resumeId = System.currentTimeMillis()
+                val version = JsonResumeConverter.importFromJsonResume(rawText, resumeId)
+                if (version.sections.isEmpty()) {
+                    enterError("Import", "No resume sections were found in the JSON file.")
+                    return@launch
+                }
+                workingVersion = version
+                val resume = Resume(id = resumeId, name = version.versionName)
+                _state.value = ResumeEngineState.Parsing(1f)
+                _state.value = ResumeEngineState.Preview(resume, version)
+                trackEventUseCase(TrackEventRequest("resume_engine_json_parsed"))
+            } catch (e: Exception) {
+                enterError("Import", "Invalid JSON Resume: ${e.message ?: "unable to parse file"}")
+            }
         }
     }
 
@@ -450,6 +486,21 @@ class ResumeEngineViewModel @Inject constructor(
                     ResumeEngineEffect.ShowSnackbar("DOCX export failed: ${result.error.message}")
                 )
             }
+        }
+    }
+
+    /**
+     * Exports the saved version as a standard JSON Resume document (R-03),
+     * shared through the same text-share path used by TXT exports.
+     */
+    private fun exportJson() {
+        val current = _state.value as? ResumeEngineState.Exporting ?: return
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest("resume_engine_export_json"))
+            val json = JsonResumeConverter.exportToJsonResume(
+                version = current.version
+            )
+            _effects.send(ResumeEngineEffect.ExportResult(json, "resume.json"))
         }
     }
 

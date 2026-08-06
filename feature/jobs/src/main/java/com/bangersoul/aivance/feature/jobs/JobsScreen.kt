@@ -29,6 +29,7 @@ import com.bangersoul.aivance.core.common.enums.EmploymentType
 import com.bangersoul.aivance.core.common.enums.RemoteType
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
+import com.bangersoul.aivance.core.common.model.ProfileState
 import com.bangersoul.aivance.core.designsystem.components.*
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 
@@ -114,6 +115,7 @@ fun JobsScreen(
                     is JobsUiState.Success -> JobDiscoveryList(
                         jobs = state.jobs,
                         isSearching = state.isSearching,
+                        profile = state.careerContext?.profile,
                         onJobClick = onNavigateToDetails,
                         onBookmarkClick = { viewModel.onEvent(JobsUiEvent.ToggleBookmark(it)) },
                         onRefresh = { viewModel.onEvent(JobsUiEvent.Refresh) },
@@ -389,6 +391,7 @@ private fun RemoteType.uiLabel(): String = stringResource(
 private fun JobDiscoveryList(
     jobs: List<JobListing>,
     isSearching: Boolean,
+    profile: ProfileState?,
     onJobClick: (String) -> Unit,
     onBookmarkClick: (String) -> Unit,
     onRefresh: () -> Unit,
@@ -416,6 +419,7 @@ private fun JobDiscoveryList(
             items(jobs, key = { it.id }) { job ->
                 JobDiscoveryCard(
                     job = job,
+                    profile = profile,
                     onClick = { onJobClick(job.id) },
                     onBookmarkClick = { onBookmarkClick(job.id) }
                 )
@@ -428,6 +432,7 @@ private fun JobDiscoveryList(
 @Composable
 private fun JobDiscoveryCard(
     job: JobListing,
+    profile: ProfileState?,
     onClick: () -> Unit,
     onBookmarkClick: () -> Unit
 ) {
@@ -491,7 +496,14 @@ private fun JobDiscoveryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val matchScore = job.matchScore ?: 0
+                // Providers rarely supply a match score, so compute a real fit
+                // score against the user's profile via JobFitScorer (R-04) and
+                // only fall back to the provider-supplied value when present.
+                val matchScore = job.matchScore ?: if (profile != null) {
+                    JobFitScorer.calculateFitScore(job, profile)
+                } else {
+                    0
+                }
                 ScoreGauge(score = matchScore, size = 32.dp)
 
                 Column(modifier = Modifier.weight(1f)) {

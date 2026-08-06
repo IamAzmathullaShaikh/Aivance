@@ -22,4 +22,8 @@
     <!-- FollowUpWorker -->
     <string name="worker_followup_title">फ़ॉलो-अप अनुस्मारक</string>
     <string name="worker_followup_message">%1$s में आवेदन किए 3 दिन हो गए हैं। फ़ॉलो-अप करने पर विचार करें!</string>
+
+    <!-- JobAlertWorker -->
+    <string name="worker_job_alert_title">नई नौकरी के मिलान मिले</string>
+    <string name="worker_job_alert_message">%1$d नई मिलान वाली नौकरियाँ मिलीं — अभी देखें।</string>
 </resources>

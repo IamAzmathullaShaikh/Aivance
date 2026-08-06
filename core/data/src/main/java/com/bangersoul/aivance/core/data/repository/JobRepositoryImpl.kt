@@ -65,7 +65,6 @@ class JobRepositoryImpl @Inject constructor(
                 }
             }
 
-            seedDefaultJobsIfEmpty()
             val providerResults = deferredResults.awaitAll().flatten()
             val aggregated = providerResults.ifEmpty {
                 jobDao.getJobsWithDetails().firstOrNull()?.map { it.toDomain() } ?: emptyList()
@@ -220,89 +219,5 @@ class JobRepositoryImpl @Inject constructor(
             socialLinks = emptyMap()
         ))
         jobDao.insertJob(job.toEntity(companyId))
-    }
-
-    private suspend fun seedDefaultJobsIfEmpty() {
-        val current = jobDao.getJobsWithDetails().firstOrNull().orEmpty()
-        if (current.isNotEmpty()) return
-
-        val seedJobs = listOf(
-            JobListing(
-                id = "1",
-                title = "Senior Android Engineer",
-                company = "Google",
-                location = "San Francisco, CA",
-                salaryMin = 160000.0,
-                salaryMax = 210000.0,
-                employmentType = com.bangersoul.aivance.core.common.enums.EmploymentType.FULL_TIME,
-                remoteType = com.bangersoul.aivance.core.common.enums.RemoteType.HYBRID,
-                experienceLevel = com.bangersoul.aivance.core.common.enums.ExperienceLevel.SENIOR_LEVEL,
-                description = "Lead high-impact mobile platform initiatives built with Kotlin, Compose, and Hilt architecture.",
-                postedDate = System.currentTimeMillis() - 86400000L,
-                url = "https://careers.google.com/jobs/1",
-                sourceProvider = "system_seed"
-            ),
-            JobListing(
-                id = "2",
-                title = "Full Stack AI Engineer",
-                company = "OpenAI",
-                location = "Remote",
-                salaryMin = 180000.0,
-                salaryMax = 250000.0,
-                employmentType = com.bangersoul.aivance.core.common.enums.EmploymentType.FULL_TIME,
-                remoteType = com.bangersoul.aivance.core.common.enums.RemoteType.REMOTE,
-                experienceLevel = com.bangersoul.aivance.core.common.enums.ExperienceLevel.SENIOR_LEVEL,
-                description = "Build intelligent agentic applications powered by cutting edge LLM systems.",
-                postedDate = System.currentTimeMillis() - 172800000L,
-                url = "https://openai.com/careers/2",
-                sourceProvider = "system_seed"
-            ),
-            JobListing(
-                id = "3",
-                title = "Lead Mobile Architect",
-                company = "Airbnb",
-                location = "San Francisco, CA",
-                salaryMin = 190000.0,
-                salaryMax = 260000.0,
-                employmentType = com.bangersoul.aivance.core.common.enums.EmploymentType.FULL_TIME,
-                remoteType = com.bangersoul.aivance.core.common.enums.RemoteType.HYBRID,
-                experienceLevel = com.bangersoul.aivance.core.common.enums.ExperienceLevel.EXECUTIVE,
-                description = "Drive mobile architecture strategy across global guest and host experiences.",
-                postedDate = System.currentTimeMillis() - 259200000L,
-                url = "https://careers.airbnb.com/3",
-                sourceProvider = "system_seed"
-            ),
-            JobListing(
-                id = "4",
-                title = "Android Developer",
-                company = "Zomato",
-                location = "Bengaluru, India",
-                salaryMin = 90000.0,
-                salaryMax = 140000.0,
-                employmentType = com.bangersoul.aivance.core.common.enums.EmploymentType.FULL_TIME,
-                remoteType = com.bangersoul.aivance.core.common.enums.RemoteType.ON_SITE,
-                experienceLevel = com.bangersoul.aivance.core.common.enums.ExperienceLevel.MID_LEVEL,
-                description = "Scale consumer ordering interfaces and design system components for millions of users.",
-                postedDate = System.currentTimeMillis() - 345600000L,
-                url = "https://zomato.com/careers/4",
-                sourceProvider = "system_seed"
-            ),
-            JobListing(
-                id = "5",
-                title = "Software Engineering Intern",
-                company = "Microsoft",
-                location = "Redmond, WA",
-                salaryMin = 80000.0,
-                salaryMax = 110000.0,
-                employmentType = com.bangersoul.aivance.core.common.enums.EmploymentType.INTERNSHIP,
-                remoteType = com.bangersoul.aivance.core.common.enums.RemoteType.HYBRID,
-                experienceLevel = com.bangersoul.aivance.core.common.enums.ExperienceLevel.ENTRY_LEVEL,
-                description = "Join Cloud & AI platform team for summer engineering projects.",
-                postedDate = System.currentTimeMillis() - 432000000L,
-                url = "https://careers.microsoft.com/5",
-                sourceProvider = "system_seed"
-            )
-        )
-        seedJobs.forEach { cacheJob(it) }
     }
 }

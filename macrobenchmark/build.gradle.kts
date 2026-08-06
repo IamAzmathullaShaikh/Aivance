@@ -1,6 +1,5 @@
 plugins {
     id("com.android.test")
-    alias(libs.plugins.kotlin.compose)
 }
 
 android {

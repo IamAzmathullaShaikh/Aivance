@@ -14,6 +14,14 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests {
+            // JVM unit tests hit android.util.Log (e.g. the STAR-prep fallback
+            // warning in InterviewViewModel); mirror the app module's config so
+            // those calls return defaults instead of throwing.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {

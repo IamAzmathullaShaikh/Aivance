@@ -1,11 +1,11 @@
 package com.bangersoul.aivance.core.database.dao
 
 import android.content.Context
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.turbine.test
 import com.bangersoul.aivance.core.database.AivanceDatabase
+import com.bangersoul.aivance.core.database.buildTestDatabase
 import com.bangersoul.aivance.core.database.model.RoadmapEntity
 import com.bangersoul.aivance.core.database.model.RoadmapStepEntity
 import com.bangersoul.aivance.core.database.model.UserProfileEntity
@@ -26,9 +26,7 @@ class ProfileFeatureDaoTest {
     @Before
     fun setup() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(context, AivanceDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
+        db = buildTestDatabase(context)
         profileDao = db.profileDao()
         roadmapDao = db.roadmapDao()
     }

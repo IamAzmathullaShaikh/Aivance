@@ -33,6 +33,9 @@
     <string name="docx_subtitle">Word दस्तावेज़</string>
     <string name="scan_camera">कैमरे से स्कैन करें</string>
     <string name="scan_camera_subtitle">अपने कैमरे से रिज़्यूमे कैप्चर करें</string>
+    <string name="import_json_resume">JSON रिज़्यूमे आयात करें</string>
+    <string name="json_resume_subtitle">मानक JSON रिज़्यूमे प्रारूप (.json)</string>
+    <string name="json_import_empty">चयनित फ़ाइल में कोई टेक्स्ट नहीं था।</string>
     <string name="file_too_large">फ़ाइल 10MB सीमा से अधिक है।</string>
     <string name="no_text_found">फोटो में कोई पाठ नहीं मिला। स्पष्ट छवि या PDF/DOCX का उपयोग करें।</string>
     <string name="ocr_failed">OCR विफल: %1$s। इसके बजाय PDF/DOCX का उपयोग करें।</string>
@@ -82,6 +85,7 @@
     <string name="export_title">चरण 7 — निर्यात</string>
     <string name="export_as_pdf">PDF के रूप में निर्यात करें</string>
     <string name="export_as_docx">DOCX के रूप में निर्यात करें</string>
+    <string name="export_as_json">JSON रिज़्यूमे के रूप में निर्यात करें</string>
     <string name="done">पूर्ण</string>
     <string name="step_failed">%1$s विफल</string>
     <string name="export_resume">रिज़्यूमे निर्यात करें</string>

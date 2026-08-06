@@ -4,17 +4,23 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.bangersoul.aivance.core.data.telemetry.StructuredTimberTree
 import com.bangersoul.aivance.core.domain.repository.ProviderRepository
 import com.bangersoul.aivance.core.domain.telemetry.TelemetryEngine
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
+import com.bangersoul.aivance.worker.AnalyticsSnapshotWorker
 import com.bangersoul.aivance.worker.AnalyticsUploadWorker
 import com.bangersoul.aivance.worker.CacheCleanupWorker
 import com.bangersoul.aivance.worker.DatabaseCleanupWorker
+import com.bangersoul.aivance.worker.FollowUpWorker
 import com.bangersoul.aivance.worker.HealthCheckWorker
+import com.bangersoul.aivance.worker.JobAlertWorker
 import com.bangersoul.aivance.worker.JobSyncWorker
 import com.bangersoul.aivance.worker.ProviderRefreshWorker
+import com.bangersoul.aivance.worker.SecurityMigrationWorker
 import com.bangersoul.aivance.worker.SyncWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
@@ -238,7 +244,63 @@ class AivanceApp : Application(), Configuration.Provider {
             }
         )
 
-        Timber.i("All 7 periodic workers scheduled")
+        // 8. Job Alert Worker — daily, needs connectivity
+        workManager.enqueueUniquePeriodicWork(
+            JobAlertWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            java.util.concurrent.TimeUnit.DAYS.toPeriodicWorkRequest<JobAlertWorker>(1) {
+                setConstraints(
+                    androidx.work.Constraints.Builder()
+                        .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                        .setRequiresBatteryNotLow(true)
+                        .build()
+                )
+                addTag(JobAlertWorker.WORK_NAME)
+            }
+        )
+
+        // 9. Follow-up Worker — daily, charging, idle
+        workManager.enqueueUniquePeriodicWork(
+            "periodic_follow_up",
+            ExistingPeriodicWorkPolicy.KEEP,
+            java.util.concurrent.TimeUnit.DAYS.toPeriodicWorkRequest<FollowUpWorker>(1) {
+                setConstraints(
+                    androidx.work.Constraints.Builder()
+                        .setRequiresDeviceIdle(true)
+                        .setRequiresCharging(true)
+                        .build()
+                )
+                addTag("periodic_follow_up")
+            }
+        )
+
+        // 10. Analytics Snapshot Worker — weekly, charging, idle
+        workManager.enqueueUniquePeriodicWork(
+            "periodic_analytics_snapshot",
+            ExistingPeriodicWorkPolicy.KEEP,
+            java.util.concurrent.TimeUnit.DAYS.toPeriodicWorkRequest<AnalyticsSnapshotWorker>(7) {
+                setConstraints(
+                    androidx.work.Constraints.Builder()
+                        .setRequiresDeviceIdle(true)
+                        .setRequiresCharging(true)
+                        .build()
+                )
+                addTag("periodic_analytics_snapshot")
+            }
+        )
+
+        // One-time security migration (idempotent, KEEP): scans provider configs
+        // for plaintext secrets left behind by pre-19 migrations and moves them
+        // into encrypted storage. Runs at startup; completes on first success.
+        workManager.enqueueUniqueWork(
+            "security_migration",
+            ExistingWorkPolicy.KEEP,
+            OneTimeWorkRequestBuilder<SecurityMigrationWorker>()
+                .addTag("security_migration")
+                .build()
+        )
+
+        Timber.i("All 10 periodic workers scheduled + security migration queued")
     }
 }
 

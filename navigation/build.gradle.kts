@@ -63,6 +63,17 @@ dependencies {
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.hilt.android.testing)
+    // The nav-graph Hilt test renders the real app graph, which instantiates
+    // ViewModels whose use cases pull in the entire data-layer DI (repositories,
+    // database, providers). Aggregate the core modules hosting those bindings
+    // into the isolated androidTest component so the graph resolves.
+    androidTestImplementation(project(":core:data"))
+    androidTestImplementation(project(":core:database"))
+    androidTestImplementation(project(":core:datastore"))
+    androidTestImplementation(project(":core:network"))
+    androidTestImplementation(project(":core:ai-providers"))
+    androidTestImplementation(project(":core:job-providers"))
+    androidTestImplementation(project(":core:enrichment-providers"))
     kspAndroidTest(libs.hilt.android.testing.compiler)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)

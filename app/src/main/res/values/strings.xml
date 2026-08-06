@@ -22,4 +22,8 @@
     <!-- FollowUpWorker -->
     <string name="worker_followup_title">Follow-up Reminder</string>
     <string name="worker_followup_message">It\'s been 3 days since you applied to %1$s. Consider following up!</string>
+
+    <!-- JobAlertWorker -->
+    <string name="worker_job_alert_title">New job matches found</string>
+    <string name="worker_job_alert_message">%1$d new matching jobs found — check them now.</string>
 </resources>
