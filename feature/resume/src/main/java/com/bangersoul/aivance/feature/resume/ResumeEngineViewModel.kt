@@ -80,6 +80,9 @@ sealed interface ResumeEngineEvent {
     data class ImportFile(val uri: Uri) : ResumeEngineEvent
     /** Fires after ML Kit OCR extracts text from a camera capture. */
     data class ImportOcrText(val rawText: String) : ResumeEngineEvent
+    /** Preloads a job description from a cross-feature jump (e.g. saved job's
+     *  "Create tailored resume") — used as the default JD in the ATS scan step. */
+    data class SetInitialJobDescription(val jobDescription: String) : ResumeEngineEvent
     data class UpdateSectionContent(val sectionTitle: String, val content: String) : ResumeEngineEvent
     data object ContinueFromPreview : ResumeEngineEvent
     data class UpdateJdText(val text: String) : ResumeEngineEvent
@@ -137,10 +140,18 @@ class ResumeEngineViewModel @Inject constructor(
      *  parsed resume back to Import). */
     private var lastStableState: ResumeEngineState = ResumeEngineState.Import
 
+    /** Job description preloaded from another feature (saved jobs) — becomes
+     *  the default JD text in the ATS scan step so the user can tailor their
+     *  resume to a specific role without re-pasting it. */
+    private var initialJobDescription: String? = null
+
     fun onEvent(event: ResumeEngineEvent) {
         when (event) {
             is ResumeEngineEvent.ImportFile -> importFile(event.uri)
             is ResumeEngineEvent.ImportOcrText -> importOcrText(event.rawText)
+            is ResumeEngineEvent.SetInitialJobDescription -> {
+                initialJobDescription = event.jobDescription
+            }
             is ResumeEngineEvent.UpdateSectionContent -> updateSectionContent(event.sectionTitle, event.content)
             ResumeEngineEvent.ContinueFromPreview -> continueFromPreview()
             is ResumeEngineEvent.UpdateJdText -> updateJdText(event.text)
@@ -304,7 +315,13 @@ class ResumeEngineViewModel @Inject constructor(
     private fun continueFromPreview() {
         val current = _state.value as? ResumeEngineState.Preview ?: return
         workingVersion = current.version
-        _state.value = ResumeEngineState.AtsScanning(current.resume, current.version)
+        // Carry the preloaded JD (from "Create tailored resume") into the ATS
+        // step so the user lands with it already pasted.
+        _state.value = ResumeEngineState.AtsScanning(
+            current.resume,
+            current.version,
+            jdText = initialJobDescription.orEmpty()
+        )
     }
 
     private fun updateJdText(text: String) {

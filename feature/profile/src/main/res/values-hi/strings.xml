@@ -206,4 +206,14 @@
     <string name="language">भाषा</string>
     <string name="selected">चयनित</string>
     <string name="language_english">English</string>
+
+    <!-- On-device model download (WorkManager worker) -->
+    <string name="model_download_channel_name">ऑन-डिवाइस मॉडल डाउनलोड</string>
+    <string name="model_download_channel_desc">ऑन-डिवाइस AI मॉडल डाउनलोड की प्रगति</string>
+    <string name="model_download_notification_title">ऑन-डिवाइस मॉडल डाउनलोड हो रहा है</string>
+    <string name="model_download_notification_percent">%1$d%%</string>
+    <string name="model_download_success_title">मॉडल तैयार है</string>
+    <string name="model_download_success_text">ऑन-डिवाइस मॉडल डाउनलोड होकर ऑफ़लाइन उपयोग के लिए तैयार है।</string>
+    <string name="model_download_failed_title">मॉडल डाउनलोड विफल</string>
+    <string name="model_download_failed_text">डाउनलोड बाधित हुआ। यह पृष्ठभूमि में फिर से प्रयास करेगा।</string>
 </resources>

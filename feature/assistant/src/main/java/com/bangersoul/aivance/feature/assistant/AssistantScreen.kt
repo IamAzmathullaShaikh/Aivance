@@ -44,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bangersoul.aivance.core.common.model.AssistantJobContext
 import com.bangersoul.aivance.core.designsystem.components.*
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 import java.util.Calendar
@@ -53,17 +54,26 @@ import java.util.Calendar
  *
  * v2: personalized greeting header, intent quick-action chips, live provider
  * status bar, and an input bar with voice/document/photo affordances.
+ *
+ * [initialJobContext] carries the job the user was looking at when the
+ * assistant was surfaced (saved jobs / job details), so replies are tailored
+ * to that role.
  */
 @Composable
 fun AssistantScreen(
     viewModel: AssistantViewModel,
-    onSwitchProvider: () -> Unit = {}
+    onSwitchProvider: () -> Unit = {},
+    initialJobContext: AssistantJobContext? = null
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val providerStatus by viewModel.providerStatus.collectAsStateWithLifecycle()
     val careerState by viewModel.careerState.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf("") }
+
+    LaunchedEffect(initialJobContext) {
+        viewModel.setJobContext(initialJobContext)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         AssistantHeader(

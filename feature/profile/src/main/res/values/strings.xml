@@ -206,4 +206,14 @@
     <string name="language">Language</string>
     <string name="selected">Selected</string>
     <string name="language_english">English</string>
+
+    <!-- On-device model download (WorkManager worker) -->
+    <string name="model_download_channel_name">On-device model downloads</string>
+    <string name="model_download_channel_desc">Progress for on-device AI model downloads</string>
+    <string name="model_download_notification_title">Downloading on-device model</string>
+    <string name="model_download_notification_percent">%1$d%%</string>
+    <string name="model_download_success_title">Model ready</string>
+    <string name="model_download_success_text">On-device model downloaded and ready to use offline.</string>
+    <string name="model_download_failed_title">Model download failed</string>
+    <string name="model_download_failed_text">The download was interrupted. It will retry in the background.</string>
 </resources>

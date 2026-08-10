@@ -51,6 +51,19 @@
     <string name="degraded">विकृत</string>
     <string name="unhealthy">अस्वस्थ</string>
     <string name="unknown">अज्ञात</string>
+    <string name="download_model">मॉडल डाउनलोड करें</string>
+    <string name="delete_model">मॉडल हटाएं</string>
+    <string name="model_ready">मॉडल तैयार</string>
+    <string name="model_not_downloaded">मॉडल डाउनलोड नहीं हुआ — इस प्रदाता को पूरी तरह ऑफ़लाइन उपयोग करने के लिए एक बार डाउनलोड करें।</string>
+    <string name="downloading_model">मॉडल डाउनलोड हो रहा है… %1$d%%</string>
+    <string name="download_model_title">ऑन-डिवाइस मॉडल डाउनलोड करें</string>
+    <string name="download_model_size">मॉडल का आकार: %1$s (%2$d बाइट्स)</string>
+    <string name="download_model_free_storage">खाली स्टोरेज: %1$s</string>
+    <string name="download_model_ram_warning">इस डिवाइस में 4 GB से कम RAM है। पूरा मॉडल धीमा चल सकता है।</string>
+    <string name="download_model_storage_blocked">पूरे मॉडल के लिए पर्याप्त खाली स्टोरेज नहीं। छोटा मॉडल फिट हो जाता है — इसके बजाय उसका उपयोग करें।</string>
+    <string name="download_model_compact_label">छोटा मॉडल डाउनलोड करें (%1$s)</string>
+    <string name="download_model_compact_hint">बहुत कम स्टोरेज और RAM का उपयोग करता है।</string>
+    <string name="download_model_confirm">डाउनलोड करें</string>
 
     <!-- Notifications -->
     <string name="notifications">सूचनाएं</string>

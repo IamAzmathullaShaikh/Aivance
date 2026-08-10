@@ -191,6 +191,79 @@ class TrackerViewModelTest {
     }
 
     @Test
+    fun `trackJob with already-tracked job selects its application`() = runTest {
+        // The application's joined job carries the cached job's DB id as a string,
+        // which the repository normalizes the external id into before matching.
+        val trackedJob = com.bangersoul.aivance.core.common.model.JobListing(
+            id = "10", title = "Android Engineer", company = "Acme",
+            description = "Kotlin", url = "https://acme.com/jobs/1", sourceProvider = "test"
+        )
+        coEvery { mockRepository.getApplications() } returns flowOf(
+            Result.Success(listOf(sampleApp().copy(id = 7L, jobId = 10L, job = trackedJob)))
+        )
+        coEvery { mockJobRepository.getJobById("job-1") } returns Result.Success(
+            trackedJob
+        )
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.TrackJob("job-1"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as TrackerUiState.Success
+        assertEquals(7L, state.selectedApplicationId)
+        assertEquals(null, state.pendingTrackJob)
+    }
+
+    @Test
+    fun `trackJob with untracked job pre-fills pending job for the add dialog`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
+        coEvery { mockJobRepository.getJobById("job-1") } returns Result.Success(
+            com.bangersoul.aivance.core.common.model.JobListing(
+                id = "job-1",
+                title = "Android Engineer",
+                company = "Acme",
+                description = "Kotlin + Compose",
+                url = "https://acme.com/jobs/android",
+                sourceProvider = "test"
+            )
+        )
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.TrackJob("job-1"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as TrackerUiState.Success
+        assertEquals("Android Engineer", state.pendingTrackJob?.title)
+        assertEquals("Acme", state.pendingTrackJob?.company)
+    }
+
+    @Test
+    fun `clearPendingTrackJob drops the prefilled job`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
+        coEvery { mockJobRepository.getJobById("job-1") } returns Result.Success(
+            com.bangersoul.aivance.core.common.model.JobListing(
+                id = "job-1", title = "Engineer", company = "Acme",
+                description = "", url = "https://acme.com", sourceProvider = "test"
+            )
+        )
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onEvent(TrackerUiEvent.TrackJob("job-1"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.ClearPendingTrackJob)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as TrackerUiState.Success
+        assertEquals(null, state.pendingTrackJob)
+    }
+
+    @Test
     fun `refresh reloads applications`() = runTest {
         coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(listOf(sampleApp())))
 

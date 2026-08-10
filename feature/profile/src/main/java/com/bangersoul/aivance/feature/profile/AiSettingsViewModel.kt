@@ -50,7 +50,9 @@ sealed interface AiSettingsUiState {
             ProviderOption("openai", "OpenAI"),
             ProviderOption("groq", "Groq"),
             ProviderOption("openrouter", "OpenRouter"),
-            ProviderOption("ollama", "Ollama (Local)")
+            ProviderOption("anthropic", "Anthropic Claude"),
+            ProviderOption("ollama", "Ollama (Local)"),
+            ProviderOption("gemma", "Gemma (On-device)")
         )
     ) : AiSettingsUiState
     data class Error(val message: String) : AiSettingsUiState

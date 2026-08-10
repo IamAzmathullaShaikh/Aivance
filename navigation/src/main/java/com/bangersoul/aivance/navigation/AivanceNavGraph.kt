@@ -34,6 +34,8 @@ import com.bangersoul.aivance.feature.jobs.JobComparisonScreen
 import com.bangersoul.aivance.feature.jobs.JobDetailsScreen
 import com.bangersoul.aivance.feature.jobs.JobsScreen
 import com.bangersoul.aivance.feature.jobs.SavedJobsScreen
+import com.bangersoul.aivance.core.common.model.AssistantJobContext
+import com.bangersoul.aivance.core.designsystem.shell.LocalAppShellState
 import com.bangersoul.aivance.feature.profile.*
 import com.bangersoul.aivance.feature.recruiter.RecruiterDashboardScreen
 import com.bangersoul.aivance.feature.recruiter.RecruiterViewModel
@@ -130,14 +132,15 @@ private fun AivanceWorkflowNavGraph(
                     destination is Destination.Ats ||
                     destination is Destination.ResumeDetail ||
                     destination == Destination.Intelligence ||
-                    destination == Destination.ResumeEngine -> Destination.Intelligence
+                    destination is Destination.ResumeEngine -> Destination.Intelligence
 
                     destination is Destination.CoverLetter ||
                     destination == Destination.JobComparison ||
                     destination is Destination.RecruiterDashboard -> Destination.Discovery
 
                     destination == Destination.PrepStudio -> Destination.PrepStudio
-                    destination == Destination.Pipeline -> Destination.Pipeline
+                    destination == Destination.Pipeline ||
+                    destination is Destination.TrackApplication -> Destination.Pipeline
                     else -> null
                 }
 
@@ -228,6 +231,7 @@ private fun ScreenContent(
     authViewModel: AuthenticationViewModel,
     onBack: () -> Unit
 ) {
+    val shellState = LocalAppShellState.current
     when (destination) {
         Destination.Splash -> {
             val splashScope = rememberCoroutineScope()
@@ -281,12 +285,13 @@ private fun ScreenContent(
         )
         Destination.Intelligence -> IntelligenceHubScreen(
             viewModel = hiltViewModel<ResumeEngineViewModel>(),
-            onNavigateToEngine = { onNavigate(Destination.ResumeEngine) },
+            onNavigateToEngine = { onNavigate(Destination.ResumeEngine()) },
             onNavigateToAts = { jd -> onNavigate(Destination.Ats(jd)) },
             onBack = onBack
         )
-        Destination.ResumeEngine -> ResumeEngineScreen(
+        is Destination.ResumeEngine -> ResumeEngineScreen(
             viewModel = hiltViewModel(),
+            initialJobDescription = destination.jobDescription,
             onBack = onBack
         )
         Destination.Discovery -> JobsScreen(
@@ -296,6 +301,11 @@ private fun ScreenContent(
         )
         Destination.Pipeline -> TrackerScreen(
             viewModel = hiltViewModel(),
+            onBack = onBack
+        )
+        is Destination.TrackApplication -> TrackerScreen(
+            viewModel = hiltViewModel(),
+            initialJobId = destination.jobId,
             onBack = onBack
         )
 
@@ -328,7 +338,22 @@ private fun ScreenContent(
         Destination.SavedJobs -> SavedJobsScreen(
             viewModel = hiltViewModel(),
             onBack = onBack,
-            onJobClick = { onNavigate(Destination.JobDetails(it)) }
+            onJobClick = { onNavigate(Destination.JobDetails(it)) },
+            onCreateResume = { job ->
+                onNavigate(Destination.ResumeEngine(jobDescription = job.description))
+            },
+            onTrackApplication = { job -> onNavigate(Destination.TrackApplication(job.id)) },
+            onAssistantForJob = { job ->
+                shellState.setAssistantJobContext(
+                    AssistantJobContext(
+                        jobId = job.id,
+                        title = job.title,
+                        company = job.company,
+                        description = job.description
+                    )
+                )
+                shellState.toggleAssistant(true)
+            }
         )
         Destination.JobComparison -> JobComparisonScreen(
             jobs = emptyList(), // In a real app, this would come from a WorkspaceManager or shared VM

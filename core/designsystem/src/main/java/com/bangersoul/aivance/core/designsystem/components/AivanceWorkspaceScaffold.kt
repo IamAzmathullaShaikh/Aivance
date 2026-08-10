@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.bangersoul.aivance.core.designsystem.shell.LocalAppShellState
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 
 /**
@@ -28,12 +29,14 @@ fun AivanceWorkspaceScaffold(
     onRetry: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     showAssistantAction: Boolean = true,
-    onAssistantClick: () -> Unit = {},
+    /** Custom assistant action; when null the global assistant overlay opens. */
+    onAssistantClick: (() -> Unit)? = null,
     topBarActions: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     content: @Composable () -> Unit
 ) {
+    val shellState = LocalAppShellState.current
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -44,7 +47,10 @@ fun AivanceWorkspaceScaffold(
                 actions = {
                     topBarActions()
                     if (showAssistantAction) {
-                        IconButton(onClick = onAssistantClick) {
+                        IconButton(
+                            onClick = onAssistantClick
+                                ?: { shellState.toggleAssistant(true) }
+                        ) {
                             Icon(
                                 Icons.Rounded.AutoAwesome,
                                 contentDescription = "AI Assistant",

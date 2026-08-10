@@ -4,19 +4,25 @@ import com.bangersoul.aivance.core.common.model.*
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.common.result.runCatchingCore
+import com.bangersoul.aivance.core.data.mapper.toAtsReport
 import com.bangersoul.aivance.core.data.mapper.toDomain
 import com.bangersoul.aivance.core.data.mapper.toEntity
 import com.bangersoul.aivance.core.database.dao.AnalyticsDao
 import com.bangersoul.aivance.core.database.dao.AtsDao
+import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
 import com.bangersoul.aivance.core.domain.analytics.*
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.crm.RecruiterIntelligenceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,31 +41,53 @@ class AnalyticsRepositoryImpl @Inject constructor(
     private val recommendationEngine: RecommendationEngine
 ) : AnalyticsRepository {
 
-    override fun getSnapshots(): Flow<CoreResult<List<AnalyticsSnapshot>>> {
-        return analyticsDao.getSnapshots().map { entities ->
-            runCatchingCore { entities.map { it.toDomain() } }
+    /**
+     * M-03/P2-01 self-healing guarantee: the weekly AnalyticsSnapshotWorker was
+     * the only producer of snapshots, so a new user's Trends timeline stayed
+     * empty for up to a week. [getSnapshots] now captures a real baseline
+     * snapshot (derived from actual applications / sessions / ATS results —
+     * never fabricated) whenever history is empty, before the Room flow is
+     * forwarded. Every consumer — analytics dashboard, career state engine,
+     * assistant context — inherits the same guarantee.
+     */
+    private val baselineMutex = Mutex()
+
+    override fun getSnapshots(): Flow<CoreResult<List<AnalyticsSnapshot>>> = flow {
+        ensureBaseline()
+        emitAll(
+            analyticsDao.getSnapshots().map { entities ->
+                runCatchingCore { entities.map { it.toDomain() } }
+            }
+        )
+    }
+
+    /**
+     * Inserts a baseline snapshot iff history is empty. Idempotent by
+     * construction: the emptiness check runs again inside the mutex, so
+     * concurrent collectors of [getSnapshots] can never double-insert (the
+     * weekly worker calling [createSnapshot] directly can still race a first
+     * view into a second row — acceptable; the empty-table guard covers the
+     * steady state). A failed baseline (createSnapshot is failure-tolerant) is
+     * retried on the next collection.
+     */
+    private suspend fun ensureBaseline() {
+        baselineMutex.withLock {
+            // Failure-tolerant read: a DB error here must not crash collectors —
+            // the emitted flow is failure-tolerant below, and the weekly worker
+            // remains the backstop. Skip-heal and retry on the next collection.
+            val hasHistory = runCatchingCore { analyticsDao.getSnapshots().first().isNotEmpty() }.getOrNull()
+            if (hasHistory == false) {
+                createSnapshot()
+            }
         }
     }
 
     override suspend fun createSnapshot(): CoreResult<Long> = runCatchingCore {
         val apps = workflowRepository.getApplications().firstOrNull()?.getOrNull() ?: emptyList()
         val sessions = interviewRepository.getSessions().firstOrNull()?.getOrNull() ?: emptyList()
-        val atsResults = atsDao.getAtsResults().firstOrNull() ?: emptyList()
-        val reports = atsResults.map { entity ->
-            AtsReport(
-                resumeVersionId = entity.resumeId,
-                jobDescriptionId = 0,
-                overallScore = entity.score,
-                matchPercentage = entity.score
-            )
-        }
-        val readiness = if (sessions.isNotEmpty()) {
-            sessions.mapNotNull { it.feedback?.overallScore }.takeIf { it.isNotEmpty() }?.average()?.toInt() ?: 75
-        } else 75
-
-        val recruiters = apps.flatMap { app ->
-            recruiterRepository.getRecruitersForCompany(app.jobId).firstOrNull()?.getOrNull() ?: emptyList()
-        }.distinctBy { it.id }
+        val reports = toAtsReports(atsDao.getAtsResults().firstOrNull() ?: emptyList())
+        val readiness = calculateReadiness(sessions)
+        val recruiters = collectRecruiters(apps)
 
         val interviewRate = kpiEngine.calculateInterviewRate(apps)
         val scoreBreakdown = scoreEngine.calculateCompositeScore(reports, recruiters, apps.size, readiness)
@@ -117,22 +145,9 @@ class AnalyticsRepositoryImpl @Inject constructor(
                 val apps = appsRes.getOrNull() ?: emptyList()
                 val profile = profileRes.getOrNull()
                 val sessions = interviewRes.getOrNull() ?: emptyList()
-                val recruiters = apps.flatMap { app ->
-                    recruiterRepository.getRecruitersForCompany(app.jobId).firstOrNull()?.getOrNull() ?: emptyList()
-                }.distinctBy { it.id }
-
-                val reports = atsResults.map { entity ->
-                    AtsReport(
-                        resumeVersionId = entity.resumeId,
-                        jobDescriptionId = 0,
-                        overallScore = entity.score,
-                        matchPercentage = entity.score
-                    )
-                }
-
-                val readiness = if (sessions.isNotEmpty()) {
-                    sessions.mapNotNull { it.feedback?.overallScore }.takeIf { it.isNotEmpty() }?.average()?.toInt() ?: 75
-                } else 75
+                val recruiters = collectRecruiters(apps)
+                val reports = toAtsReports(atsResults)
+                val readiness = calculateReadiness(sessions)
 
                 intelEngine.calculateIntelligence(
                     latestAtsReports = reports,
@@ -152,4 +167,21 @@ class AnalyticsRepositoryImpl @Inject constructor(
         val current = getCareerIntelligence().first().getOrNull() ?: throw Exception("No intelligence data")
         forecastEngine.simulate(current, ats, readiness)
     }
+
+    // ── Shared derivation helpers ─────────────────────────────
+    // Extracted so createSnapshot and getCareerIntelligence derive the same
+    // inputs from the same real data (previously duplicated inline).
+
+    private fun toAtsReports(atsResults: List<ResumeAnalysisEntity>): List<AtsReport> =
+        atsResults.map { it.toAtsReport() }
+
+    private fun calculateReadiness(sessions: List<InterviewSession>): Int =
+        if (sessions.isNotEmpty()) {
+            sessions.mapNotNull { it.feedback?.overallScore }.takeIf { it.isNotEmpty() }?.average()?.toInt() ?: 75
+        } else 75
+
+    private suspend fun collectRecruiters(apps: List<Application>): List<Recruiter> =
+        apps.flatMap { app ->
+            recruiterRepository.getRecruitersForCompany(app.jobId).firstOrNull()?.getOrNull() ?: emptyList()
+        }.distinctBy { it.id }
 }

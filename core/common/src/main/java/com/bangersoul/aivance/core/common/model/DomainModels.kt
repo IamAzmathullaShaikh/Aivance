@@ -195,6 +195,19 @@ data class InterviewFeedback(
     val detailedSummary: String = ""
 )
 
+/**
+ * Minimal job context handed to the AI Assistant when it is surfaced from a
+ * job-related screen (saved jobs, job details), so answers can be tailored to
+ * the specific role the user is looking at.
+ */
+@Serializable
+data class AssistantJobContext(
+    val jobId: String,
+    val title: String,
+    val company: String,
+    val description: String? = null
+)
+
 @Serializable
 data class JobListing(
     val id: String,

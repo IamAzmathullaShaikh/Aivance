@@ -23,10 +23,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.bangersoul.aivance.core.common.model.AssistantJobContext
 import com.bangersoul.aivance.core.common.model.Company
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.Recruiter
 import com.bangersoul.aivance.core.designsystem.components.*
+import com.bangersoul.aivance.core.designsystem.shell.LocalAppShellState
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +45,7 @@ fun JobDetailsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val shellState = LocalAppShellState.current
     var selectedTab by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(jobId) {
@@ -66,6 +69,21 @@ fun JobDetailsScreen(
         title = stringResource(R.string.job_details_title),
         onBack = onNavigateBack,
         showAssistantAction = true,
+        onAssistantClick = {
+            // Surface the assistant with this job as context so replies stay
+            // on-target for the role being viewed.
+            (uiState as? JobDetailsUiState.Success)?.let { state ->
+                shellState.setAssistantJobContext(
+                    AssistantJobContext(
+                        jobId = state.job.id,
+                        title = state.job.title,
+                        company = state.job.company,
+                        description = state.job.description
+                    )
+                )
+            }
+            shellState.toggleAssistant(true)
+        },
         topBarActions = {
             val isBookmarked = (uiState as? JobDetailsUiState.Success)?.isBookmarked ?: false
             IconButton(onClick = { viewModel.onEvent(JobDetailsUiEvent.ToggleBookmark) }) {

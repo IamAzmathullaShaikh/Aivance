@@ -46,7 +46,8 @@ import java.util.Locale
 @Composable
 fun TrackerScreen(
     viewModel: TrackerViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    initialJobId: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -57,7 +58,24 @@ fun TrackerScreen(
         }
     }
 
+    // Cross-feature jump (e.g. saved job's "Track application"): pre-select the
+    // job on first arrival.
+    LaunchedEffect(initialJobId) {
+        if (!initialJobId.isNullOrBlank()) {
+            viewModel.onEvent(TrackerUiEvent.TrackJob(initialJobId))
+        }
+    }
+
+    val pendingTrackJob = (uiState as? TrackerUiState.Success)?.pendingTrackJob
     var showAddDialog by remember { mutableStateOf(false) }
+
+    // When a job arrives from another feature, surface the Add dialog pre-filled
+    // with its company/role so one tap adds it to the pipeline.
+    LaunchedEffect(pendingTrackJob) {
+        if (pendingTrackJob != null) {
+            showAddDialog = true
+        }
+    }
 
     AivanceWorkspaceScaffold(
         title = stringResource(R.string.career_pipeline_title),
@@ -115,9 +133,19 @@ fun TrackerScreen(
         val stages = (uiState as? TrackerUiState.Success)?.stages ?: emptyList()
         AddApplicationDialog(
             stages = stages,
-            onDismiss = { showAddDialog = false },
+            initialCompany = pendingTrackJob?.company.orEmpty(),
+            initialRole = pendingTrackJob?.title.orEmpty(),
+            onDismiss = {
+                showAddDialog = false
+                if (pendingTrackJob != null) {
+                    viewModel.onEvent(TrackerUiEvent.ClearPendingTrackJob)
+                }
+            },
             onAdd = { company, role, stageId ->
                 showAddDialog = false
+                if (pendingTrackJob != null) {
+                    viewModel.onEvent(TrackerUiEvent.ClearPendingTrackJob)
+                }
                 viewModel.onEvent(TrackerUiEvent.AddApplication(company, role, stageId))
             }
         )
@@ -170,10 +198,12 @@ private fun PipelineContent(
 private fun AddApplicationDialog(
     stages: List<ApplicationStage>,
     onDismiss: () -> Unit,
-    onAdd: (String, String, String) -> Unit
+    onAdd: (String, String, String) -> Unit,
+    initialCompany: String = "",
+    initialRole: String = ""
 ) {
-    var company by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf("") }
+    var company by remember { mutableStateOf(initialCompany) }
+    var role by remember { mutableStateOf(initialRole) }
     var selectedStageId by remember { mutableStateOf(stages.firstOrNull()?.id ?: "SAVED") }
     var stageExpanded by remember { mutableStateOf(false) }
 

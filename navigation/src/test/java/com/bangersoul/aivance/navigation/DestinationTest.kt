@@ -53,6 +53,21 @@ class DestinationTest {
         assertTrue(Destination.RecruiterDashboard("job-1").isAuthenticatedDestination())
         assertTrue(Destination.CompanyDetail("acme").isAuthenticatedDestination())
         assertTrue(Destination.ResumeDetail(1L).isAuthenticatedDestination())
+        assertTrue(Destination.ResumeEngine(jobDescription = "JD").isAuthenticatedDestination())
+        assertTrue(Destination.TrackApplication("job-1").isAuthenticatedDestination())
+    }
+
+    @Test
+    fun `resume engine carries an optional preloaded job description`() {
+        assertEquals(null, Destination.ResumeEngine().jobDescription)
+        assertEquals("Senior Android Engineer…", Destination.ResumeEngine(jobDescription = "Senior Android Engineer…").jobDescription)
+    }
+
+    @Test
+    fun `track application carries the source job id and maps to pipeline`() {
+        assertEquals("job-1", Destination.TrackApplication("job-1").jobId)
+        assertEquals("Pipeline", Destination.TrackApplication("job-1").label)
+        assertNotNull(Destination.TrackApplication("job-1").icon)
     }
 
     @Test

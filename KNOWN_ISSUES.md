@@ -25,17 +25,38 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 ### M-02 — ~~Keyed free job providers dormant by default~~ ✅ RESOLVED
 - **Resolved in Phase 6**: Runtime configuration for `AdzunaProvider` and `USAJobsProvider` enabled via `ProviderManagementViewModel` and `saveProviderConfig`. Users can enter Adzuna App ID / API Key and USAJobs API Key dynamically at runtime; `reconfigure()` re-hydrates credentials instantly.
 
-### M-03 — Interview analytics timeline incomplete
+### M-03 — ~~Interview analytics timeline incomplete~~ ✅ RESOLVED (2026-08-07, UESF adoption run)
 - **Area**: `feature:analytics`.
 - **Description**: Interview improvement timeline and achievement cards require accumulated analytics history.
 - **Impact**: Charts render empty/partial for new users.
+- **Resolved**: Root cause — `AnalyticsSnapshotWorker` (weekly periodic) was the **only** producer of `analytics_snapshots` rows, so a new user's Trends timeline stayed empty for up to 7 days. The guarantee now lives in the **data layer**: `AnalyticsRepositoryImpl.getSnapshots()` is self-healing — when the snapshot list is empty it captures a real baseline snapshot (derived from actual applications/interview sessions/ATS results, never fabricated) before forwarding the Room flow, guarded by a `Mutex` so concurrent collectors can never double-insert. Every consumer (analytics dashboard, career state engine, assistant context) inherits the guarantee, not just the dashboard. The duplicated ATS-report/readiness/recruiter derivation shared with `getCareerIntelligence()` was extracted into `toAtsReport()` (mapper) + private helpers. Evidence: new `AnalyticsRepositoryImplTest` 5/5 green (self-heal, honest empty-state, no-heal-with-history, no double-insert on repeated collection, derived kpis/score persisted); `AnalyticsViewModelTest` 4/4 green; plan + review records in `docs/uesf/`.
 ### M-04 — ~~Excessive binder transaction overload during tab navigation~~ ✅ RESOLVED
 - **Resolved in End-to-End Device Pass**: `TrackerViewModel` now manages `loadJob: Job?` to cancel prior flow collection coroutines before launching new ones. Eliminates duplicate Room `combine().collect` collectors on database writes and prevents Android OS from terminating cached app processes due to binder transaction limits during rapid tab navigation.
+
+### M-05 — ~~Claude AI provider missing from refresh/selection lists~~ ✅ RESOLVED (2026-08-08)
+- **Area**: `app` `ProviderRefreshWorker`, `core:domain` `GetAvailableModelsUseCase`, `feature:profile` `AiSettingsViewModel`.
+- **Description**: The Anthropic Claude provider was registered in DI but absent from `ProviderRefreshWorker.knownProviders` and the hardcoded provider lists — so Claude was never health-checked, model-refreshed, or selectable in the AI settings list.
+- **Resolved**: `anthropic` added to all three lists (alongside the new on-device `gemma` provider). `WorkerTests.providerRefreshWorker_hasKnownProviders` updated to assert the full 7-provider set.
+
+### M-06 — ~~Dead Android-Studio template theme shipped in app module~~ ✅ RESOLVED (2026-08-08)
+- **Area**: `app/ui/theme/*`.
+- **Description**: The app module still contained the default scaffold theme (`Purple80/Purple40` color scheme) with zero references — every screen uses the real tokenized `core:designsystem` `AivanceTheme` (4 modes + accents + dynamic color).
+- **Resolved**: Deleted `app/src/main/java/com/bangersoul/aivance/ui/theme/{Color,Type,Theme}.kt` after confirming zero external imports; `assembleDebug` green.
 
 ## 🟢 Low
 
 ### L-01 — ~~Deprecation warnings in tests~~ ✅ RESOLVED
 - **Resolved in Phase 6**: Updated test suites and dependencies for `ResumeEngineViewModelTest` to use non-deprecated model constructors and mocked exporters.
+
+### M-07 — ~~Gemma download offered without a device-capability check~~ ✅ RESOLVED (2026-08-08)
+- **Area**: `feature:profile` `ProviderManagementViewModel`, `core:sdk` `ModelDownloadable`, `core:ai-providers` `GemmaOnDeviceProvider`, `navigation` `FeatureScreens`.
+- **Description**: The *Download model* button started a ~2.9 GiB download with no storage/RAM gate and no size confirmation. The provider also advertised "~1.3 GB" — the real live-verified artifact is 3,136,226,711 bytes (≈2.9 GiB).
+- **Resolved**: `DeviceCapabilityProvider` (StatFs + ActivityManager, IO-dispatched, Hilt-bound) gates the flow: free storage must be ≥2 GiB (and fit the file +15% headroom); total RAM <4 GiB triggers a warning. A confirmation dialog shows the **exact byte size**, free storage, RAM warning, and — on constrained devices — a compact alternative (FunctionGemma 270M int8, 284,342,855 bytes ≈ 271 MiB, verified live). Separate primary/compact download buttons route the chosen URL; when nothing fits the download is hard-blocked with a snackbar. `ModelDownloadable` grew `modelSizeBytes` + `compactModel`. Evidence: 12 `ProviderManagementViewModelTest` + 25 `GemmaOnDeviceProviderTest` green (dialog flow, compact URL routing, storage/RAM branches, hard-block).
+
+### M-08 — ~~AI Assistant dead-ends offline~~ ✅ RESOLVED (2026-08-08)
+- **Area**: `core:domain` `GetAssistantResponseUseCase`, `core:sdk` `ProviderManager`.
+- **Description**: With no cloud provider configured — or a configured cloud provider unreachable (offline) — the Assistant fell straight to the canned local Copilot replies instead of using the downloaded on-device Gemma model, so users with the ~2.9 GB model installed got no offline intelligence.
+- **Resolved**: `GetAssistantResponseUseCase.stream()` and `generateResponse()` now try the best cloud provider first, then fall back to a **ready on-device model** (`ProviderManager.getOnDeviceProviderFor`, a new SDK helper returning the best Active/Ready `ModelDownloadable` whose model file is downloaded) before the Copilot fallback. Identity-guarded so the same provider instance is never invoked twice; the "No AI provider configured" error surfaces only when neither a cloud provider nor a downloaded model exists. Evidence: 9 new `GetAssistantResponseUseCaseTest` + 4 new `ProviderManagerTest` cases, all green.
 
 ### L-02 — ~~Tautological initial-state tests~~ ✅ RESOLVED
 - **Resolved in 2026-08-04 hardening pass**: `JobDetailsViewModelTest` / `DashboardViewModelTest` loading-state tests now assert the Loading → loaded transition. The Career-OS refactor had also left **stale non-compiling tests** across `feature:dashboard` (DashboardViewModelTest, ComposeScreenTests), `feature:jobs` (JobsViewModelTest), `feature:interview` (InterviewViewModelTest), `feature:tracker` (TrackerViewModelTest), `feature:assistant` (AssistantViewModelTest), `feature:profile` (ProfileViewModelTest, SettingsViewModelTest) and `navigation` (DestinationTest, AivanceNavGraphTest) — all repaired or removed (stale tests for **deleted** ViewModels were deleted, per the Phase-13 pattern). `testDebugUnitTest` for every module is green again.

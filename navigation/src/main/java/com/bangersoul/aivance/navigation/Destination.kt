@@ -91,8 +91,10 @@ sealed interface Destination : NavKey {
         override val label = "Identity Hub"
     }
 
+    /** Resume Engine — carries an optional preloaded job description so a saved
+     *  job can jump straight into a tailored-resume flow (ATS scan JD pre-filled). */
     @Serializable
-    data object ResumeEngine : Destination {
+    data class ResumeEngine(val jobDescription: String? = null) : Destination {
         override val label = "Resume Engine"
     }
 
@@ -136,6 +138,12 @@ sealed interface Destination : NavKey {
         override val label = "Saved Jobs"
     }
 
+    /** Opens the Pipeline workspace with a job pre-selected (from a saved job). */
+    @Serializable
+    data class TrackApplication(val jobId: String) : Destination {
+        override val label = "Pipeline"
+    }
+
     // ── Layer 4: System ──────────────────────────────────────────────────
 
     @Serializable
@@ -176,7 +184,7 @@ sealed interface Destination : NavKey {
             Dashboard, Intelligence, Discovery, Pipeline, PrepStudio,
             Assistant, Analytics, IdentityHub, About,
             ProviderManagement, Notifications, PrivacyCenter, Appearance,
-            ResumeEngine, SavedJobs, JobComparison
+            SavedJobs, JobComparison
         )
 
         val authDestinations = setOf(
@@ -195,7 +203,9 @@ fun Destination.isAuthenticatedDestination(): Boolean =
         this is Destination.JobDetails ||
         this is Destination.RecruiterDashboard ||
         this is Destination.Ats ||
-        this is Destination.CoverLetter
+        this is Destination.CoverLetter ||
+        this is Destination.ResumeEngine ||
+        this is Destination.TrackApplication
 
 val Destination.icon: ImageVector?
     get() = when (this) {
@@ -204,7 +214,7 @@ val Destination.icon: ImageVector?
         Destination.Onboarding -> null
         Destination.Dashboard -> Icons.Rounded.GridView
         Destination.Assistant -> Icons.Rounded.AutoAwesome
-        Destination.Intelligence, Destination.ResumeEngine -> Icons.Rounded.Description
+        Destination.Intelligence, is Destination.ResumeEngine -> Icons.Rounded.Description
         Destination.Discovery -> Icons.Rounded.WorkOutline
         Destination.IdentityHub -> Icons.Rounded.PersonOutline
         is Destination.Ats -> Icons.Rounded.Assessment
@@ -212,6 +222,7 @@ val Destination.icon: ImageVector?
         is Destination.JobDetails -> null
         is Destination.RecruiterDashboard -> Icons.Rounded.PersonSearch
         Destination.SavedJobs -> Icons.Rounded.BookmarkBorder
+        is Destination.TrackApplication -> Icons.Rounded.ViewKanban
         Destination.Appearance -> Icons.Rounded.Palette
         Destination.ProviderManagement -> Icons.Rounded.Tune
         Destination.Notifications -> Icons.Rounded.Notifications
@@ -237,7 +248,7 @@ val Destination.labelRes: Int
         Destination.Onboarding -> R.string.dest_onboarding
         Destination.Dashboard -> R.string.dest_dashboard
         Destination.Assistant -> R.string.dest_assistant
-        Destination.Intelligence, Destination.ResumeEngine -> R.string.dest_intelligence
+        Destination.Intelligence, is Destination.ResumeEngine -> R.string.dest_intelligence
         Destination.Discovery -> R.string.dest_discovery
         Destination.IdentityHub -> R.string.dest_profile
         is Destination.Ats -> R.string.dest_ats
@@ -245,6 +256,7 @@ val Destination.labelRes: Int
         is Destination.JobDetails -> R.string.dest_job_details
         is Destination.RecruiterDashboard -> R.string.dest_recruiter_discovery
         Destination.SavedJobs -> R.string.dest_saved_jobs
+        is Destination.TrackApplication -> R.string.dest_pipeline
         Destination.Appearance -> R.string.dest_appearance
         Destination.ProviderManagement -> R.string.dest_providers
         Destination.Notifications -> R.string.dest_notifications

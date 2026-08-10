@@ -548,6 +548,22 @@ fun ApplicationTask.toEntity(): TaskEntity {
 }
 
 // Legacy / Helper Mappers
+
+/**
+ * Promotes a legacy `resume_analyses` row to a modern [AtsReport] for
+ * analytics consumption. Job-description linkage is not stored on the legacy
+ * table, so [AtsReport.jobDescriptionId] is left unset (matches the previous
+ * inline derivation in AnalyticsRepositoryImpl).
+ */
+fun ResumeAnalysisEntity.toAtsReport(): AtsReport {
+    return AtsReport(
+        resumeVersionId = resumeId,
+        jobDescriptionId = 0,
+        overallScore = score,
+        matchPercentage = score
+    )
+}
+
 fun ResumeAnalysisEntity.toDomain(): AtsResult {
     return AtsResult(
         id = id,

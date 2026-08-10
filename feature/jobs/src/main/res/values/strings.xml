@@ -68,4 +68,7 @@
     <string name="no_saved_jobs">No saved jobs</string>
     <string name="no_saved_jobs_desc">Jobs you save will appear here for quick access.</string>
     <string name="remove">Remove</string>
+    <string name="create_tailored_resume">Create Tailored Resume</string>
+    <string name="track_application">Track Application</string>
+    <string name="ask_ai">Ask AI</string>
 </resources>

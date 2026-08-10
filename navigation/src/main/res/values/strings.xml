@@ -51,6 +51,19 @@
     <string name="degraded">Degraded</string>
     <string name="unhealthy">Unhealthy</string>
     <string name="unknown">Unknown</string>
+    <string name="download_model">Download model</string>
+    <string name="delete_model">Delete model</string>
+    <string name="model_ready">Model ready</string>
+    <string name="model_not_downloaded">Model not downloaded — download once to use this provider fully offline.</string>
+    <string name="downloading_model">Downloading model… %1$d%%</string>
+    <string name="download_model_title">Download on-device model</string>
+    <string name="download_model_size">Model size: %1$s (%2$d bytes)</string>
+    <string name="download_model_free_storage">Free storage: %1$s</string>
+    <string name="download_model_ram_warning">This device has less than 4 GB of RAM. The full model may run slowly.</string>
+    <string name="download_model_storage_blocked">Not enough free storage for the full model. The smaller model fits — use it instead.</string>
+    <string name="download_model_compact_label">Download smaller model (%1$s)</string>
+    <string name="download_model_compact_hint">Uses far less storage and RAM.</string>
+    <string name="download_model_confirm">Download</string>
 
     <!-- Notifications -->
     <string name="notifications">Notifications</string>

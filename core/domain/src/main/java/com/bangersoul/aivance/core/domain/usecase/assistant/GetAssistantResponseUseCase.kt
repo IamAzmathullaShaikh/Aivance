@@ -70,37 +70,67 @@ class GetAssistantResponseUseCase @Inject constructor(
             SdkAiMessage(MessageRole.USER, input.userMessage)
         )
 
+        var fullResponse = ""
+        var primaryProvider: AIProvider? = null
+
         // Prefer a streaming-capable provider for real-time token delivery.
         val streamingProvider =
             providerManager.getBestProviderFor(ProviderCapability.AI.Streaming) as? AIProvider
 
         if (streamingProvider != null) {
-            var fullResponse = ""
-            try {
-                streamingProvider.streamChat(sdkMessages).collect { chunkResult ->
-                    when (chunkResult) {
-                        is Result.Success -> {
-                            emit(chunkResult.data)
-                            fullResponse += chunkResult.data
-                        }
-                        is Result.Failure -> {}
-                    }
-                }
-            } catch (_: Exception) {}
-
-            if (fullResponse.isBlank()) {
-                emit(generateCopilotFallback(input.userMessage, platformContext))
-            }
+            primaryProvider = streamingProvider
+            fullResponse = streamChat(streamingProvider, sdkMessages) { chunk -> emit(chunk) }
         } else {
-            // Graceful fallback: non-streaming provider or local copilot fallback.
+            // Non-streaming provider emits the full answer once.
             val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
-            val response = provider?.chat(sdkMessages)?.getOrNull()
-            if (!response.isNullOrBlank()) {
-                emit(response)
-            } else {
-                emit(generateCopilotFallback(input.userMessage, platformContext))
+            primaryProvider = provider
+            fullResponse = provider?.chat(sdkMessages)?.getOrNull().orEmpty()
+            if (fullResponse.isNotBlank()) emit(fullResponse)
+        }
+
+        // Zero-connectivity fallback: the on-device model (Gemma) works without
+        // any network once its model file is downloaded. Try it before giving up
+        // on a canned Copilot reply, so the Assistant stays useful offline and
+        // when the configured cloud provider is unreachable.
+        if (fullResponse.isBlank()) {
+            val onDeviceProvider =
+                providerManager.getOnDeviceProviderFor(ProviderCapability.AI.Streaming) as? AIProvider
+                    ?: providerManager.getOnDeviceProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+            // Guard against re-trying the same instance (e.g. when the on-device
+            // model is already the best configured provider).
+            if (onDeviceProvider != null && onDeviceProvider !== primaryProvider) {
+                fullResponse = streamChat(onDeviceProvider, sdkMessages) { chunk -> emit(chunk) }
             }
         }
+
+        if (fullResponse.isBlank()) {
+            emit(generateCopilotFallback(input.userMessage, platformContext))
+        }
+    }
+
+    /**
+     * Streams a chat response from [provider], emitting each chunk via [emit]
+     * and returning the accumulated full text. Provider failures (exceptions,
+     * per-chunk [Result.Failure]) are swallowed so callers can fall back.
+     */
+    private suspend fun streamChat(
+        provider: AIProvider,
+        messages: List<SdkAiMessage>,
+        emit: suspend (String) -> Unit
+    ): String {
+        var fullResponse = ""
+        try {
+            provider.streamChat(messages).collect { chunkResult ->
+                when (chunkResult) {
+                    is Result.Success -> {
+                        emit(chunkResult.data)
+                        fullResponse += chunkResult.data
+                    }
+                    is Result.Failure -> {}
+                }
+            }
+        } catch (_: Exception) {}
+        return fullResponse
     }
 
     /**
@@ -114,12 +144,30 @@ class GetAssistantResponseUseCase @Inject constructor(
 
         // Stage 2: context-aware LLM chat with the active provider.
         val platformContext = contextEngine.buildActiveContext()
-        val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
-            ?: throw Exception("No AI provider configured — open Settings → Providers to connect one.")
-
         val systemPrompt = buildSystemPrompt(platformContext)
-        return provider?.generateText("$systemPrompt\n\nUser: $userMessage")?.getOrNull()
-            ?: generateCopilotFallback(userMessage, platformContext)
+        val prompt = "$systemPrompt\n\nUser: $userMessage"
+
+        val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+        val onDeviceProvider =
+            providerManager.getOnDeviceProviderFor(ProviderCapability.AI.Chat) as? AIProvider
+        val response = provider?.generateText(prompt)?.getOrNull()
+
+        // Zero-connectivity fallback: the on-device model (Gemma) works without
+        // any network once its model file is downloaded. Guard against re-trying
+        // the same instance (when the on-device model is already the best chat
+        // provider).
+        if (response.isNullOrBlank() && onDeviceProvider != null && onDeviceProvider !== provider) {
+            onDeviceProvider.generateText(prompt)?.getOrNull()?.let { return it }
+        }
+
+        if (!response.isNullOrBlank()) return response
+
+        // No provider produced an answer: surface a clear error only when there
+        // is truly nothing to route to (no cloud provider and no on-device model).
+        if (provider == null && onDeviceProvider == null) {
+            throw Exception("No AI provider configured — open Settings → Providers to connect one.")
+        }
+        return generateCopilotFallback(userMessage, platformContext)
     }
 
     /**

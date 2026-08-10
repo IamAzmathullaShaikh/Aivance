@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,8 +31,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -63,6 +66,7 @@ import com.bangersoul.aivance.feature.profile.ProviderManagementUiState
 import com.bangersoul.aivance.feature.profile.AiSettingsViewModel
 import com.bangersoul.aivance.feature.profile.NotificationsViewModel
 import com.bangersoul.aivance.feature.profile.ProviderManagementViewModel
+import java.util.Locale
 
 // ──────────────────────────────────────────────────
 // AI Settings Screen
@@ -206,9 +210,115 @@ fun ProviderManagementScreen(
                     state = state,
                     onEvent = viewModel::onEvent
                 )
+                state.modelDownloadDialog?.let { dialog ->
+                    ModelDownloadConfirmationDialog(
+                        dialog = dialog,
+                        onConfirm = { useCompact ->
+                            viewModel.onEvent(
+                                ProviderManagementUiEvent.ConfirmModelDownload(dialog.providerId, useCompact)
+                            )
+                        },
+                        onDismiss = { viewModel.onEvent(ProviderManagementUiEvent.DismissModelDownloadDialog) }
+                    )
+                }
             }
         }
     }
+}
+
+/** Formats a byte count for display, e.g. `3.0 GB` or `271 MB`. */
+private fun formatBytes(bytes: Long): String {
+    val gib = bytes / (1024.0 * 1024.0 * 1024.0)
+    val mib = bytes / (1024.0 * 1024.0)
+    return if (gib >= 1.0) {
+        String.format(Locale.US, "%.1f GB", gib)
+    } else {
+        String.format(Locale.US, "%.0f MB", mib)
+    }
+}
+
+@Composable
+private fun ModelDownloadConfirmationDialog(
+    dialog: com.bangersoul.aivance.feature.profile.ModelDownloadDialog,
+    onConfirm: (Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.download_model_title), fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    stringResource(R.string.download_model_size, formatBytes(dialog.modelSizeBytes), dialog.modelSizeBytes),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    stringResource(R.string.download_model_free_storage, formatBytes(dialog.freeStorageBytes)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (dialog.ramWarning) {
+                    Text(
+                        stringResource(R.string.download_model_ram_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+                if (dialog.storageBlocked) {
+                    Text(
+                        stringResource(R.string.download_model_storage_blocked),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                if (dialog.offersCompact && dialog.compactName != null) {
+                    Surface(
+                        shape = AivanceTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    R.string.download_model_compact_label,
+                                    formatBytes(dialog.compactSizeBytes)
+                                ),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                text = stringResource(R.string.download_model_compact_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Storage-blocked devices cannot fit the full model — offer only the compact one.
+                if (!dialog.storageBlocked) {
+                    TextButton(onClick = { onConfirm(false) }) {
+                        Text(stringResource(R.string.download_model_confirm))
+                    }
+                }
+                if (dialog.offersCompact) {
+                    TextButton(onClick = { onConfirm(true) }) {
+                        Text(stringResource(R.string.download_model_compact_label, formatBytes(dialog.compactSizeBytes)))
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
 }
 
 @Composable
@@ -330,15 +440,79 @@ private fun ProviderCard(
                 )
             }
 
-            OutlinedTextField(
-                value = apiKeyDraft,
-                onValueChange = { onEvent(ProviderManagementUiEvent.SetApiKey(provider.id, it)) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(if (provider.apiKeyConfigured) stringResource(R.string.api_key_configured) else stringResource(R.string.api_key)) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                trailingIcon = { Icon(Icons.Rounded.Key, contentDescription = null) }
-            )
+            if (provider.isOnDevice) {
+                // Keyless on-device provider (e.g. Gemma): a model download replaces the API key.
+                val isDownloading = state.downloadingProviderId == provider.id
+                if (provider.modelDownloaded) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = AivanceTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                stringResource(R.string.model_ready),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        AivanceSecondaryButton(
+                            text = stringResource(R.string.delete_model),
+                            onClick = { onEvent(ProviderManagementUiEvent.DeleteModel(provider.id)) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                } else if (isDownloading) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.downloading_model,
+                                ((state.modelDownloadProgress ?: 0f) * 100).toInt()
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { state.modelDownloadProgress ?: 0f },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.model_not_downloaded),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        AivancePrimaryButton(
+                            text = stringResource(R.string.download_model),
+                            onClick = { onEvent(ProviderManagementUiEvent.DownloadModel(provider.id)) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            } else {
+                OutlinedTextField(
+                    value = apiKeyDraft,
+                    onValueChange = { onEvent(ProviderManagementUiEvent.SetApiKey(provider.id, it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(if (provider.apiKeyConfigured) stringResource(R.string.api_key_configured) else stringResource(R.string.api_key)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    trailingIcon = { Icon(Icons.Rounded.Key, contentDescription = null) }
+                )
+            }
 
             if (provider.availableModels.isNotEmpty()) {
                 Row(
@@ -375,21 +549,26 @@ private fun ProviderCard(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                AivanceSecondaryButton(
-                    text = stringResource(R.string.save),
-                    onClick = { onEvent(ProviderManagementUiEvent.SaveProvider(provider.id)) },
-                    modifier = Modifier.weight(1f)
-                )
-                AivancePrimaryButton(
-                    text = if (state.testingProviderId == provider.id) stringResource(R.string.testing) else stringResource(R.string.test),
-                    onClick = { onEvent(ProviderManagementUiEvent.TestConnection(provider.id)) },
-                    modifier = Modifier.weight(1f),
-                    enabled = state.testingProviderId != provider.id
-                )
+            // Keyless on-device providers need no credentials: Save/Test are
+            // meaningless (Test would fail with "Configuration is incomplete"),
+            // so the download/delete controls above are their only actions.
+            if (!provider.isOnDevice) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    AivanceSecondaryButton(
+                        text = stringResource(R.string.save),
+                        onClick = { onEvent(ProviderManagementUiEvent.SaveProvider(provider.id)) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    AivancePrimaryButton(
+                        text = if (state.testingProviderId == provider.id) stringResource(R.string.testing) else stringResource(R.string.test),
+                        onClick = { onEvent(ProviderManagementUiEvent.TestConnection(provider.id)) },
+                        modifier = Modifier.weight(1f),
+                        enabled = state.testingProviderId != provider.id
+                    )
+                }
             }
         }
     }

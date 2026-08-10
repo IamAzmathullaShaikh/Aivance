@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.feature.assistant
 
+import com.bangersoul.aivance.core.common.model.AssistantJobContext
 import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.model.ProfileState
 import com.bangersoul.aivance.core.common.result.Result
@@ -57,7 +58,7 @@ class AssistantViewModelTest {
             CareerState(profile = ProfileState(name = "Azmath Shaik", targetRole = "Software Engineer"))
         )
         every { mockIntentEngine.detectIntent(any(), any()) } returns CareerIntent.RESUME_HELP
-        every { mockPromptOrchestrator.buildCopilotPrompt(any(), any(), any()) } returns "copilot-prompt"
+        every { mockPromptOrchestrator.buildCopilotPrompt(any(), any(), any(), any()) } returns "copilot-prompt"
     }
 
     @After
@@ -177,5 +178,30 @@ class AssistantViewModelTest {
 
         val state = viewModel.uiState.value as AssistantUiState.Chatting
         assertEquals("ok", state.messages.last().content)
+    }
+
+    @Test
+    fun `setJobContext passes the job into the orchestrated prompt`() = runTest(testDispatcher) {
+        every { mockResponseUseCase.stream(any()) } returns flowOf("tailored reply")
+        val contextSlot = io.mockk.slot<AssistantJobContext?>()
+        every {
+            mockPromptOrchestrator.buildCopilotPrompt(any(), any(), any(), captureNullable(contextSlot))
+        } returns "copilot-prompt"
+
+        val viewModel = createViewModel()
+        viewModel.setJobContext(
+            AssistantJobContext(
+                jobId = "job-1",
+                title = "Android Engineer",
+                company = "Acme",
+                description = "Kotlin + Compose"
+            )
+        )
+        viewModel.sendMessage("Tailor my resume")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Android Engineer", contextSlot.captured?.title)
+        assertEquals("Acme", contextSlot.captured?.company)
+        assertEquals("Kotlin + Compose", contextSlot.captured?.description)
     }
 }

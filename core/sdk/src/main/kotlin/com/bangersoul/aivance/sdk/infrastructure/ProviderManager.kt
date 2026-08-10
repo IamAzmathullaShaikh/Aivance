@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.sdk.infrastructure
 
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.sdk.api.ModelDownloadable
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
 import com.bangersoul.aivance.sdk.core.BaseProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
@@ -208,6 +209,33 @@ class ProviderManager @Inject constructor(
             ?: candidates.firstOrNull { it.status == ProviderStatus.Active && it.isConfigured }
             ?: candidates.firstOrNull { it.status == ProviderStatus.Ready && it.isConfigured }
             ?: candidates.firstOrNull { it.status == ProviderStatus.Active }
+            ?: candidates.firstOrNull { it.status == ProviderStatus.Ready }
+            ?: candidates.firstOrNull()
+    }
+
+    /**
+     * Retrieves the best ready on-device provider for a given capability.
+     *
+     * On-device providers (implementing [ModelDownloadable], e.g. the offline
+     * Gemma model) are keyless and work with **zero connectivity** once their
+     * model file is present ([ModelDownloadable.isModelReady]). This is the
+     * offline fallback target for features like the AI Assistant when no cloud
+     * provider is configured, or when the configured cloud provider is
+     * unreachable (airplane mode, provider outage).
+     *
+     * Selection mirrors [getBestProviderFor]: Active beats Ready, falling back
+     * to any provider whose model is downloaded. A missing model is never
+     * handed out (the caller would only get failures).
+     *
+     * @param capability The capability required.
+     * @return The best ready on-device provider, or null when no model is
+     *   downloaded.
+     */
+    fun getOnDeviceProviderFor(capability: ProviderCapability): BaseProvider? {
+        val candidates = registry.getProvidersByCapability(capability)
+            .filter { it is ModelDownloadable && it.isModelReady }
+
+        return candidates.firstOrNull { it.status == ProviderStatus.Active }
             ?: candidates.firstOrNull { it.status == ProviderStatus.Ready }
             ?: candidates.firstOrNull()
     }

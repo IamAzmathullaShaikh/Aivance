@@ -63,9 +63,10 @@ Prioritized, effort-tagged remediation backlog derived from the **Database Certi
 
 ## P2 — Post-launch backlog
 
-### P2-01 — M-03: Interview analytics timeline accumulation
+### P2-01 — ~~M-03: Interview analytics timeline accumulation~~ ✅ RESOLVED (2026-08-07, UESF adoption run)
 - **Effort:** M · **Area:** `feature:analytics`
 - **AC:** Charts render meaningful history for new users (seed/derive from real session data, no fabricated values).
+- **Done:** Baseline guarantee moved to the **data layer** (follow-up to the first UESF run): `AnalyticsRepositoryImpl.getSnapshots()` is self-healing — it captures a real baseline snapshot (derived from applications/interview sessions/ATS results, never fabricated) whenever history is empty, `Mutex`-guarded against double-insert, so **every** consumer (analytics dashboard, career state engine, assistant context) inherits the guarantee. Shared derivation extracted (`ResumeAnalysisEntity.toAtsReport()` mapper + private helpers reused by `createSnapshot` and `getCareerIntelligence`); the ViewModel-level `ensureBaselineSnapshot()` was removed. Evidence: new `AnalyticsRepositoryImplTest` 5/5 + `AnalyticsViewModelTest` 4/4 green; records in `docs/uesf/`.
 
 ### P2-02 — ~~L-02: Tautological initial-state tests~~ ✅ RESOLVED (2026-08-04)
 - **Effort:** S · **Area:** feature ViewModel tests

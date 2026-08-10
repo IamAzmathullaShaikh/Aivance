@@ -95,11 +95,20 @@ private val ENGINE_STEPS = listOf(
 @Composable
 fun ResumeEngineScreen(
     viewModel: ResumeEngineViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    initialJobDescription: String? = null
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Preload a job description (e.g. from a saved job's "Create tailored
+    // resume" action) so the ATS scan step arrives with the JD ready to run.
+    LaunchedEffect(initialJobDescription) {
+        if (!initialJobDescription.isNullOrBlank()) {
+            viewModel.onEvent(ResumeEngineEvent.SetInitialJobDescription(initialJobDescription))
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->

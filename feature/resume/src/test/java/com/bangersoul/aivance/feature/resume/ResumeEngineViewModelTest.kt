@@ -123,6 +123,24 @@ class ResumeEngineViewModelTest {
     }
 
     @Test
+    fun `preloaded job description is carried into the ATS scan step`() = runTest {
+        coEvery { mockImport.invoke(any()) } returns Result.Success(1L)
+        coEvery { mockRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(version)))
+        coEvery { mockRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
+
+        val viewModel = createViewModel()
+        // Simulates the "Create tailored resume" cross-feature jump.
+        viewModel.onEvent(ResumeEngineEvent.SetInitialJobDescription(longJd))
+        viewModel.onEvent(ResumeEngineEvent.ImportFile(mockk<Uri>()))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onEvent(ResumeEngineEvent.ContinueFromPreview)
+
+        val state = viewModel.state.value
+        assertTrue(state is ResumeEngineState.AtsScanning)
+        assertEquals(longJd, (state as ResumeEngineState.AtsScanning).jdText)
+    }
+
+    @Test
     fun `continue from preview transitions to AtsScanning`() = runTest {
         coEvery { mockImport.invoke(any()) } returns Result.Success(1L)
         coEvery { mockRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(version)))

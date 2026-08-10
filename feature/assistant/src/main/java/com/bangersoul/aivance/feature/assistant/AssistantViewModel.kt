@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.assistant
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangersoul.aivance.core.common.model.AssistantJobContext
 import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.engine.ContextEngine
 import com.bangersoul.aivance.core.domain.engine.IntentEngine
@@ -92,6 +93,18 @@ class AssistantViewModel @Inject constructor(
     private var currentConversationId = "main_session"
     private var lastUserMessage: String? = null
 
+    /**
+     * Job the user is currently looking at (surfaced from saved jobs / job
+     * details via the global assistant overlay). Included in the next prompt so
+     * answers are tailored to that role.
+     */
+    private val _jobContext = MutableStateFlow<AssistantJobContext?>(null)
+    val jobContext: StateFlow<AssistantJobContext?> = _jobContext.asStateFlow()
+
+    fun setJobContext(context: AssistantJobContext?) {
+        _jobContext.value = context
+    }
+
     fun sendMessage(text: String) {
         if (text.isBlank()) return
 
@@ -113,7 +126,12 @@ class AssistantViewModel @Inject constructor(
 
             val state = stateEngine.state.value
             val intent = intentEngine.detectIntent(text, state)
-            val orchestratedPrompt = promptOrchestrator.buildCopilotPrompt(text, state, intent)
+            val orchestratedPrompt = promptOrchestrator.buildCopilotPrompt(
+                text,
+                state,
+                intent,
+                jobContext = _jobContext.value
+            )
 
             var fullResponse = ""
             try {
