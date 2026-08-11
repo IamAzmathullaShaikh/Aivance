@@ -7,6 +7,7 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.AtsRepository
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +93,28 @@ class IntelligenceHubViewModelTest {
         val scan = viewModel.uiState.value.atsScans.first()
         assertEquals(null, scan.jobTitle)
         assertEquals(null, scan.companyName)
+    }
+
+    @Test
+    fun `deleteReport delegates to the repository`() = runTest {
+        every { mockResumeRepository.getResumes() } returns flowOf(Result.Success(listOf(resume)))
+        every { mockAtsRepository.getAllReports() } returns flowOf(Result.Success(listOf(report)))
+        coEvery { mockAtsRepository.getJobDescription(7L) } returns JobDescription(
+            id = 7L,
+            companyName = "Google",
+            jobTitle = "Android Engineer",
+            rawText = "jd"
+        )
+        coEvery { mockAtsRepository.deleteReport(1L) } returns Result.Success(Unit)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.atsScans.size)
+
+        viewModel.deleteReport(1L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockAtsRepository.deleteReport(1L) }
     }
 
     @Test

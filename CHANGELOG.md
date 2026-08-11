@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Delete saved ATS reports from the Intelligence Hub (2026-08-11)
+- Each Recent ATS Scans card now has a **delete icon**; tapping it opens a confirmation dialog ("Delete ATS report? … removed permanently") and the confirmed report is removed via `AtsRepository.deleteReport` — the hub's live `getAllReports` flow drops the card immediately.
+- **Test**: `IntelligenceHubViewModelTest.deleteReport delegates to the repository`. Verified live on the emulator: seeded a stale 0% scan, deleted it through the UI, hub returned to the empty state and the DB row count hit 0.
+
 ### Fixed — Crash on on-device (Gemma) model download — missing foregroundServiceType (2026-08-11)
 - **Android 14+ crash**: tapping **Download model** (or advancing onboarding with Gemma selected) started WorkManager's `SystemForegroundService` with `FOREGROUND_SERVICE_TYPE_DATA_SYNC` while the merged manifest declared no `foregroundServiceType` — `IllegalArgumentException: foregroundServiceType 0x1 is not a subset of 0x0` killed the app (caught live during QA E2E, logcat 18:51:54).
 - Fix: `app/src/main/AndroidManifest.xml` now declares `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC` permissions and overrides the merged `SystemForegroundService` with `android:foregroundServiceType="dataSync"` (`tools:node="merge"`).

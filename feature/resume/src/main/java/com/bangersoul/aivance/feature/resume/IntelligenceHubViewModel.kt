@@ -77,4 +77,11 @@ class IntelligenceHubViewModel @Inject constructor(
             }
         }
     }
+
+    /** Deletes a saved ATS report; the [getAllReports] flow then drops it from the hub. */
+    fun deleteReport(reportId: Long) {
+        viewModelScope.launch {
+            atsRepository.deleteReport(reportId)
+        }
+    }
 }

@@ -5,11 +5,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,6 +34,32 @@ fun IntelligenceHubScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var pendingDelete by remember { mutableStateOf<AtsScanItem?>(null) }
+
+    pendingDelete?.let { scan ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete ATS report?") },
+            text = {
+                Text(
+                    "\"${scan.title}\" (${scan.report.overallScore}% Match) will be removed permanently."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteReport(scan.report.id)
+                    pendingDelete = null
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     AivanceWorkspaceScaffold(
         title = "Intelligence Hub",
@@ -83,7 +114,11 @@ fun IntelligenceHubScreen(
                 }
             } else {
                 items(uiState.atsScans, key = { "scan-${it.report.id}" }) { scan ->
-                    AtsScanCard(scan = scan, onClick = { onNavigateToAts(scan.report.id) })
+                    AtsScanCard(
+                        scan = scan,
+                        onClick = { onNavigateToAts(scan.report.id) },
+                        onDelete = { pendingDelete = scan }
+                    )
                 }
             }
         }
@@ -110,31 +145,39 @@ private fun ResumeCard(resume: Resume, onClick: () -> Unit) {
 }
 
 @Composable
-private fun AtsScanCard(scan: AtsScanItem, onClick: () -> Unit) {
+private fun AtsScanCard(scan: AtsScanItem, onClick: () -> Unit, onDelete: () -> Unit) {
     AivanceWorkspaceCard(onClick = onClick) {
         Row(
             modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Icons.Rounded.History, contentDescription = null, tint = AivanceTheme.colors.info)
-            Column {
-                Text(
-                    when {
-                        scan.jobTitle != null && scan.companyName != null ->
-                            "${scan.companyName} - ${scan.jobTitle}"
-                        scan.jobTitle != null -> scan.jobTitle
-                        else -> "ATS Scan"
-                    },
-                    fontWeight = FontWeight.Bold
-                )
+            Column(Modifier.weight(1f)) {
+                Text(scan.title, fontWeight = FontWeight.Bold)
                 Text(
                     "${scan.report.overallScore}% Match · ${formatReportDate(scan.report.dateGenerated)}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Rounded.DeleteOutline,
+                    contentDescription = "Delete ATS report",
+                    tint = MaterialTheme.colorScheme.outline
+                )
+            }
         }
     }
 }
+
+/** Card title: company - job title when resolved, else a neutral label. */
+private val AtsScanItem.title: String
+    get() = when {
+        jobTitle != null && companyName != null -> "${companyName} - ${jobTitle}"
+        jobTitle != null -> jobTitle
+        else -> "ATS Scan"
+    }
 
 private fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
