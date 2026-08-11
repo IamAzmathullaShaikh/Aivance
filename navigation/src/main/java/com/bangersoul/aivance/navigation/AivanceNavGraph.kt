@@ -311,9 +311,15 @@ private fun ScreenContent(
 
         Destination.IdentityHub -> IdentityHubScreen(
             viewModel = hiltViewModel(),
-            onBack = onBack
+            onBack = onBack,
+            onNavigateToAbout = { onNavigate(Destination.About) },
+            onNavigateToResources = { onNavigate(Destination.Resources) }
         )
-        Destination.About -> AboutScreen(onBack = onBack)
+        Destination.About -> AboutScreen(
+            onBack = onBack,
+            onNavigateToResources = { onNavigate(Destination.Resources) }
+        )
+        Destination.Resources -> RemoteResourcesScreen(onBack = onBack)
         Destination.Analytics -> AnalyticsScreen(
             viewModel = hiltViewModel<com.bangersoul.aivance.feature.analytics.AnalyticsViewModel>(),
             onBack = onBack

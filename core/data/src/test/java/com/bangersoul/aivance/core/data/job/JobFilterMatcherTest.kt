@@ -157,6 +157,52 @@ class JobFilterMatcherTest {
     }
 
     @Test
+    fun `included keywords require all terms in the listing`() {
+        val filter = JobSearchFilter(includedKeywords = listOf("kotlin", "android"))
+        assertTrue(matcher.matches(job(), filter))
+        // Kotlin present but no Android signal anywhere → rejected.
+        assertFalse(matcher.matches(job(title = "iOS Engineer", description = "Kotlin only"), filter))
+        assertFalse(matcher.matches(job(title = "iOS Engineer", description = "Swift"), filter))
+    }
+
+    @Test
+    fun `included keywords match company and title too`() {
+        val filter = JobSearchFilter(includedKeywords = listOf("google"))
+        assertTrue(matcher.matches(job(description = "Build widgets"), filter))
+        val byTitle = JobSearchFilter(includedKeywords = listOf("android"))
+        assertTrue(matcher.matches(job(description = "unrelated"), byTitle))
+    }
+
+    @Test
+    fun `excluded keywords reject listings containing any term`() {
+        val filter = JobSearchFilter(excludedKeywords = listOf("unpaid", "commission-only"))
+        assertTrue(matcher.matches(job(), filter))
+        assertFalse(matcher.matches(job(description = "Great exposure but unpaid"), filter))
+        assertFalse(matcher.matches(job(title = "Commission-only Sales Rep"), filter))
+    }
+
+    @Test
+    fun `include and exclude combine as whitelist plus blacklist`() {
+        val filter = JobSearchFilter(
+            includedKeywords = listOf("kotlin"),
+            excludedKeywords = listOf("senior")
+        )
+        assertTrue(matcher.matches(job(), filter))
+        // Blacklist wins: contains 'senior' in the title.
+        assertFalse(matcher.matches(job(title = "Senior Android Engineer", description = "Kotlin"), filter))
+        // Whitelist fails: no Kotlin signal in title/company/description.
+        assertFalse(matcher.matches(job(description = "Swift and SwiftUI only"), filter))
+    }
+
+    @Test
+    fun `keyword matching is case-insensitive and blank-tolerant`() {
+        val filter = JobSearchFilter(includedKeywords = listOf("KOTLIN", "  "))
+        assertTrue(matcher.matches(job(), filter))
+        val blankExclude = JobSearchFilter(excludedKeywords = listOf("", " "))
+        assertTrue(matcher.matches(job(title = "Any job"), blankExclude))
+    }
+
+    @Test
     fun `filterAndRank sorts by relevance then recency`() {
         // The unrelated job's description must not contain the query, otherwise
         // it legitimately matches via the description haystack.

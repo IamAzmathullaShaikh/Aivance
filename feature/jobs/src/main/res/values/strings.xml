@@ -36,6 +36,13 @@
     <string name="employment_other">Other</string>
     <string name="remote_on_site">On Site</string>
     <string name="remote_hybrid">Hybrid</string>
+    <string name="remote_policy">Remote policy</string>
+    <string name="tech_stack">Tech stack</string>
+    <string name="tech_stack_placeholder">e.g. Kotlin, Python</string>
+    <string name="must_include">Must include</string>
+    <string name="must_include_placeholder">e.g. Kotlin, remote</string>
+    <string name="exclude">Exclude</string>
+    <string name="exclude_placeholder">e.g. unpaid, senior</string>
     <string name="no_matches_found">No matches found</string>
     <string name="no_jobs_yet">No jobs yet</string>
     <string name="no_matches_desc">Try a different keyword or filter — or refresh to pull the latest roles.</string>
@@ -62,6 +69,17 @@
     <string name="open_roles_count">Open Roles (%1$d)</string>
     <string name="no_open_roles">No open roles found</string>
     <string name="no_open_roles_desc">This company currently has no indexed roles in your job feed.</string>
+    <string name="company_remote_policy">Remote policy</string>
+    <string name="company_company_size">Company size</string>
+    <string name="company_region">Region</string>
+    <string name="company_technologies">Tech stack</string>
+    <string name="company_careers">Visit careers page</string>
+    <string name="remote_policy_fully_remote">Fully remote</string>
+    <string name="remote_policy_remote_first">Remote-first</string>
+    <string name="remote_policy_remote_friendly">Remote-friendly</string>
+    <string name="remote_policy_hybrid">Hybrid</string>
+    <string name="remote_policy_unknown">Unknown</string>
+    <string name="company_catalog_available">From the remote-company catalog</string>
 
     <!-- Saved jobs -->
     <string name="saved_jobs_title">Saved Jobs</string>

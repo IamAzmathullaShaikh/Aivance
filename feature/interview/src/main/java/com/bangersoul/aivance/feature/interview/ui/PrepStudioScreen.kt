@@ -104,7 +104,10 @@ private fun PracticeTab(viewModel: InterviewViewModel) {
 
                 PracticeHub(
                     upcomingInterviews = state.careerState?.pipeline?.upcomingInterviews.orEmpty(),
-                    onStart = { r, c, t, j -> viewModel.onEvent(InterviewUiEvent.StartSession(r, c, t, j)) }
+                    starPack = state.starPack,
+                    isGeneratingPack = state.isGeneratingPack,
+                    onGeneratePack = { role -> viewModel.onEvent(InterviewUiEvent.GenerateStarPack(role)) },
+                    onStart = { r, c, t, j, pack -> viewModel.onEvent(InterviewUiEvent.StartSession(r, c, t, j, pack)) }
                 )
             }
         }
@@ -185,12 +188,16 @@ private fun PrepStudioHero(
 @Composable
 private fun PracticeHub(
     upcomingInterviews: List<com.bangersoul.aivance.core.common.model.UpcomingInterviewShort>,
-    onStart: (String, String, String, Long?) -> Unit
+    starPack: List<com.bangersoul.aivance.core.common.model.InterviewQuestion>?,
+    isGeneratingPack: Boolean,
+    onGeneratePack: (String) -> Unit,
+    onStart: (String, String, String, Long?, List<com.bangersoul.aivance.core.common.model.InterviewQuestion>?) -> Unit
 ) {
     var role by remember { mutableStateOf("") }
     var company by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("BEHAVIORAL") }
     var selectedJobId by remember { mutableStateOf<Long?>(null) }
+    var packRole by remember { mutableStateOf("") }
 
     val types = listOf(
         "TECHNICAL" to "Technical",
@@ -209,7 +216,7 @@ private fun PracticeHub(
             SectionHeader(title = "Scheduled Interviews")
             upcomingInterviews.forEach { interview ->
                 AivanceWorkspaceCard(
-                    onClick = { onStart(interview.role, interview.company, "BEHAVIORAL", interview.id.toLongOrNull()) }
+                    onClick = { onStart(interview.role, interview.company, "BEHAVIORAL", interview.id.toLongOrNull(), null) }
                 ) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) {
@@ -219,7 +226,7 @@ private fun PracticeHub(
                             Text(interview.company, fontWeight = FontWeight.Bold)
                             Text(interview.role, style = MaterialTheme.typography.bodySmall)
                         }
-                        AivanceTertiaryButton(text = "Prep", onClick = { onStart(interview.role, interview.company, "BEHAVIORAL", interview.id.toLongOrNull()) })
+                        AivanceTertiaryButton(text = "Prep", onClick = { onStart(interview.role, interview.company, "BEHAVIORAL", interview.id.toLongOrNull(), null) })
                     }
                 }
             }
@@ -266,12 +273,76 @@ private fun PracticeHub(
 
                 AivancePrimaryButton(
                     text = "Start Mock Interview",
-                    onClick = { onStart(role, company, type, null) },
+                    onClick = { onStart(role, company, type, null, null) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = role.isNotBlank(),
                     icon = Icons.Rounded.PlayArrow
                 )
             }
+        }
+
+        SectionHeader(title = "STAR Prep Packs")
+        Text(
+            "Role-specific STAR-format question packs with worked answers — generate one, then practice it as a mock session.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = AivanceTheme.shapes.large,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        ) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = packRole,
+                    onValueChange = { packRole = it },
+                    label = { Text("Target Role") },
+                    placeholder = { Text("e.g. Android Engineer") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AivanceTheme.shapes.medium
+                )
+                AivancePrimaryButton(
+                    text = if (isGeneratingPack) "Generating pack…" else "Generate STAR Pack",
+                    onClick = { onGeneratePack(packRole) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = packRole.isNotBlank() && !isGeneratingPack,
+                    icon = Icons.Rounded.AutoAwesome
+                )
+            }
+        }
+
+        if (starPack != null && starPack.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            starPack.forEach { question ->
+                AivanceWorkspaceCard {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(question.text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatusChip(text = question.category.replace('_', ' '), tone = BannerTone.INFO)
+                            StatusChip(
+                                text = question.difficulty.replace('_', ' '),
+                                tone = if (question.difficulty == "HARD") BannerTone.ERROR else BannerTone.INFO
+                            )
+                        }
+                        if (question.expectedKeyPoints.isNotEmpty()) {
+                            Text(
+                                "STAR: ${question.expectedKeyPoints.joinToString(" · ")}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            AivanceSecondaryButton(
+                text = "Practice this pack",
+                onClick = { onStart(packRole, "", "BEHAVIORAL", null, starPack) },
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Rounded.PlayArrow
+            )
         }
 
         Spacer(Modifier.height(48.dp))

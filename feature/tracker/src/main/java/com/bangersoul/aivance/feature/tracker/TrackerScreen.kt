@@ -108,6 +108,11 @@ fun TrackerScreen(
                         stages = state.stages,
                         applications = state.applications,
                         metrics = state.pipelineMetrics,
+                        todayAppliedCount = state.todayAppliedCount,
+                        dailyCap = state.dailyCap,
+                        onSetDailyCap = { cap ->
+                            viewModel.onEvent(TrackerUiEvent.SetDailyCap(cap))
+                        },
                         selectedApplicationId = state.selectedApplicationId,
                         onMove = { appId, stageId ->
                             viewModel.onEvent(TrackerUiEvent.UpdateStage(appId, stageId))
@@ -157,6 +162,9 @@ private fun PipelineContent(
     stages: List<ApplicationStage>,
     applications: List<Application>,
     metrics: PipelineMetrics,
+    todayAppliedCount: Int,
+    dailyCap: Int,
+    onSetDailyCap: (Int) -> Unit,
     selectedApplicationId: Long?,
     onMove: (Long, String) -> Unit,
     onSelect: (Long) -> Unit,
@@ -164,6 +172,8 @@ private fun PipelineContent(
     onDelete: (Long) -> Unit,
     onNotesChange: (Long, String) -> Unit
 ) {
+    var showCapDialog by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize()) {
         // Hero Section
         Column(modifier = Modifier.padding(16.dp)) {
@@ -172,6 +182,12 @@ private fun PipelineContent(
                 description = "You have ${metrics.activeCount} active applications. Your interview conversion is ${metrics.interviewRate}%.",
                 actionLabel = "View Analytics",
                 onClick = { /* Navigate to Analytics */ }
+            )
+            Spacer(Modifier.height(12.dp))
+            DailyQuotaCard(
+                todayAppliedCount = todayAppliedCount,
+                dailyCap = dailyCap,
+                onEditCap = { showCapDialog = true }
             )
             Spacer(Modifier.height(16.dp))
             SectionHeader(title = "Kanban Board")
@@ -188,6 +204,91 @@ private fun PipelineContent(
             onNotesChange = onNotesChange
         )
     }
+
+    if (showCapDialog) {
+        DailyCapDialog(
+            currentCap = dailyCap,
+            onDismiss = { showCapDialog = false },
+            onSelect = { cap ->
+                showCapDialog = false
+                onSetDailyCap(cap)
+            }
+        )
+    }
+}
+
+/**
+ * Daily application quota (R-07): today's count vs. the configurable cap, with
+ * a warning tint when the cap is reached or exceeded.
+ */
+@Composable
+private fun DailyQuotaCard(
+    todayAppliedCount: Int,
+    dailyCap: Int,
+    onEditCap: () -> Unit
+) {
+    val over = todayAppliedCount >= dailyCap
+    val progress = (todayAppliedCount.toFloat() / dailyCap.coerceAtLeast(1)).coerceIn(0f, 1f)
+
+    DashboardCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Daily Application Quota", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "$todayAppliedCount of $dailyCap applied today",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (over) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(onClick = onEditCap) {
+                    Text("Edit cap")
+                }
+            }
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth().height(6.dp),
+                color = if (over) MaterialTheme.colorScheme.error else AivanceTheme.colors.accent
+            )
+        }
+    }
+}
+
+/** Lets the user pick a daily application cap from presets (R-07). */
+@Composable
+private fun DailyCapDialog(
+    currentCap: Int,
+    onDismiss: () -> Unit,
+    onSelect: (Int) -> Unit
+) {
+    val presets = listOf(3, 5, 10, 15, 20)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Daily Application Cap") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "How many applications do you want to aim for per day?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                presets.forEach { preset ->
+                    val selected = preset == currentCap
+                    FilterChip(
+                        selected = selected,
+                        onClick = { onSelect(preset) },
+                        label = { Text(if (selected) "$preset per day ✓" else "$preset per day") }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 /**

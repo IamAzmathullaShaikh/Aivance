@@ -12,6 +12,7 @@ import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseC
 import com.bangersoul.aivance.sdk.api.CompactModel
 import com.bangersoul.aivance.sdk.api.ModelDownloadable
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
@@ -35,7 +36,7 @@ sealed interface ProviderManagementUiState {
         val selectedProviderId: String? = null,
         val isTestingConnection: Boolean = false,
         val testingProviderId: String? = null,
-        val apiKeyDrafts: Map<String, String> = emptyMap(),
+        val credentialDrafts: Map<String, Map<String, String>> = emptyMap(),
         val downloadingProviderId: String? = null,
         val modelDownloadProgress: Float? = null,
         val modelDownloadDialog: ModelDownloadDialog? = null
@@ -47,7 +48,7 @@ sealed interface ProviderManagementUiEvent {
     data class SelectProvider(val providerId: String) : ProviderManagementUiEvent
     data class ToggleProvider(val providerId: String, val enabled: Boolean) : ProviderManagementUiEvent
     data class TestConnection(val providerId: String) : ProviderManagementUiEvent
-    data class SetApiKey(val providerId: String, val apiKey: String) : ProviderManagementUiEvent
+    data class SetCredential(val providerId: String, val fieldKey: String, val value: String) : ProviderManagementUiEvent
     data class SelectModel(val providerId: String, val model: String) : ProviderManagementUiEvent
     data class SaveProvider(val providerId: String) : ProviderManagementUiEvent
     data class DownloadModel(val providerId: String) : ProviderManagementUiEvent
@@ -146,7 +147,7 @@ class ProviderManagementViewModel @Inject constructor(
             is ProviderManagementUiEvent.SelectProvider -> selectProvider(event.providerId)
             is ProviderManagementUiEvent.ToggleProvider -> toggleProvider(event.providerId, event.enabled)
             is ProviderManagementUiEvent.TestConnection -> testConnection(event.providerId)
-            is ProviderManagementUiEvent.SetApiKey -> setApiKey(event.providerId, event.apiKey)
+            is ProviderManagementUiEvent.SetCredential -> setCredential(event.providerId, event.fieldKey, event.value)
             is ProviderManagementUiEvent.SelectModel -> selectModel(event.providerId, event.model)
             is ProviderManagementUiEvent.SaveProvider -> saveProvider(event.providerId)
             is ProviderManagementUiEvent.DownloadModel -> onDownloadModelRequested(event.providerId)
@@ -195,7 +196,8 @@ class ProviderManagementViewModel @Inject constructor(
                     maskedApiKey = secretValue?.let { maskKey(it) }.orEmpty(),
                     healthStatus = mapStatus(statuses[meta.id] ?: base.status),
                     isOnDevice = downloadable != null,
-                    modelDownloaded = downloadable?.isModelReady == true
+                    modelDownloaded = downloadable?.isModelReady == true,
+                    configFields = meta.configFields
                 )
             }.sortedBy { it.category.ordinal }
 
@@ -247,10 +249,11 @@ class ProviderManagementViewModel @Inject constructor(
         }
     }
 
-    private fun setApiKey(providerId: String, apiKey: String) {
+    private fun setCredential(providerId: String, fieldKey: String, value: String) {
         val currentState = _uiState.value as? ProviderManagementUiState.Success ?: return
+        val drafts = currentState.credentialDrafts[providerId].orEmpty() + (fieldKey to value)
         _uiState.value = currentState.copy(
-            apiKeyDrafts = currentState.apiKeyDrafts + (providerId to apiKey)
+            credentialDrafts = currentState.credentialDrafts + (providerId to drafts)
         )
     }
 
@@ -262,16 +265,16 @@ class ProviderManagementViewModel @Inject constructor(
         _uiState.value = currentState.copy(providers = updatedProviders)
     }
 
-    /** Persists the drafted API key + selected model for a provider. */
+    /** Persists the drafted credentials + selected model for a provider. */
     private fun saveProvider(providerId: String) {
         viewModelScope.launch {
             val currentState = _uiState.value as? ProviderManagementUiState.Success ?: return@launch
             val provider = currentState.providers.find { it.id == providerId } ?: return@launch
-            val draftKey = currentState.apiKeyDrafts[providerId].orEmpty()
+            val drafts = currentState.credentialDrafts[providerId].orEmpty()
 
             val config = buildConfig(
                 provider = provider,
-                apiKey = draftKey.ifBlank { null },
+                credentials = drafts,
                 enabled = provider.isEnabled
             )
             val result = providerRepository.saveProviderConfig(config)
@@ -397,10 +400,10 @@ class ProviderManagementViewModel @Inject constructor(
             val provider = currentState.providers.find { it.id == providerId } ?: return@launch
             _uiState.value = currentState.copy(isTestingConnection = true, testingProviderId = providerId)
 
-            val draftKey = currentState.apiKeyDrafts[providerId].orEmpty()
-            val config = buildConfig(provider, apiKey = draftKey.ifBlank { null }, enabled = provider.isEnabled)
+            val drafts = currentState.credentialDrafts[providerId].orEmpty()
+            val config = buildConfig(provider, credentials = drafts, enabled = provider.isEnabled)
 
-            // Persist the draft key first so validation runs against the real credential.
+            // Persist the draft credentials first so validation runs against the real ones.
             providerRepository.saveProviderConfig(config)
 
             val result = providerManager.validateProvider(providerId, config)
@@ -455,9 +458,21 @@ class ProviderManagementViewModel @Inject constructor(
         _uiState.value = currentState.copy(providers = updatedProviders)
     }
 
+    /**
+     * Builds a [ProviderConfiguration] from the provider's metadata-declared
+     * [com.bangersoul.aivance.sdk.core.ConfigField]s (T-03). Each entered field
+     * is routed exactly like onboarding:
+     *  - PASSWORD/sensitive fields (e.g. Adzuna `appKey`, USAJobs `apiKey`) go
+     *    into [ProviderConfiguration.secrets] — encrypted at rest,
+     *  - everything else (e.g. Adzuna's non-secret `appId`, model names) goes
+     *    into [ProviderConfiguration.settings].
+     *
+     * Replaces the previous hardcoded single-API-key input with an `adzuna`
+     * "appId:appKey" special-case.
+     */
     private fun buildConfig(
         provider: ProviderInfo?,
-        apiKey: String? = null,
+        credentials: Map<String, String> = emptyMap(),
         enabled: Boolean
     ): ProviderConfiguration {
         val settings = mutableMapOf(
@@ -466,19 +481,13 @@ class ProviderManagementViewModel @Inject constructor(
             "model" to (provider?.selectedModel ?: "")
         )
         val secrets = mutableMapOf<String, String>()
-        if (!apiKey.isNullOrBlank()) {
-            if (provider?.id == "adzuna") {
-                if (apiKey.contains(":")) {
-                    val parts = apiKey.split(":", limit = 2)
-                    settings["appId"] = parts[0].trim()
-                    secrets["appId"] = parts[0].trim()
-                    secrets["appKey"] = parts[1].trim()
-                } else {
-                    secrets["appKey"] = apiKey.trim()
-                }
-            } else {
-                secrets["apiKey"] = apiKey.trim()
-            }
+        val fields = provider?.configFields.orEmpty()
+        credentials.forEach { (key, rawValue) ->
+            val value = rawValue.trim()
+            if (value.isBlank()) return@forEach
+            val field = fields.find { it.key == key }
+            val isSecret = field?.isSensitive == true || field?.fieldType == FieldType.PASSWORD
+            if (isSecret) secrets[key] = value else settings[key] = value
         }
         return ProviderConfiguration(
             providerId = provider?.id ?: "",

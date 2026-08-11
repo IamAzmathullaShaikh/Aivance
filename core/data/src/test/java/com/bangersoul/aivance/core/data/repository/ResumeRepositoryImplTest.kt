@@ -2,13 +2,13 @@ package com.bangersoul.aivance.core.data.repository
 
 import android.content.Context
 import app.cash.turbine.test
-import com.bangersoul.aivance.core.common.model.AtsResult
 import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.data.resume.ResumeParser
 import com.bangersoul.aivance.core.data.source.ResumeLocalDataSource
+import com.bangersoul.aivance.core.database.dao.AtsDao
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
@@ -30,6 +30,7 @@ class ResumeRepositoryImplTest {
     private val localDataSource: ResumeLocalDataSource = mockk()
     private val providerManager: ProviderManager = mockk()
     private val resumeParser: ResumeParser = mockk()
+    private val atsDao: AtsDao = mockk()
     private val mockAIProvider: AIProvider = mockk()
 
     @Before
@@ -38,7 +39,8 @@ class ResumeRepositoryImplTest {
             context = context,
             localDataSource = localDataSource,
             providerManager = providerManager,
-            resumeParser = resumeParser
+            resumeParser = resumeParser,
+            atsDao = atsDao
         )
     }
 
@@ -137,24 +139,20 @@ class ResumeRepositoryImplTest {
         coEvery { localDataSource.getVersionsForResume(resumeId) } returns flowOf(listOf(version))
         every { providerManager.getBestProviderFor(ProviderCapability.AI.Chat) } returns mockAIProvider
         coEvery { mockAIProvider.generateText(any()) } returns Result.Success("AI feedback")
+        coEvery { atsDao.insertJobDescription(any()) } returns 1L
+        coEvery { atsDao.insertReport(any()) } returns 42L
 
         val result = repository.analyzeResume(resumeId, versionId, "job description")
 
         assertTrue(result.isSuccess)
-        assertEquals(80, result.getOrNull()?.overallScore)
-        assertEquals("AI feedback", result.getOrNull()?.matchSummary)
+        val report = result.getOrNull()
+        assertEquals(80, report?.overallScore)
+        // The AtsReport is persisted (id from the DAO insert) with the JD linkage.
+        assertEquals(42L, report?.id)
+        assertEquals(1L, report?.jobDescriptionId)
+        assertEquals("AI feedback", report?.optimizationTips?.single()?.description)
+        coVerify { atsDao.insertJobDescription(any()) }
+        coVerify { atsDao.insertReport(any()) }
     }
 
-    @Test
-    fun `getAtsResults returns results from localDataSource`() = runTest {
-        val atsResults = listOf(AtsResult(score = 90, resumeName = "resume.pdf", feedback = "Good"))
-        every { localDataSource.getAtsResults() } returns flowOf(atsResults)
-
-        repository.getAtsResults(1L).test {
-            val result = awaitItem()
-            assertTrue(result.isSuccess)
-            assertEquals(atsResults, result.getOrNull())
-            awaitComplete()
-        }
-    }
 }

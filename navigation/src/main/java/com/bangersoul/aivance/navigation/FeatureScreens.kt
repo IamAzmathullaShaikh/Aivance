@@ -51,6 +51,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import com.bangersoul.aivance.core.designsystem.components.AivancePrimaryButton
@@ -58,6 +62,8 @@ import com.bangersoul.aivance.core.designsystem.components.AivanceScreen
 import com.bangersoul.aivance.core.designsystem.components.AivanceSecondaryButton
 import com.bangersoul.aivance.core.designsystem.components.BannerTone
 import com.bangersoul.aivance.core.designsystem.components.StatusChip
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 import com.bangersoul.aivance.feature.profile.ProviderCategory
 import com.bangersoul.aivance.feature.profile.ProviderHealthStatus
@@ -372,7 +378,7 @@ private fun ProviderCard(
     state: ProviderManagementUiState.Success,
     onEvent: (ProviderManagementUiEvent) -> Unit
 ) {
-    val apiKeyDraft = state.apiKeyDrafts[provider.id].orEmpty()
+    val credentialDrafts = state.credentialDrafts[provider.id].orEmpty()
     var modelMenuOpen by remember { mutableStateOf(false) }
 
     Card(
@@ -502,16 +508,22 @@ private fun ProviderCard(
                         )
                     }
                 }
-            } else {
-                OutlinedTextField(
-                    value = apiKeyDraft,
-                    onValueChange = { onEvent(ProviderManagementUiEvent.SetApiKey(provider.id, it)) },
+            } else if (provider.configFields.isNotEmpty()) {
+                // Metadata-driven credential form: renders every ConfigField the
+                // provider declares (e.g. Adzuna = App ID + API Key, USAJobs =
+                // API Key), routing sensitive fields to encrypted secrets on save.
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(if (provider.apiKeyConfigured) stringResource(R.string.api_key_configured) else stringResource(R.string.api_key)) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    trailingIcon = { Icon(Icons.Rounded.Key, contentDescription = null) }
-                )
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    provider.configFields.forEach { field ->
+                        CredentialField(
+                            field = field,
+                            value = credentialDrafts[field.key].orEmpty(),
+                            onValueChange = { onEvent(ProviderManagementUiEvent.SetCredential(provider.id, field.key, it)) }
+                        )
+                    }
+                }
             }
 
             if (provider.availableModels.isNotEmpty()) {
@@ -572,6 +584,29 @@ private fun ProviderCard(
             }
         }
     }
+}
+
+@Composable
+private fun CredentialField(
+    field: ConfigField,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    val isPassword = field.fieldType == FieldType.PASSWORD
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(field.label) },
+        placeholder = { field.hint?.let { Text(it) } },
+        modifier = Modifier.fillMaxWidth(),
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+            autoCorrectEnabled = false,
+            capitalization = KeyboardCapitalization.None
+        ),
+        singleLine = true
+    )
 }
 
 @Composable

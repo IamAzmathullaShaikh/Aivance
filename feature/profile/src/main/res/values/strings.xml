@@ -43,6 +43,16 @@
 
     <!-- About -->
     <string name="about_title">About AiVance</string>
+    <string name="about_resources_title">Remote Work Resources</string>
+    <string name="about_resources_subtitle">Curated job boards, interview-prep guides and remote-first companies</string>
+    <string name="resources_title">Remote Work Resources</string>
+    <string name="resources_hub_title">Remote Work &amp; Career Hub</string>
+    <string name="resources_hub_subtitle">Curated reference platforms and interview prep guides</string>
+    <string name="resources_cat_job_boards">Job Boards</string>
+    <string name="resources_cat_curated">Curated Lists</string>
+    <string name="resources_cat_prep">Interview Prep</string>
+    <string name="resources_cat_companies">Remote Companies</string>
+    <string name="open_link">Open Link</string>
     <string name="about_brand">✦ AiVance</string>
     <string name="about_tagline">AI Powered Career Operating System</string>
     <string name="about_quote">“Made by a Job Seeker, For Us ❤️”</string>

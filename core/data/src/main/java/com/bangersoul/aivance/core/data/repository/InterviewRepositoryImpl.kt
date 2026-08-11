@@ -120,6 +120,16 @@ class InterviewRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun persistPackQuestions(
+        sessionId: String,
+        questions: List<InterviewQuestion>
+    ): CoreResult<Unit> = runCatchingCore {
+        val id = sessionId.toLongOrNull() ?: throw Exception("Invalid ID")
+        questions.forEach { question ->
+            interviewDao.insertQuestion(question.toEntity(id))
+        }
+    }
+
     override suspend fun submitAnswer(sessionId: String, message: InterviewMessage): CoreResult<Unit> = runCatchingCore {
         val msgId = interviewDao.insertMessage(message.toEntity())
         evaluateAnswer(msgId.toString())

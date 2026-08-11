@@ -8,15 +8,13 @@ import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
-import com.bangersoul.aivance.core.domain.usecase.resume.AtsScoreResponse
 import com.bangersoul.aivance.core.domain.usecase.resume.CalculateATSScoreUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ExportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ImportResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ImproveResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.ParseResumeUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.StreamImproveSectionUseCase
-import com.bangersoul.aivance.core.common.model.AtsResult
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
+import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.util.PdfExporter
 import io.mockk.coEvery
 import io.mockk.every
@@ -177,13 +175,13 @@ class ResumeEngineViewModelTest {
         coEvery { mockRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(version)))
         coEvery { mockRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
         coEvery { mockCalculateAts.invoke(any()) } returns Result.Success(
-            AtsScoreResponse(
-                atsResult = AtsResult(score = 80, resumeName = "resume.pdf", feedback = "Good"),
-                analysis = ResumeAnalysis(
-                    overallScore = 80,
-                    matchingKeywords = listOf("Kotlin"),
-                    missingKeywords = listOf("Rust")
-                )
+            AtsReport(
+                resumeVersionId = 1L,
+                jobDescriptionId = 1L,
+                overallScore = 80,
+                matchPercentage = 80,
+                matchedKeywords = listOf("Kotlin"),
+                missingKeywords = listOf("Rust")
             )
         )
 

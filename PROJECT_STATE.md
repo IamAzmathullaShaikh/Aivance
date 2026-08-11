@@ -1,6 +1,6 @@
 # AiVance Project State
 
-> **Status: PRODUCTION READY** — v1.0.0 completed all 14 phases. Repository frozen; only hotfixes permitted on v1.0.0 contracts.
+> **Status: PRODUCTION READY** — v1.0.0 completed all 14 phases. Post-launch hardening through v1.0.2 active. Repository frozen for contracts; hotfixes + backward-compat additions only.
 
 ## Current Architecture
 - **Paradigm**: Clean Architecture, SOLID Principles, Offline-First.
@@ -8,7 +8,7 @@
 - **Dependency Injection**: Hilt.
 - **UI**: Jetpack Compose with Material Design 3.
 - **Concurrency**: Kotlin Coroutines & Flow.
-- **Data Persistence**: Room (v20) & DataStore.
+- **Data Persistence**: Room (v25) & DataStore.
 - **Background Tasks**: WorkManager.
 - **Provider System**: Plug-and-play Provider SDK architecture for AI, Job, and Enrichment services.
 - **Security**: Centralized on-device encryption (AES-GCM via Google Tink) and Keystore-backed secrets management.
@@ -17,7 +17,7 @@
 ### Core
 - `:core:sdk`: Base infrastructure for providers, status, and lifecycle management.
 - `:core:common`: Domain models, security wrappers (`EncryptedString`), and results.
-- `:core:database`: Room database implementation (v20), encrypted type converters.
+- `:core:database`: Room database implementation (v25), encrypted type converters.
 - `:core:data`: Repository implementations and local/remote bridges.
 - `:core:domain`: Business logic, UseCases, and capability orchestration.
 - `:core:ai-providers`: Concrete implementations for Gemini, Claude, etc.
@@ -51,8 +51,9 @@
 - **Enrichment Providers**: Hunter.io (real domain search + email verification).
 
 ## Database & API
-- **Room Version**: 20.
-- **Latest Migration**: `MIGRATION_19_20` (Security Hardening, Audit Logs).
+- **Room Version**: 25.
+- **Latest Migration**: `MIGRATION_24_25` (drops the legacy `resume_analyses` table — completes T-04, the AtsReport migration).
+- **Previous Security Migration**: `MIGRATION_19_20` (Security Hardening — audit_logs table, removed `apiKey` column from `provider_configurations`).
 - **Encryption**: AES-GCM (Tink) for PII (emails, resume text, outreach content).
 - **API integrations**: Firebase AI SDK, Retrofit, OkHttp.
 
@@ -71,6 +72,23 @@
 | Analytics Platform | Completed | 100% |
 | AI Career Assistant | Completed | 100% |
 | Security & Privacy | Completed | 100% |
+
+## Post-Launch Additions (2026-08-06 to 2026-08-10)
+- **v1.0.1 E2E audit**: 10 functional bugs fixed (Google Sign-In, Resume Engine, Jobs, Prep Studio, Assistant fallback).
+- **On-device Gemma**: `DeviceCapabilityProvider` gate, confirmation dialog with exact size, compact model fallback, `GemmaModelDownloadWorker` (resumable, Range-resume, WorkManager).
+- **Offline AI fallback**: `GetAssistantResponseUseCase` → cloud → on-device Gemma → Copilot.
+- **Claude provider**: added to `ProviderRefreshWorker`, `GetAvailableModelsUseCase`, `AiSettingsViewModel`.
+- **Full i18n + Hindi**: all 12 feature modules extracted to string resources; `values-hi/` complete.
+- **Feature interlinking**: Saved Jobs → Resume Engine / Tracker / Assistant with `AssistantJobContext`.
+- **Analytics self-heal**: `AnalyticsRepositoryImpl.getSnapshots()` Mutex-guarded baseline guarantee.
+- **Security audit**: 20/20 `security_scan.py` checks pass; weekly pin-drift CI workflow live.
+- **T-03 provider factory path**: typed `ProviderFactory.createProvider(ProviderConfiguration)` SDK path; `adzuna`/`usajobs` factory bindings registered; Provider Management renders metadata-driven credential fields with secret/settings routing.
+- **AI job-fit scoring (R-04)**: `ScoreJobFitUseCase` (batched, cached, fence-tolerant LLM scoring vs the user profile) merged with the rule-based `JobFitScorer` fallback; discovery cards show AI-upgraded fit badges and a "Best match" sort chip.
+- **JSON Resume interop (R-03)**: `JsonResumeConverter` moved into `core:domain`; `ExportResumeUseCase` JSON export now emits the standard JSON Resume schema (previously truncated ad-hoc JSON) and round-trips back through the importer; import/export UI in the Resume Engine; round-trip unit tests.
+- **Remote-company catalog (R-02)**: bundled snapshot of 882 remote-friendly companies (remoteintech/remote-jobs, ISC) served as a `core:data` asset; discovery filters by remote policy + tech stack (`CompanyCatalog.accepts`); company detail enriched with policy/size/region/tech/careers; `refresh_company_catalog.py` regenerates the snapshot.
+- **STAR prep packs (R-05)**: `GenerateStarPackUseCase` (streaming AI via `AiRepository`, template fallback in `core:domain`) + `persistPackQuestions` so pack answers record against real session rows; Prep Studio Practice tab generates and practices role-specific STAR packs.
+- **Remote-work resources hub (R-06)**: `RemoteResourcesScreen` reachable via `Destination.Resources` from About + Profile System tab; categorized links (boards, curated lists, prep, remote companies) with localized chrome.
+- **Apply-assist rules (R-07)**: job-filter include/exclude keyword chips (whitelist/blacklist) + Tracker daily application quota (count vs. configurable DataStore-backed cap) — UX patterns reimplemented from scratch.
 
 ## Phase 12 Completion
 - **Design System**: Tokenized color/type/spacing/shape/elevation/motion with Light/Dark/AMOLED/Dynamic themes.
@@ -91,11 +109,11 @@
 - **Deliverables**: `PRODUCTION_READINESS_REPORT.md`, `TECHNICAL_DEBT_REPORT.md`, `LAUNCH_CHECKLIST.md`, `PROJECT_COMPLETION_REPORT.md`.
 
 ## Known Issues
-See `KNOWN_ISSUES.md` for the full catalog. Headline items:
-- `RecruiterIntelligenceRepository` (core:data) still uses mock logic for recruiter persistence; the Hunter.io provider itself is a real API integration.
-- Adzuna & USAJobs are registered as dormant (`InvalidConfiguration`) until real free keys are entered.
-- `SecurityMigrationWorker` currently a skeleton; full destructive plaintext cleanup planned for v1.1 (DB v21).
-- Encrypted data is Keystore-bound; factory reset without encrypted export loses local data (documented trade-off).
+See `KNOWN_ISSUES.md` for the full catalog. All 🔴 High and 🟡 Medium severity issues are **resolved**.
+Open items: P0-01 (instrumented DB tests — requires device/emulator), P0-02 (MITM pen-test — requires device). See `DEVICE_VALIDATION.md` for P0-01/P0-02 execution instructions.
+
+## Last Coordinated
+- **2026-08-10**: Full walkthrough + TODO coordination pass. All stale debt entries updated. `DEVICE_VALIDATION.md` created.
 
 ## Release Readiness
 - **Stability**: `assembleDebug` and full `testDebugUnitTest` green across all modules.

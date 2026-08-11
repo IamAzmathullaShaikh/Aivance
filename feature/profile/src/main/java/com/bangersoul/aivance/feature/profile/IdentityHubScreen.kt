@@ -30,7 +30,9 @@ import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 @Composable
 fun IdentityHubScreen(
     viewModel: IdentityHubViewModel,
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToResources: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -71,7 +73,7 @@ fun IdentityHubScreen(
                         1 -> PreferencesTab(viewModel)
                         2 -> ProvidersTab(viewModel)
                         3 -> DocumentVaultTab(viewModel)
-                        4 -> SystemTab(viewModel)
+                        4 -> SystemTab(viewModel, onNavigateToAbout, onNavigateToResources)
                     }
                 }
             }
@@ -450,7 +452,11 @@ private fun DocumentVaultTab(viewModel: IdentityHubViewModel) {
 }
 
 @Composable
-private fun SystemTab(viewModel: IdentityHubViewModel) {
+private fun SystemTab(
+    viewModel: IdentityHubViewModel,
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToResources: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(
@@ -494,6 +500,24 @@ private fun SystemTab(viewModel: IdentityHubViewModel) {
                         checked = uiState.settings.analyticsEnabled,
                         onCheckedChange = { viewModel.onEvent(IdentityHubUiEvent.UpdateSettings(uiState.settings.copy(analyticsEnabled = it))) }
                     )
+                }
+            }
+        }
+
+        item {
+            SectionHeader(title = "About & Resources")
+            AivanceWorkspaceCard {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onNavigateToAbout, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Info, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("About AiVance")
+                    }
+                    TextButton(onClick = onNavigateToResources, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.MenuBook, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Remote Work Resources")
+                    }
                 }
             }
         }

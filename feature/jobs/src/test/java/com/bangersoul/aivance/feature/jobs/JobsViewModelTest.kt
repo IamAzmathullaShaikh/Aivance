@@ -4,11 +4,14 @@ import app.cash.turbine.test
 import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
+import com.bangersoul.aivance.core.common.model.ProfileState
 import com.bangersoul.aivance.core.common.result.ProviderError
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
+import com.bangersoul.aivance.core.domain.usecase.job.ScoreJobFitRequest
+import com.bangersoul.aivance.core.domain.usecase.job.ScoreJobFitUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsRequest
 import com.bangersoul.aivance.core.domain.usecase.job.SearchJobsUseCase
 import com.bangersoul.aivance.core.domain.usecase.job.ToggleJobBookmarkUseCase
@@ -46,6 +49,7 @@ class JobsViewModelTest {
     private val mockSearchJobs: SearchJobsUseCase = mockk()
     private val mockToggleBookmark: ToggleJobBookmarkUseCase = mockk()
     private val mockCareerStateEngine: CareerStateEngine = mockk()
+    private val mockScoreJobFit: ScoreJobFitUseCase = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private val jobs = listOf(
@@ -68,7 +72,7 @@ class JobsViewModelTest {
     )
 
     private fun createViewModel() = JobsViewModel(
-        mockSearchJobs, mockToggleBookmark, mockCareerStateEngine, mockTrackEvent
+        mockSearchJobs, mockToggleBookmark, mockCareerStateEngine, mockScoreJobFit, mockTrackEvent
     )
 
     /**
@@ -89,6 +93,7 @@ class JobsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { mockTrackEvent(any()) } returns Result.Success(Unit)
+        coEvery { mockScoreJobFit.invoke(any()) } returns emptyMap()
         every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState())
     }
 
@@ -192,6 +197,69 @@ class JobsViewModelTest {
             assertEquals("Job bookmarked", (effect as JobsUiEffect.ShowSnackbar).message)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `fit scores merge AI results with rule-based fallback`() = runTest {
+        val profile = ProfileState(
+            targetRole = "Android Engineer", skills = listOf("Kotlin"), workPreference = "REMOTE"
+        )
+        every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState(profile = profile))
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
+        coEvery { mockScoreJobFit.invoke(any()) } returns mapOf("1" to 95)
+
+        val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
+        viewModel.onEvent(JobsUiEvent.Search("Android"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as JobsUiState.Success
+        assertEquals(95, state.fitScores["1"])
+        // Job "2" was not AI-scored -> the rule-based scorer fills it.
+        assertEquals(
+            JobFitScorer.calculateFitScore(jobs[1], profile),
+            state.fitScores["2"]
+        )
+        assertEquals(2, state.fitScores.size)
+        coVerify { mockScoreJobFit.invoke(ScoreJobFitRequest(jobs = jobs, profile = profile)) }
+    }
+
+    @Test
+    fun `fit scores fall back to rule-based when AI returns nothing`() = runTest {
+        val profile = ProfileState(targetRole = "Android Engineer", skills = listOf("Kotlin"))
+        every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState(profile = profile))
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
+        coEvery { mockScoreJobFit.invoke(any()) } returns emptyMap()
+
+        val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
+        viewModel.onEvent(JobsUiEvent.Search("Android"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as JobsUiState.Success
+        assertEquals(JobFitScorer.calculateFitScore(jobs[0], profile), state.fitScores["1"])
+        assertEquals(JobFitScorer.calculateFitScore(jobs[1], profile), state.fitScores["2"])
+    }
+
+    @Test
+    fun `fit scores are cleared when a new search starts`() = runTest {
+        val profile = ProfileState(targetRole = "Android Engineer")
+        every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState(profile = profile))
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
+        coEvery { mockScoreJobFit.invoke(any()) } returns mapOf("1" to 95)
+
+        val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
+        viewModel.onEvent(JobsUiEvent.Search("Android"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(95, (viewModel.uiState.value as JobsUiState.Success).fitScores["1"])
+
+        // A newer search drops the stale scores.
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(emptyList())
+        viewModel.onEvent(JobsUiEvent.Search("iOS"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue((viewModel.uiState.value as JobsUiState.Success).fitScores.isEmpty())
     }
 
     @Test

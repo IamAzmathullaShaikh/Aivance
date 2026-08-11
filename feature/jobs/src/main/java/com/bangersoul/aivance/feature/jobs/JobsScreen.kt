@@ -13,12 +13,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bangersoul.aivance.core.common.enums.EmploymentType
+import com.bangersoul.aivance.core.common.enums.RemotePolicy
 import com.bangersoul.aivance.core.common.enums.RemoteType
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
@@ -41,6 +45,8 @@ fun JobsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
+    // Best-match sort: opt-in, ranked by merged AI/rule-based fit scores (R-04).
+    var sortByFit by rememberSaveable { mutableStateOf(false) }
 
     AivanceWorkspaceScaffold(
         title = stringResource(R.string.job_discovery_title),
@@ -105,6 +111,13 @@ fun JobsScreen(
 
             Spacer(Modifier.height(12.dp))
 
+            FitSortRow(
+                sortByFit = sortByFit,
+                onSortChange = { sortByFit = it }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
             AnimatedContent(
                 targetState = uiState,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -114,6 +127,8 @@ fun JobsScreen(
                     is JobsUiState.Loading -> SkeletonList(itemCount = 6, showAvatar = true)
                     is JobsUiState.Success -> JobDiscoveryList(
                         jobs = state.jobs,
+                        fitScores = state.fitScores,
+                        sortByFit = sortByFit,
                         isSearching = state.isSearching,
                         profile = state.careerContext?.profile,
                         onJobClick = onNavigateToDetails,
@@ -124,6 +139,38 @@ fun JobsScreen(
                     else -> {}
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FitSortRow(
+    sortByFit: Boolean,
+    onSortChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        FilterChip(
+            selected = sortByFit,
+            onClick = { onSortChange(!sortByFit) },
+            label = { Text("Best match") },
+            leadingIcon = {
+                Icon(
+                    Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        )
+        if (sortByFit) {
+            Text(
+                text = "Ranked by fit vs. your profile",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -163,6 +210,44 @@ private fun JobFilterBar(
     var typeExpanded by remember { mutableStateOf(false) }
     var workplaceExpanded by remember { mutableStateOf(false) }
     var experienceExpanded by remember { mutableStateOf(false) }
+    var policyExpanded by remember { mutableStateOf(false) }
+
+    // Catalog tech-stack input (R-02) + apply-assist keyword inputs (R-07):
+    // committed on IME search or focus loss so the search pipeline isn't
+    // re-run per keystroke.
+    var techText by remember { mutableStateOf(filter.technologies.joinToString(", ")) }
+    LaunchedEffect(filter.technologies) {
+        techText = filter.technologies.joinToString(", ")
+    }
+    var includeText by remember { mutableStateOf(filter.includedKeywords.joinToString(", ")) }
+    LaunchedEffect(filter.includedKeywords) {
+        includeText = filter.includedKeywords.joinToString(", ")
+    }
+    var excludeText by remember { mutableStateOf(filter.excludedKeywords.joinToString(", ")) }
+    LaunchedEffect(filter.excludedKeywords) {
+        excludeText = filter.excludedKeywords.joinToString(", ")
+    }
+
+    fun commitTechStack(raw: String) {
+        val parsed = parseKeywords(raw)
+        if (parsed != filter.technologies) {
+            onFilterChange(filter.copy(technologies = parsed))
+        }
+    }
+
+    fun commitIncludeKeywords(raw: String) {
+        val parsed = parseKeywords(raw)
+        if (parsed != filter.includedKeywords) {
+            onFilterChange(filter.copy(includedKeywords = parsed))
+        }
+    }
+
+    fun commitExcludeKeywords(raw: String) {
+        val parsed = parseKeywords(raw)
+        if (parsed != filter.excludedKeywords) {
+            onFilterChange(filter.copy(excludedKeywords = parsed))
+        }
+    }
 
     val hasActiveFilters =
         filter.hasStructuredLocation ||
@@ -171,7 +256,11 @@ private fun JobFilterBar(
             filter.employmentTypes.isNotEmpty() ||
             filter.experienceLevels.isNotEmpty() ||
             filter.minExperienceYears != null ||
-            filter.maxExperienceYears != null
+            filter.maxExperienceYears != null ||
+            filter.remotePolicy != null ||
+            filter.technologies.isNotEmpty() ||
+            filter.includedKeywords.isNotEmpty() ||
+            filter.excludedKeywords.isNotEmpty()
 
     val employmentOptions = listOf(
         EmploymentType.FULL_TIME, EmploymentType.PART_TIME,
@@ -184,6 +273,10 @@ private fun JobFilterBar(
     ).associateWith { it.uiLabel() }
 
     val experienceOptions = ExperienceBuckets.options.associateWith { stringResource(it.labelRes) }
+
+    val remotePolicyOptions = listOf(
+        RemotePolicy.FULLY_REMOTE, RemotePolicy.REMOTE_FRIENDLY, RemotePolicy.HYBRID
+    ).associateWith { it.uiLabel() }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -284,6 +377,59 @@ private fun JobFilterBar(
                 )
             }
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterDropdown(
+                label = filter.remotePolicy?.let { it.uiLabel() } ?: stringResource(R.string.remote_policy),
+                expanded = policyExpanded,
+                onExpandedChange = { policyExpanded = it },
+                options = remotePolicyOptions.values.toList(),
+                selected = filter.remotePolicy?.let { it.uiLabel() }.orEmpty(),
+                modifier = Modifier.weight(1f)
+            ) { selected ->
+                val mapped = remotePolicyOptions.entries.firstOrNull { it.value == selected }?.key
+                onFilterChange(filter.copy(remotePolicy = mapped))
+            }
+            OutlinedTextField(
+                value = techText,
+                onValueChange = { techText = it },
+                label = { Text(stringResource(R.string.tech_stack)) },
+                placeholder = { Text(stringResource(R.string.tech_stack_placeholder)) },
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { focused ->
+                        if (!focused.isFocused) commitTechStack(techText)
+                    },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { commitTechStack(techText) })
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            KeywordField(
+                value = includeText,
+                onValueChange = { includeText = it },
+                label = stringResource(R.string.must_include),
+                placeholder = stringResource(R.string.must_include_placeholder),
+                modifier = Modifier.weight(1f),
+                onFocusLost = { commitIncludeKeywords(includeText) },
+                onSearch = { commitIncludeKeywords(includeText) }
+            )
+            KeywordField(
+                value = excludeText,
+                onValueChange = { excludeText = it },
+                label = stringResource(R.string.exclude),
+                placeholder = stringResource(R.string.exclude_placeholder),
+                modifier = Modifier.weight(1f),
+                onFocusLost = { commitExcludeKeywords(excludeText) },
+                onSearch = { commitExcludeKeywords(excludeText) }
+            )
+        }
         if (hasActiveFilters) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 TextButton(onClick = onClear) {
@@ -363,6 +509,48 @@ private fun experienceLabel(filter: JobSearchFilter): String {
     } ?: stringResource(R.string.years_range, min, max)
 }
 
+private fun parseKeywords(raw: String): List<String> =
+    raw.split(',', '\n')
+        .map { it.trim().lowercase() }
+        .filter { it.isNotBlank() }
+        .distinct()
+
+/** Single-line keyword input committed on IME search or focus loss (R-07). */
+@Composable
+private fun KeywordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    onFocusLost: () -> Unit,
+    onSearch: () -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(placeholder) },
+        singleLine = true,
+        modifier = modifier.onFocusChanged { focused ->
+            if (!focused.isFocused) onFocusLost()
+        },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() })
+    )
+}
+
+@Composable
+private fun RemotePolicy.uiLabel(): String = stringResource(
+    when (this) {
+        RemotePolicy.FULLY_REMOTE -> R.string.remote_policy_fully_remote
+        RemotePolicy.REMOTE_FIRST -> R.string.remote_policy_remote_first
+        RemotePolicy.REMOTE_FRIENDLY -> R.string.remote_policy_remote_friendly
+        RemotePolicy.HYBRID -> R.string.remote_policy_hybrid
+        RemotePolicy.UNKNOWN -> R.string.remote_policy_unknown
+    }
+)
+
 @Composable
 private fun EmploymentType.uiLabel(): String = stringResource(
     when (this) {
@@ -390,6 +578,8 @@ private fun RemoteType.uiLabel(): String = stringResource(
 @Composable
 private fun JobDiscoveryList(
     jobs: List<JobListing>,
+    fitScores: Map<String, Int>,
+    sortByFit: Boolean,
     isSearching: Boolean,
     profile: ProfileState?,
     onJobClick: (String) -> Unit,
@@ -412,14 +602,28 @@ private fun JobDiscoveryList(
             onSecondaryAction = onSavedJobs
         )
     } else {
+        // Merged score per job (R-04): ViewModel-computed AI/rule-based fit scores
+        // win; a live rule-based computation and the provider-supplied match score
+        // cover the window before AI scores land so badges render immediately.
+        val scores = jobs.associate { job ->
+            job.id to (fitScores[job.id]
+                ?: (profile?.let { JobFitScorer.calculateFitScore(job, it) })
+                ?: job.matchScore
+                ?: 0)
+        }
+        val orderedJobs = if (sortByFit) {
+            jobs.sortedByDescending { scores[it.id] ?: 0 }
+        } else {
+            jobs
+        }
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(jobs, key = { it.id }) { job ->
+            items(orderedJobs, key = { it.id }) { job ->
                 JobDiscoveryCard(
                     job = job,
-                    profile = profile,
+                    fitScore = scores[job.id] ?: 0,
                     onClick = { onJobClick(job.id) },
                     onBookmarkClick = { onBookmarkClick(job.id) }
                 )
@@ -432,7 +636,7 @@ private fun JobDiscoveryList(
 @Composable
 private fun JobDiscoveryCard(
     job: JobListing,
-    profile: ProfileState?,
+    fitScore: Int,
     onClick: () -> Unit,
     onBookmarkClick: () -> Unit
 ) {
@@ -496,22 +700,17 @@ private fun JobDiscoveryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Providers rarely supply a match score, so compute a real fit
-                // score against the user's profile via JobFitScorer (R-04) and
-                // only fall back to the provider-supplied value when present.
-                val matchScore = job.matchScore ?: if (profile != null) {
-                    JobFitScorer.calculateFitScore(job, profile)
-                } else {
-                    0
-                }
-                ScoreGauge(score = matchScore, size = 32.dp)
+                // Providers rarely supply a match score, so the card shows the
+                // merged fit score (LLM-assisted, rule-based fallback — R-04)
+                // computed by the ViewModel / discovery list.
+                ScoreGauge(score = fitScore, size = 32.dp)
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (matchScore > 80) "High Match" else if (matchScore > 50) "Good Match" else "Potential Match",
+                        text = if (fitScore > 80) "High Match" else if (fitScore > 50) "Good Match" else "Potential Match",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (matchScore > 80) AivanceTheme.colors.success else AivanceTheme.colors.accent
+                        color = if (fitScore > 80) AivanceTheme.colors.success else AivanceTheme.colors.accent
                     )
                     Text(
                         text = "Matches your ${job.experienceLevel.name.lowercase()} experience.",

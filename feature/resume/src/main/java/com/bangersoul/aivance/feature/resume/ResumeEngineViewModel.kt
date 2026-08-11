@@ -3,15 +3,15 @@ package com.bangersoul.aivance.feature.resume
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.Resume
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
 import com.bangersoul.aivance.core.common.model.ResumeSection
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.util.DocxExporter
 import com.bangersoul.aivance.core.util.PdfExporter
-import com.bangersoul.aivance.feature.resume.jsonresume.JsonResumeConverter
+import com.bangersoul.aivance.core.domain.usecase.resume.jsonresume.JsonResumeConverter
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventUseCase
 import com.bangersoul.aivance.core.domain.usecase.resume.AtsScoreRequest
@@ -50,7 +50,7 @@ sealed interface ResumeEngineState {
     data class AtsResult(
         val resume: Resume,
         val version: ResumeVersion,
-        val analysis: ResumeAnalysis,
+        val analysis: AtsReport,
         val score: Int,
         val jdText: String = ""
     ) : ResumeEngineState
@@ -348,11 +348,12 @@ class ResumeEngineViewModel @Inject constructor(
             )
             when (result) {
                 is Result.Success -> {
+                    val report = result.data
                     _state.value = ResumeEngineState.AtsResult(
                         resume = current.resume,
                         version = current.version,
-                        analysis = result.data.analysis,
-                        score = result.data.atsResult.score,
+                        analysis = report,
+                        score = report.overallScore.coerceIn(0, 100),
                         jdText = current.jdText
                     )
                 }

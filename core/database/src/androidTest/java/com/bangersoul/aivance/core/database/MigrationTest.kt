@@ -13,7 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Migration regression suite for AivanceDatabase v5 -> v24.
+ * Migration regression suite for AivanceDatabase v5 -> v25.
  *
  * Every migration is exercised individually and as part of the full chain, always with
  * [PRAGMA foreign_keys = ON] (the same constraint Room enforces in production), and rebuild
@@ -480,6 +480,27 @@ class MigrationTest {
         ))
     }
 
+    // ------------------------------------------- 24 -> 25 (drop legacy resume_analyses)
+
+    @Test
+    fun migrate24To25_dropsLegacyResumeAnalyses() {
+        seed(
+            24,
+            "INSERT INTO resumes (id, name, dateCreated, lastModified) VALUES (1, 'R', 1, 2)",
+            "INSERT INTO resume_versions (id, resumeId, versionName, templateId, lastModified) VALUES (1, 1, 'Main', 'modern', 2)",
+            "INSERT INTO job_descriptions (id, rawText, dateCreated) VALUES (1, 'jd', 3)",
+            "INSERT INTO resume_analyses (id, resumeId, jobDescription, score, matchedKeywords, missingKeywords, feedback, date) " +
+                "VALUES (1, 1, 'jd', 85, '[]', '[]', 'fb', 300)",
+            "INSERT INTO ats_reports (id, resumeVersionId, jobDescriptionId, overallScore, matchPercentage, matchedKeywords, missingKeywords, sectionScores, optimizationTips, dateGenerated) " +
+                "VALUES (1, 1, 1, 92, 92, 'Kotlin', 'KMP', '{}', '[]', 400)"
+        )
+        runStep(24, 25, AivanceDatabase.MIGRATION_24_25)
+        // The legacy table is gone while its modern successor keeps its data.
+        assertTableGone("resume_analyses")
+        assertCount("ats_reports", 1)
+        assertEquals("92", scalar("SELECT overallScore FROM ats_reports WHERE id = 1"))
+    }
+
     // ------------------------------------------------ full chain: 5 -> 24 (empty)
 
     @Test
@@ -529,6 +550,25 @@ class MigrationTest {
         assertCount("resume_analyses", 1)
         assertEquals("body text", scalar("SELECT rawText FROM resumes WHERE id = 1"))
         assertEquals("jd", scalar("SELECT jobDescription FROM resume_analyses WHERE id = 1"))
+    }
+
+    // ------------------------------------------------ full chain: 10 -> 25 (legacy ATS dropped)
+
+    @Test
+    fun migrate10To25_legacyResumeAnalysesDropped() {
+        seed(
+            10,
+            "INSERT INTO resumes (id, name, text, dateCreated, lastModified) VALUES (1, 'My Resume', 'body text', 100, 200)",
+            "INSERT INTO resume_analyses (resumeId, jobDescription, score, matchedKeywords, missingKeywords, feedback, date) " +
+                "VALUES (1, 'jd', 85, '[]', '[]', 'fb', 300)"
+        )
+        runStep(10, 25, *(ALL_FROM_5.drop(5).toTypedArray() + AivanceDatabase.MIGRATION_24_25))
+        // Resume lineage survives the full chain; the legacy analyses table is
+        // dropped by 24 -> 25 (T-04) and its data is intentionally discarded.
+        assertCount("resumes", 1)
+        assertCount("resume_versions", 1)
+        assertTableGone("resume_analyses")
+        assertEquals("body text", scalar("SELECT rawText FROM resumes WHERE id = 1"))
     }
 
     // ------------------------------------------------ chain: 16 -> 24 (job lineage)

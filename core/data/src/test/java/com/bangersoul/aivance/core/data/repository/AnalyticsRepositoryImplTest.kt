@@ -8,7 +8,7 @@ import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.database.dao.AnalyticsDao
 import com.bangersoul.aivance.core.database.dao.AtsDao
 import com.bangersoul.aivance.core.database.model.AnalyticsSnapshotEntity
-import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
+import com.bangersoul.aivance.core.database.model.AtsReportEntity
 import com.bangersoul.aivance.core.domain.analytics.CareerForecastEngine
 import com.bangersoul.aivance.core.domain.analytics.CareerIntelligenceEngine
 import com.bangersoul.aivance.core.domain.analytics.CareerScoreEngine
@@ -53,9 +53,10 @@ class AnalyticsRepositoryImplTest {
 
     // Real data: 2 applications (1 reached INTERVIEWING), 1 session scored 85,
     // 1 legacy ATS analysis scored 80, 2 recruiters.
-    private val atsEntity = ResumeAnalysisEntity(
-        id = 1, resumeId = 100, jobDescription = "", score = 80,
-        matchedKeywords = "", missingKeywords = "", feedback = "", date = 0L
+    private val atsReportEntity = AtsReportEntity(
+        id = 1, resumeVersionId = 100, jobDescriptionId = 0, overallScore = 80,
+        matchPercentage = 80, matchedKeywords = "", missingKeywords = "",
+        sectionScores = "{}", optimizationTips = "[]", dateGenerated = 0L
     )
     private val appInterviewing = Application(id = 1, jobId = 10, currentStageId = "INTERVIEWING")
     private val appApplied = Application(id = 2, jobId = 10, currentStageId = "APPLIED")
@@ -93,7 +94,7 @@ class AnalyticsRepositoryImplTest {
         every { workflowRepository.getApplications() } returns
             flowOf(Result.Success(listOf(appInterviewing, appApplied)))
         every { interviewRepository.getSessions() } returns flowOf(Result.Success(listOf(session)))
-        every { atsDao.getAtsResults() } returns flowOf(listOf(atsEntity))
+        every { atsDao.getAllReports() } returns flowOf(listOf(atsReportEntity))
         every { recruiterRepository.getRecruitersForCompany(any()) } returns
             flowOf(Result.Success(listOf(recruiter1, recruiter2)))
     }
@@ -118,7 +119,7 @@ class AnalyticsRepositoryImplTest {
     fun `baseline for a brand-new user derives an honest empty-state snapshot`() = runTest {
         every { workflowRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
         every { interviewRepository.getSessions() } returns flowOf(Result.Success(emptyList()))
-        every { atsDao.getAtsResults() } returns flowOf(emptyList())
+        every { atsDao.getAllReports() } returns flowOf(emptyList())
 
         val result = repository.getSnapshots().first()
 

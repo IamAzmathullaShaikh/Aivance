@@ -7,6 +7,7 @@ import com.bangersoul.aivance.core.common.model.JobSearchFilter
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.common.result.runCatchingCore
+import com.bangersoul.aivance.core.data.company.CompanyCatalog
 import com.bangersoul.aivance.core.data.job.JobFilterMatcher
 import com.bangersoul.aivance.core.data.job.JobNormalizer
 import com.bangersoul.aivance.core.data.mapper.toDomain
@@ -35,7 +36,8 @@ class JobRepositoryImpl @Inject constructor(
     private val companyDao: CompanyDao,
     private val providerRegistry: ProviderRegistry,
     private val normalizer: JobNormalizer,
-    private val filterMatcher: JobFilterMatcher
+    private val filterMatcher: JobFilterMatcher,
+    private val companyCatalog: CompanyCatalog
 ) : JobRepository {
 
     override fun getJobs(): Flow<CoreResult<List<JobListing>>> {
@@ -75,6 +77,11 @@ class JobRepositoryImpl @Inject constructor(
             // guarantee results actually respect the user's filters. Also ranks
             // by relevance when a query is present and dedups across providers.
             val filtered = filterMatcher.filterAndRank(aggregated, filter)
+                // R-02 catalog dimensions (remote policy / tech stack) can't be
+                // known from a listing alone — they come from the bundled
+                // remote-company catalog, so apply them after the listing-level
+                // matcher. Unknown companies fail catalog-filtered searches.
+                .filter { companyCatalog.accepts(it.company, filter) }
 
             // Cache in background and remap each listing's id to the internal
             // DB row id. The Jobs list then hands getJobById an id it can

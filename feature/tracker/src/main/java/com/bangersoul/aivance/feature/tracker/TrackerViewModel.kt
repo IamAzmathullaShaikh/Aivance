@@ -8,6 +8,7 @@ import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
+import com.bangersoul.aivance.core.domain.repository.ApplicationPreferencesRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
@@ -29,7 +30,11 @@ sealed interface TrackerUiState {
         val pipelineMetrics: PipelineMetrics = PipelineMetrics(),
         /** Job handed in from a cross-feature jump (e.g. saved job's "Track
          *  application") — the screen pre-fills the Add dialog with it. */
-        val pendingTrackJob: JobListing? = null
+        val pendingTrackJob: JobListing? = null,
+        /** Applications created today (R-07) — compared against [dailyCap]. */
+        val todayAppliedCount: Int = 0,
+        /** Configurable daily application cap (R-07). */
+        val dailyCap: Int = 5
     ) : TrackerUiState
     data class Error(val message: String) : TrackerUiState
 }
@@ -53,6 +58,7 @@ sealed interface TrackerUiEvent {
     data class TrackJob(val jobId: String) : TrackerUiEvent
     /** Clears the pending cross-feature job once the Add dialog is dismissed. */
     data object ClearPendingTrackJob : TrackerUiEvent
+    data class SetDailyCap(val cap: Int) : TrackerUiEvent
     data object Refresh : TrackerUiEvent
 }
 
@@ -62,7 +68,8 @@ class TrackerViewModel @Inject constructor(
     private val workflowEngine: WorkflowEngine,
     private val careerStateEngine: CareerStateEngine,
     private val trackEventUseCase: TrackEventUseCase,
-    private val jobRepository: JobRepository
+    private val jobRepository: JobRepository,
+    private val applicationPreferencesRepository: ApplicationPreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TrackerUiState>(TrackerUiState.Loading)
@@ -83,15 +90,18 @@ class TrackerViewModel @Inject constructor(
             combine(
                 repository.getApplications(),
                 repository.getStages(),
-                careerStateEngine.state
-            ) { appsRes, stagesRes, careerState ->
+                careerStateEngine.state,
+                applicationPreferencesRepository.dailyApplicationCap
+            ) { appsRes, stagesRes, careerState, dailyCap ->
                 if (appsRes is Result.Success && stagesRes is Result.Success) {
                     val apps = appsRes.data
                     TrackerUiState.Success(
                         applications = apps,
                         stages = stagesRes.data,
                         careerState = careerState,
-                        pipelineMetrics = calculateMetrics(apps)
+                        pipelineMetrics = calculateMetrics(apps),
+                        todayAppliedCount = todayAppliedCount(apps),
+                        dailyCap = dailyCap
                     )
                 } else {
                     TrackerUiState.Error("Failed to load pipeline")
@@ -132,7 +142,28 @@ class TrackerViewModel @Inject constructor(
             is TrackerUiEvent.AddApplication -> addApplication(event.company, event.role, event.stageId)
             is TrackerUiEvent.TrackJob -> trackJob(event.jobId)
             TrackerUiEvent.ClearPendingTrackJob -> clearPendingTrackJob()
+            is TrackerUiEvent.SetDailyCap -> setDailyCap(event.cap)
             TrackerUiEvent.Refresh -> loadData()
+        }
+    }
+
+    /**
+     * Applications created today (R-07): dateApplied falls inside the current
+     * local day window. Deleted applications drop out of the count naturally
+     * because the list only reflects rows that still exist.
+     */
+    private fun todayAppliedCount(apps: List<Application>): Int {
+        val startOfDay = java.time.LocalDate.now()
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        return apps.count { (it.dateApplied ?: 0L) >= startOfDay }
+    }
+
+    private fun setDailyCap(cap: Int) {
+        viewModelScope.launch {
+            trackEventUseCase(TrackEventRequest("tracker_daily_cap_set"))
+            applicationPreferencesRepository.setDailyApplicationCap(cap)
         }
     }
 

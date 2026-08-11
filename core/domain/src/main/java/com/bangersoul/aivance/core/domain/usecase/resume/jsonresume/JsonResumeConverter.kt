@@ -1,4 +1,4 @@
-package com.bangersoul.aivance.feature.resume.jsonresume
+package com.bangersoul.aivance.core.domain.usecase.resume.jsonresume
 
 import com.bangersoul.aivance.core.common.model.ResumeSection
 import com.bangersoul.aivance.core.common.model.ResumeVersion

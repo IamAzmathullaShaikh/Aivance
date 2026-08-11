@@ -4,12 +4,10 @@ import com.bangersoul.aivance.core.common.model.*
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.common.result.runCatchingCore
-import com.bangersoul.aivance.core.data.mapper.toAtsReport
 import com.bangersoul.aivance.core.data.mapper.toDomain
 import com.bangersoul.aivance.core.data.mapper.toEntity
 import com.bangersoul.aivance.core.database.dao.AnalyticsDao
 import com.bangersoul.aivance.core.database.dao.AtsDao
-import com.bangersoul.aivance.core.database.model.ResumeAnalysisEntity
 import com.bangersoul.aivance.core.domain.analytics.*
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
@@ -85,7 +83,7 @@ class AnalyticsRepositoryImpl @Inject constructor(
     override suspend fun createSnapshot(): CoreResult<Long> = runCatchingCore {
         val apps = workflowRepository.getApplications().firstOrNull()?.getOrNull() ?: emptyList()
         val sessions = interviewRepository.getSessions().firstOrNull()?.getOrNull() ?: emptyList()
-        val reports = toAtsReports(atsDao.getAtsResults().firstOrNull() ?: emptyList())
+        val reports = atsDao.getAllReports().firstOrNull()?.map { it.toDomain() } ?: emptyList()
         val readiness = calculateReadiness(sessions)
         val recruiters = collectRecruiters(apps)
 
@@ -135,18 +133,18 @@ class AnalyticsRepositoryImpl @Inject constructor(
 
     override fun getCareerIntelligence(): Flow<CoreResult<CareerIntelligence>> {
         return kotlinx.coroutines.flow.combine(
-            atsDao.getAtsResults(),
+            atsDao.getAllReports(),
             workflowRepository.getApplications(),
             userRepository.getProfile(),
             interviewRepository.getSessions(),
             analyticsDao.getSnapshots()
-        ) { atsResults, appsRes, profileRes, interviewRes, snapshots ->
+                ) { allReports, appsRes, profileRes, interviewRes, snapshots ->
             runCatchingCore {
                 val apps = appsRes.getOrNull() ?: emptyList()
                 val profile = profileRes.getOrNull()
                 val sessions = interviewRes.getOrNull() ?: emptyList()
                 val recruiters = collectRecruiters(apps)
-                val reports = toAtsReports(atsResults)
+                val reports = allReports.map { it.toDomain() }
                 val readiness = calculateReadiness(sessions)
 
                 intelEngine.calculateIntelligence(
@@ -172,8 +170,6 @@ class AnalyticsRepositoryImpl @Inject constructor(
     // Extracted so createSnapshot and getCareerIntelligence derive the same
     // inputs from the same real data (previously duplicated inline).
 
-    private fun toAtsReports(atsResults: List<ResumeAnalysisEntity>): List<AtsReport> =
-        atsResults.map { it.toAtsReport() }
 
     private fun calculateReadiness(sessions: List<InterviewSession>): Int =
         if (sessions.isNotEmpty()) {

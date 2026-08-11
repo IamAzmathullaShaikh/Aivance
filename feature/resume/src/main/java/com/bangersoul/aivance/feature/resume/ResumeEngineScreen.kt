@@ -75,7 +75,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
+import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.designsystem.components.*
 import kotlinx.coroutines.delay
@@ -724,7 +724,7 @@ private fun AtsScanStep(
 @Composable
 private fun AtsResultStep(
     score: Int,
-    analysis: ResumeAnalysis,
+    analysis: AtsReport,
     onContinue: () -> Unit
 ) {
     LazyColumn(
@@ -766,7 +766,7 @@ private fun AtsResultStep(
         item {
             Text(stringResource(R.string.keywords), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            if (analysis.matchingKeywords.isEmpty() && analysis.missingKeywords.isEmpty()) {
+            if (analysis.matchedKeywords.isEmpty() && analysis.missingKeywords.isEmpty()) {
                 Text(
                     stringResource(R.string.no_keyword_analysis),
                     style = MaterialTheme.typography.bodySmall,
@@ -777,24 +777,24 @@ private fun AtsResultStep(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    analysis.matchingKeywords.forEach { KeywordChip(text = it, isMatched = true) }
+                    analysis.matchedKeywords.forEach { KeywordChip(text = it, isMatched = true) }
                     analysis.missingKeywords.forEach { KeywordChip(text = it, isMatched = false) }
                 }
             }
         }
 
-        if (analysis.suggestions.isNotEmpty()) {
+        if (analysis.optimizationTips.isNotEmpty()) {
             item {
                 Text(stringResource(R.string.improvement_suggestions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
             }
-            items(analysis.suggestions) { suggestion ->
+            items(analysis.optimizationTips) { tip ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Text(
-                        suggestion,
+                        tip.description,
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium
                     )

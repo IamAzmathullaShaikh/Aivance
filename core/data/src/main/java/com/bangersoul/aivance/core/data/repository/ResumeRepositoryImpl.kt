@@ -2,15 +2,18 @@ package com.bangersoul.aivance.core.data.repository
 
 import android.content.Context
 import android.net.Uri
-import com.bangersoul.aivance.core.common.model.AtsResult
+import com.bangersoul.aivance.core.common.model.AtsReport
+import com.bangersoul.aivance.core.common.model.JobDescription
+import com.bangersoul.aivance.core.common.model.OptimizationTip
 import com.bangersoul.aivance.core.common.model.Resume
-import com.bangersoul.aivance.core.common.model.ResumeAnalysis
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.CoreResult
 import com.bangersoul.aivance.core.common.result.getOrNull
 import com.bangersoul.aivance.core.common.result.runCatchingCore
+import com.bangersoul.aivance.core.data.mapper.toEntity
 import com.bangersoul.aivance.core.data.resume.ResumeParser
 import com.bangersoul.aivance.core.data.source.ResumeLocalDataSource
+import com.bangersoul.aivance.core.database.dao.AtsDao
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.core.ProviderCapability
@@ -27,7 +30,8 @@ class ResumeRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localDataSource: ResumeLocalDataSource,
     private val providerManager: ProviderManager,
-    private val resumeParser: ResumeParser
+    private val resumeParser: ResumeParser,
+    private val atsDao: AtsDao
 ) : ResumeRepository {
 
     override fun getResumes(): Flow<CoreResult<List<Resume>>> {
@@ -142,25 +146,36 @@ class ResumeRepositoryImpl @Inject constructor(
         localDataSource.saveResume(resume.copy(primaryVersionId = versionId))
     }
 
-    override suspend fun analyzeResume(resumeId: Long, versionId: Long, jobDescription: String): CoreResult<ResumeAnalysis> = runCatchingCore {
+    override suspend fun analyzeResume(resumeId: Long, versionId: Long, jobDescription: String): CoreResult<AtsReport> = runCatchingCore {
         val versions = localDataSource.getVersionsForResume(resumeId).firstOrNull() ?: emptyList()
         val version = versions.find { it.id == versionId } ?: throw Exception("Version not found")
 
         val content = version.sections.joinToString("\n\n") { "${it.title}:\n${it.content}" }
-        val prompt = "Analyze this resume against the job description: \nResume: $content\nJob: $jobDescription"
+        val prompt = "Analyze this resume against the job description. " +
+            "Return: overall match score 0-100, matched keywords, missing keywords, and 3 optimization tips.\n" +
+            "Resume:\n$content\n\nJob Description:\n$jobDescription"
 
         val provider = providerManager.getBestProviderFor(ProviderCapability.AI.Chat) as? AIProvider
             ?: throw Exception("No AI provider available")
 
-        val result = provider.generateText(prompt).getOrNull() ?: throw Exception("AI analysis failed")
+        val aiResponse = provider.generateText(prompt).getOrNull() ?: throw Exception("AI analysis failed")
 
-        ResumeAnalysis(
-            overallScore = 80,
-            matchSummary = result
+        // Persist the job description first: ats_reports.jobDescriptionId is an
+        // enforced FK (Room enables foreign_keys), so a bare 0 would violate it.
+        val jobDescriptionId = atsDao.insertJobDescription(
+            JobDescription(rawText = jobDescription).toEntity()
         )
-    }
 
-    override fun getAtsResults(resumeId: Long): Flow<CoreResult<List<AtsResult>>> {
-        return localDataSource.getAtsResults().map { runCatchingCore { it } }
+        // Persist to ats_reports and return the canonical AtsReport.
+        val report = AtsReport(
+            resumeVersionId = versionId,
+            jobDescriptionId = jobDescriptionId,
+            overallScore = 80, // TODO: parse aiResponse for a real score
+            matchPercentage = 80,
+            optimizationTips = listOf(OptimizationTip("AI", aiResponse, "MEDIUM"))
+        )
+        val reportId = atsDao.insertReport(report.toEntity())
+        report.copy(id = reportId)
     }
 }
+

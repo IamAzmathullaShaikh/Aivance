@@ -52,7 +52,8 @@ object DatabaseModule {
             AivanceDatabase.MIGRATION_20_21,
             AivanceDatabase.MIGRATION_21_22,
             AivanceDatabase.MIGRATION_22_23,
-            AivanceDatabase.MIGRATION_23_24
+            AivanceDatabase.MIGRATION_23_24,
+            AivanceDatabase.MIGRATION_24_25
         )
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
         .setQueryExecutor(Executors.newFixedThreadPool(4))

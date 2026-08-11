@@ -18,7 +18,6 @@ import com.bangersoul.aivance.core.database.model.*
         ResumeEntity::class,
         ResumeVersionEntity::class,
         ResumeSectionEntity::class,
-        ResumeAnalysisEntity::class,
         CoverLetterEntity::class,
         CoverLetterVersionEntity::class,
         CoverLetterSectionEntity::class,
@@ -57,7 +56,7 @@ import com.bangersoul.aivance.core.database.model.*
         AuditLogEntity::class,
         UserEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = true
 )
 @TypeConverters(AivanceConverters::class)
@@ -351,6 +350,14 @@ abstract class AivanceDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Version 23 and 24 share an identical schema (verified against exported schemas),
                 // so this is an explicit no-op that only advances the version.
+            }
+        }
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // The legacy `resume_analyses` table has been superseded by `ats_reports`
+                // (introduced in MIGRATION_11_12). Dropping it completes the AtsReport
+                // migration (T-04) and removes the ResumeAnalysisEntity from production.
+                db.execSQL("DROP TABLE IF EXISTS `resume_analyses`")
             }
         }
     }

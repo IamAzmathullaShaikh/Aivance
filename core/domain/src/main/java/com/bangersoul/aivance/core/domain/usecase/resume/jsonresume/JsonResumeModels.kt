@@ -1,4 +1,4 @@
-package com.bangersoul.aivance.feature.resume.jsonresume
+package com.bangersoul.aivance.core.domain.usecase.resume.jsonresume
 
 import kotlinx.serialization.Serializable
 

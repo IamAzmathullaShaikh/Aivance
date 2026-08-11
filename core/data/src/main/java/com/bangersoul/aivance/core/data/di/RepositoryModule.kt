@@ -81,6 +81,14 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
+    abstract fun bindCompanyCatalogRepository(impl: CompanyCatalogRepositoryImpl): CompanyCatalogRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindApplicationPreferencesRepository(impl: ApplicationPreferencesRepositoryImpl): ApplicationPreferencesRepository
+
+    @Binds
+    @Singleton
     abstract fun bindRecruiterIntelligenceRepository(impl: RecruiterIntelligenceRepositoryImpl): RecruiterIntelligenceRepository
 
     @Binds

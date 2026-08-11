@@ -7,6 +7,7 @@ import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.engine.CareerStateEngine
 import com.bangersoul.aivance.core.domain.repository.AnalyticsRepository
+import com.bangersoul.aivance.core.domain.repository.ApplicationPreferencesRepository
 import com.bangersoul.aivance.core.domain.repository.ApplicationWorkflowRepository
 import com.bangersoul.aivance.core.domain.repository.JobRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
@@ -41,13 +42,15 @@ class TrackerViewModelTest {
     private val mockCareerStateEngine: CareerStateEngine = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
     private val mockJobRepository: JobRepository = mockk()
+    private val mockApplicationPreferences: ApplicationPreferencesRepository = mockk()
 
     private lateinit var viewModel: TrackerViewModel
 
     private fun buildViewModel(): TrackerViewModel {
         val workflowEngine = WorkflowEngine(mockRepository, mockAnalyticsRepository, mockTaskGenerator)
         return TrackerViewModel(
-            mockRepository, workflowEngine, mockCareerStateEngine, mockTrackEvent, mockJobRepository
+            mockRepository, workflowEngine, mockCareerStateEngine, mockTrackEvent, mockJobRepository,
+            mockApplicationPreferences
         )
     }
 
@@ -72,6 +75,8 @@ class TrackerViewModelTest {
         coEvery { mockRepository.getStages() } returns flowOf(Result.Success(stages))
         every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState())
         coEvery { mockTaskGenerator.invoke(any()) } returns Result.Success(Unit)
+        every { mockApplicationPreferences.dailyApplicationCap } returns flowOf(5)
+        coEvery { mockApplicationPreferences.setDailyApplicationCap(any()) } returns Unit
     }
 
     @After
@@ -261,6 +266,53 @@ class TrackerViewModelTest {
 
         val state = viewModel.uiState.value as TrackerUiState.Success
         assertEquals(null, state.pendingTrackJob)
+    }
+
+    @Test
+    fun `success state carries today's application count and cap`() = runTest {
+        val now = System.currentTimeMillis()
+        coEvery { mockRepository.getApplications() } returns flowOf(
+            Result.Success(
+                listOf(
+                    sampleApp().copy(id = 1L, dateApplied = now),
+                    sampleApp().copy(id = 2L, dateApplied = now - 86_400_000L) // yesterday
+                )
+            )
+        )
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as TrackerUiState.Success
+        assertEquals(1, state.todayAppliedCount)
+        assertEquals(5, state.dailyCap)
+    }
+
+    @Test
+    fun `application without date is not counted as today`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(
+            Result.Success(listOf(sampleApp())) // dateApplied = null
+        )
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as TrackerUiState.Success
+        assertEquals(0, state.todayAppliedCount)
+    }
+
+    @Test
+    fun `set daily cap persists the new cap`() = runTest {
+        coEvery { mockRepository.getApplications() } returns flowOf(Result.Success(emptyList()))
+
+        viewModel = buildViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(TrackerUiEvent.SetDailyCap(10))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { mockApplicationPreferences.setDailyApplicationCap(10) }
+        coVerify { mockTrackEvent(TrackEventRequest("tracker_daily_cap_set")) }
     }
 
     @Test

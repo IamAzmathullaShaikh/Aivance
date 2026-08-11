@@ -55,6 +55,9 @@ class JobFilterMatcher @Inject constructor() {
 
         if (!matchesSalary(job, filter)) return false
 
+        if (!matchesIncludedKeywords(job, filter)) return false
+        if (!matchesExcludedKeywords(job, filter)) return false
+
         return true
     }
 
@@ -67,6 +70,29 @@ class JobFilterMatcher @Inject constructor() {
             .joinToString(" ")
             .lowercase()
         return terms.all { haystack.contains(it.lowercase()) }
+    }
+
+    /**
+     * Apply-assist whitelist (R-07): every include keyword must appear in the
+     * listing's title/company/description. Mirrors the blacklist/whitelist UX
+     * pattern of job-applier tools, reimplemented from scratch.
+     */
+    private fun matchesIncludedKeywords(job: JobListing, filter: JobSearchFilter): Boolean {
+        val terms = filter.includedKeywords.map { it.trim().lowercase() }.filter { it.isNotBlank() }
+        if (terms.isEmpty()) return true
+        val haystack = listOf(job.title, job.company, job.description).joinToString(" ").lowercase()
+        return terms.all { haystack.contains(it) }
+    }
+
+    /**
+     * Apply-assist blacklist (R-07): no exclude keyword may appear in the
+     * listing's title/company/description (e.g. "unpaid", "commission-only").
+     */
+    private fun matchesExcludedKeywords(job: JobListing, filter: JobSearchFilter): Boolean {
+        val terms = filter.excludedKeywords.map { it.trim().lowercase() }.filter { it.isNotBlank() }
+        if (terms.isEmpty()) return true
+        val haystack = listOf(job.title, job.company, job.description).joinToString(" ").lowercase()
+        return terms.none { haystack.contains(it) }
     }
 
     private fun matchesStructuredLocation(job: JobListing, filter: JobSearchFilter): Boolean {

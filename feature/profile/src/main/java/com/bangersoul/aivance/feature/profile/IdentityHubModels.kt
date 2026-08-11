@@ -1,5 +1,7 @@
 package com.bangersoul.aivance.feature.profile
 
+import com.bangersoul.aivance.sdk.core.ConfigField
+
 /** Functional category shown in the provider manager. */
 enum class ProviderCategory {
     AI,
@@ -25,7 +27,15 @@ data class ProviderInfo(
     /** For on-device providers: whether the model file is downloaded and usable. */
     val modelDownloaded: Boolean = false,
     /** For on-device providers: live download progress 0f..1f while downloading. */
-    val modelDownloadProgress: Float? = null
+    val modelDownloadProgress: Float? = null,
+    /**
+     * Metadata-declared credential/preference fields rendered as the provider's
+     * config form. Drives Provider Management's multi-field onboarding (e.g.
+     * Adzuna = `appId` + `appKey`, USAJobs = `apiKey`) instead of a hardcoded
+     * single API-key input. Sensitive/PASSWORD fields are routed to encrypted
+     * secrets; everything else is plaintext settings.
+     */
+    val configFields: List<ConfigField> = emptyList()
 )
 
 enum class ProviderHealthStatus {

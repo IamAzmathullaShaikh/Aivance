@@ -1,6 +1,9 @@
 package com.bangersoul.aivance.feature.profile
 
 import app.cash.turbine.test
+import com.bangersoul.aivance.core.common.enums.JobSortOrder
+import com.bangersoul.aivance.core.common.model.JobListing
+import com.bangersoul.aivance.core.common.model.JobSearchFilter
 import com.bangersoul.aivance.core.common.result.Result
 import com.bangersoul.aivance.core.domain.repository.ProviderRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
@@ -10,8 +13,11 @@ import com.bangersoul.aivance.core.domain.usecase.provider.GetProviderHealthUseC
 import com.bangersoul.aivance.core.domain.usecase.provider.ProviderHealth
 import com.bangersoul.aivance.sdk.api.AIProvider
 import com.bangersoul.aivance.sdk.api.CompactModel
+import com.bangersoul.aivance.sdk.api.JobProvider
 import com.bangersoul.aivance.sdk.api.ModelDownloadable
 import com.bangersoul.aivance.sdk.config.ProviderConfiguration
+import com.bangersoul.aivance.sdk.core.ConfigField
+import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
@@ -25,6 +31,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -107,6 +114,46 @@ class ProviderManagementViewModelTest {
         override suspend fun onDispose() {}
     }
 
+    /** Fake keyed job provider mirroring Adzuna's metadata config fields. */
+    private class FakeAdzunaProvider : JobProvider(
+        metadata = ProviderMetadata(
+            id = "adzuna",
+            name = "Adzuna",
+            type = ProviderType.JOB,
+            version = "1.0.0",
+            description = "adzuna",
+            author = "test",
+            configFields = listOf(
+                ConfigField(key = "appId", label = "Adzuna App ID"),
+                ConfigField(
+                    key = "appKey",
+                    label = "Adzuna API Key",
+                    isSensitive = true,
+                    fieldType = FieldType.PASSWORD
+                )
+            )
+        ),
+        capabilities = setOf(ProviderCapability.JobSearch)
+    ) {
+        override suspend fun searchJobs(
+            filter: JobSearchFilter,
+            sortOrder: JobSortOrder,
+            page: Int
+        ): Result<List<JobListing>> = Result.Success(emptyList())
+
+        override suspend fun getJobDetails(jobId: String): Result<JobListing> = Result.Success(
+            JobListing(
+                id = "1", title = "x", company = "c",
+                description = "d", url = "https://example.com/x", sourceProvider = "adzuna"
+            )
+        )
+
+        override suspend fun onInitialize() {}
+        override suspend fun onStart() {}
+        override suspend fun onStop() {}
+        override suspend fun onDispose() {}
+    }
+
     private val fakeProvider = FakeOnDeviceProvider()
 
     private fun createViewModel() = ProviderManagementViewModel(
@@ -147,6 +194,38 @@ class ProviderManagementViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `keyed job provider credentials route to settings and secrets on save`() = runTest {
+        val adzuna = FakeAdzunaProvider()
+        every { registry.getAllProviders() } returns listOf(adzuna, fakeProvider)
+        every { registry.getProvider("adzuna") } returns adzuna
+        every { manager.providerStatuses } returns MutableStateFlow(
+            mapOf(
+                "adzuna" to ProviderStatus.InvalidConfiguration,
+                "gemma" to ProviderStatus.Uninitialized
+            )
+        )
+
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.onEvent(ProviderManagementUiEvent.SetCredential("adzuna", "appId", "my-app-id"))
+        vm.onEvent(ProviderManagementUiEvent.SetCredential("adzuna", "appKey", "sk-adzuna"))
+        vm.onEvent(ProviderManagementUiEvent.SaveProvider("adzuna"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Metadata-driven routing (T-03): non-sensitive appId -> plaintext
+        // settings, sensitive appKey -> encrypted secrets. No hardcoded
+        // "appId:appKey" single-field parsing.
+        val slot = slot<ProviderConfiguration>()
+        coVerify { providerRepository.saveProviderConfig(capture(slot)) }
+        val saved = slot.captured
+        assertEquals("adzuna", saved.providerId)
+        assertEquals("my-app-id", saved.settings["appId"])
+        assertEquals("sk-adzuna", saved.secrets["appKey"])
+        assertFalse("apiKey" in saved.secrets)
     }
 
     @Test

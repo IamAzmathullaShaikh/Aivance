@@ -171,6 +171,11 @@ sealed interface Destination : NavKey {
         override val label = "About"
     }
 
+    @Serializable
+    data object Resources : Destination {
+        override val label = "Resources"
+    }
+
     companion object {
         /**
          * Bottom-navigation tabs of the Main Career OS graph.
@@ -236,6 +241,7 @@ val Destination.icon: ImageVector?
         Destination.JobComparison -> Icons.Rounded.Compare
         Destination.Analytics -> Icons.Rounded.BarChart
         Destination.About -> Icons.Rounded.Info
+        Destination.Resources -> Icons.Rounded.MenuBook
     }
 
 /**
@@ -270,4 +276,5 @@ val Destination.labelRes: Int
         Destination.JobComparison -> R.string.dest_job_comparison
         Destination.Analytics -> R.string.dest_analytics
         Destination.About -> R.string.dest_about
+        Destination.Resources -> R.string.dest_resources
     }
