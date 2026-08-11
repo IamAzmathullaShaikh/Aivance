@@ -81,6 +81,24 @@ android {
         }
     }
 
+    // The app ships ~40 MB of native libs per ABI (on-device LLM inference
+    // engine + ML Kit OCR), so a universal APK is ~165 MB. Splitting by ABI
+    // gives each device only its own slice, and the AAB does the same for Play.
+    // AGP forbids split APKs and a bundle in one build, so disable splits for
+    // bundle-only runs: ./gradlew :app:bundleRelease -Paivance.disableAbiSplits=true
+    val disableAbiSplits = providers.gradleProperty("aivance.disableAbiSplits").orNull == "true"
+    splits {
+        abi {
+            isEnable = !disableAbiSplits
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+            isUniversalApk = false
+        }
+    }
+
+    // Play distributes per-ABI slices automatically from the AAB (AGP 9
+    // builds ABI splits into bundles by default; density splits are gone).
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
