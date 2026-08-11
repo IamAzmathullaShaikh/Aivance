@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.bangersoul.aivance.feature.profile.OnboardingUiEvent
 import com.bangersoul.aivance.feature.profile.OnboardingUiState
 import com.bangersoul.aivance.feature.profile.OnboardingViewModel
+import com.bangersoul.aivance.core.designsystem.components.AivancePrimaryButton
+import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 import com.bangersoul.aivance.sdk.core.ConfigField
 import com.bangersoul.aivance.sdk.core.FieldType
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
@@ -73,9 +75,16 @@ fun OnboardingScreen(
                 config = state.config,
                 isValidating = state.isValidating,
                 error = state.error,
+                isOnDevice = state.isOnDevice,
+                modelReady = state.modelReady,
+                isDownloading = state.isDownloading,
+                downloadProgress = state.downloadProgress,
+                downloadMessage = state.downloadMessage,
                 onUpdate = { k, v -> viewModel.onEvent(OnboardingUiEvent.UpdateAiConfig(k, v)) },
                 onValidate = { viewModel.onEvent(OnboardingUiEvent.ValidateAiProvider) },
-                onBack = { viewModel.onEvent(OnboardingUiEvent.Back) }
+                onBack = { viewModel.onEvent(OnboardingUiEvent.Back) },
+                onDownloadModel = { viewModel.onEvent(OnboardingUiEvent.DownloadModel) },
+                onDismissDownloadMessage = { viewModel.onEvent(OnboardingUiEvent.DismissDownloadMessage) }
             )
 
             is OnboardingUiState.ChooseJobProvider -> ProviderSelectionStep(
@@ -193,21 +202,42 @@ private fun ProviderConfigStep(
     config: Map<String, String>,
     isValidating: Boolean,
     error: String?,
+    isOnDevice: Boolean = false,
+    modelReady: Boolean = false,
+    isDownloading: Boolean = false,
+    downloadProgress: Float? = null,
+    downloadMessage: String? = null,
     onUpdate: (String, String) -> Unit,
     onValidate: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDownloadModel: () -> Unit = {},
+    onDismissDownloadMessage: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(24.dp))
 
-        provider.configFields.forEach { field ->
-            DynamicField(
-                field = field,
-                value = config[field.key] ?: "",
-                onValueChange = { onUpdate(field.key, it) }
+        if (isOnDevice) {
+            // On-device providers (e.g. Gemma) are configured by downloading the
+            // model file — never by typing a URL. Show the download status
+            // directly instead of the credential form.
+            OnDeviceDownloadPanel(
+                modelReady = modelReady,
+                isDownloading = isDownloading,
+                progress = downloadProgress,
+                message = downloadMessage,
+                onDownload = onDownloadModel,
+                onDismissMessage = onDismissDownloadMessage
             )
-            Spacer(Modifier.height(16.dp))
+        } else {
+            provider.configFields.forEach { field ->
+                DynamicField(
+                    field = field,
+                    value = config[field.key] ?: "",
+                    onValueChange = { onUpdate(field.key, it) }
+                )
+                Spacer(Modifier.height(16.dp))
+            }
         }
 
         if (error != null) {
@@ -220,17 +250,149 @@ private fun ProviderConfigStep(
         Button(
             onClick = onValidate,
             modifier = Modifier.fillMaxWidth().height(56.dp),
-            enabled = !isValidating,
+            // On-device providers have no credentials: Continue is just the model
+            // readiness gate — disabled until the download lands.
+            enabled = !isValidating && (!isOnDevice || modelReady),
             shape = MaterialTheme.shapes.medium
         ) {
             if (isValidating) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
             } else {
-                Text(stringResource(R.string.validate_continue), fontWeight = FontWeight.Bold)
+                Text(
+                    if (isOnDevice) stringResource(R.string.continue_label) else stringResource(R.string.validate_continue),
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
         TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.back))
+        }
+    }
+}
+
+/**
+ * The on-device model section: green "Downloaded" when the file is present,
+ * a live progress bar while downloading, and a single Download-model button
+ * otherwise — no URL input, no credential form.
+ */
+@Composable
+private fun OnDeviceDownloadPanel(
+    modelReady: Boolean,
+    isDownloading: Boolean,
+    progress: Float?,
+    message: String?,
+    onDownload: () -> Unit,
+    onDismissMessage: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (modelReady) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = AivanceTheme.colors.successContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = AivanceTheme.colors.onSuccessContainer
+                    )
+                    Column {
+                        Text(
+                            stringResource(R.string.model_downloaded_status),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AivanceTheme.colors.onSuccessContainer
+                        )
+                        Text(
+                            stringResource(R.string.model_offline_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AivanceTheme.colors.onSuccessContainer
+                        )
+                    }
+                }
+            }
+        } else if (isDownloading) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        stringResource(
+                            R.string.model_downloading_percent,
+                            ((progress ?: 0f) * 100).toInt()
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    LinearProgressIndicator(
+                        progress = { progress ?: 0f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        stringResource(R.string.model_download_background_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.model_download_required),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        stringResource(R.string.model_download_required_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    AivancePrimaryButton(
+                        text = stringResource(R.string.download_model),
+                        onClick = onDownload,
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Rounded.Download
+                    )
+                }
+            }
+        }
+
+        message?.let { notice ->
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.errorContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        notice,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = onDismissMessage) {
+                        Text(stringResource(R.string.dismiss))
+                    }
+                }
+            }
         }
     }
 }

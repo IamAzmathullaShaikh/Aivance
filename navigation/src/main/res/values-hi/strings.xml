@@ -54,6 +54,7 @@
     <string name="download_model">मॉडल डाउनलोड करें</string>
     <string name="delete_model">मॉडल हटाएं</string>
     <string name="model_ready">मॉडल तैयार</string>
+    <string name="model_downloaded">डाउनलोड हो गया</string>
     <string name="model_not_downloaded">मॉडल डाउनलोड नहीं हुआ — इस प्रदाता को पूरी तरह ऑफ़लाइन उपयोग करने के लिए एक बार डाउनलोड करें।</string>
     <string name="downloading_model">मॉडल डाउनलोड हो रहा है… %1$d%%</string>
     <string name="download_model_title">ऑन-डिवाइस मॉडल डाउनलोड करें</string>

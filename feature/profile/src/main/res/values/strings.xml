@@ -226,4 +226,15 @@
     <string name="model_download_success_text">On-device model downloaded and ready to use offline.</string>
     <string name="model_download_failed_title">Model download failed</string>
     <string name="model_download_failed_text">The download was interrupted. It will retry in the background.</string>
+
+    <!-- On-device model selection (onboarding) -->
+    <string name="download_model">Download model</string>
+    <string name="continue_label">Continue</string>
+    <string name="model_downloaded_status">Downloaded</string>
+    <string name="model_offline_hint">Runs fully offline — no API key needed.</string>
+    <string name="model_downloading_percent">Downloading model… %1$d%%</string>
+    <string name="model_download_background_hint">This is a large file. You can keep the app in the background — the download continues.</string>
+    <string name="model_download_required">Download the model to use this provider</string>
+    <string name="model_download_required_hint">The model runs fully on your device — no API key, no cloud. It downloads once and then works offline.</string>
+    <string name="dismiss">Dismiss</string>
 </resources>

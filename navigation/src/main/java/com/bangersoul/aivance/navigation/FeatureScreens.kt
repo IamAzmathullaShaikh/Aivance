@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Refresh
@@ -455,16 +456,29 @@ private fun ProviderCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Green "Downloaded" status: the model file is present and
+                        // the provider is usable fully offline.
                         Surface(
                             shape = AivanceTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.primaryContainer
+                            color = AivanceTheme.colors.successContainer
                         ) {
-                            Text(
-                                stringResource(R.string.model_ready),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = AivanceTheme.colors.onSuccessContainer
+                                )
+                                Text(
+                                    stringResource(R.string.model_downloaded),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = AivanceTheme.colors.onSuccessContainer
+                                )
+                            }
                         }
                         Spacer(Modifier.weight(1f))
                         AivanceSecondaryButton(
