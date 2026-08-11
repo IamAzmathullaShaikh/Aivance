@@ -1,6 +1,6 @@
 # AiVance — Technical Debt Report
 
-**Version**: 1.0.0 · **Last updated**: 2026-08-10
+**Version**: 1.0.0 · **Last updated**: 2026-08-11
 
 Debt is categorized by the horizon in which it must be addressed. Each item has an owner and mitigation plan.
 
@@ -32,9 +32,11 @@ Debt is categorized by the horizon in which it must be addressed. Each item has 
 - **Resolved**: The AtsReport migration is complete. `AtsResult`, `ResumeAnalysis`, their DTOs/requests, `ResumeAnalysisEntity` and the legacy `resume_analyses` DAO methods were deleted. `ResumeRepository.analyzeResume`, `CalculateATSScoreUseCase` and `AnalyseResumeUseCase` now return a persisted `AtsReport` (job description saved first so the enforced FK holds; score clamping kept at the domain boundary; legacy `formattingScore` surfaces as a "Formatting" `OptimizationTip`). Database **v25** (`MIGRATION_24_25`) drops the legacy `resume_analyses` table.
 - **Evidence**: full `testDebugUnitTest` + `assembleDebug` green across all modules; `migration_validate.py` and `db_certify.py` replayed to v25 (0 issues, 20 upgrade paths OK); `test_sql_check.py` validates the new migration-test SQL; new `migrate24To25`/`migrate10To25` instrumented migration tests.
 
-### T-05 — Coverage gaps in tests
-- **Debt**: Some ViewModel tests are tautological (initial-state assertions) or omit event verification (e.g., follow-up toggle event before Phase 14 fix).
-- **Mitigation**: Strengthen assertions alongside feature work; no release impact.
+### ~~T-05 — Coverage gaps in tests~~ ✅ RESOLVED (2026-08-11)
+- **Resolved**: A test-strength pass eliminated the tautological initial-state assertions and closed the event-verification gaps across the ViewModel suite (+33 tests):
+  - **De-tautologized**: `AtsViewModelTest` init now asserts `loadResumes()` actually populates the `resumes` flow (plus the resume-load failure → Error path); `HomeViewModelTest` asserts the Success state's content (full quick-action set + greeting); bare `initial state is X` assertions replaced with behavior checks (ATS init, cover-letter Load → Success, OCR/JSON imports).
+  - **Event verification added**: `InterviewViewModel.SubmitAnswer` success/failure/no-op (answers persist with the correct `MessageSender`); ATS `GenerateCoverLetter` + `ExportReport` effects with report content; cover-letter edit mode (`ToggleEdit`/`UpdateSection`/`SaveEdits` with draft capture and rollback, failure snackbar), `CopyAll`, PDF `Export`, `RegenerateSection` failure, and both `GenerateForJob` paths (no-resume snackbar, with-resume stream); `JobsViewModel.ClearFilters` (non-query dimensions reset, query kept) + `Refresh` (re-runs current search); `SavedJobsViewModel.ViewDetails`/`Refresh`/remove-failure; `ResumeEngineViewModel` OCR import (valid + blank), JSON Resume import (valid + malformed), `UpdateSectionContent`, `DiscardSuggestion` (suggestion removed without touching the version); `NotificationsViewModel.Refresh` tracking + safe no-op `MarkAsRead`/`Delete` on the empty list.
+- **Evidence**: full `testDebugUnitTest` + `assembleDebug` green across all modules (1085 tasks).
 
 ### T-06 — Automated accessibility UI tests
 - **Debt**: Accessibility validated by guide + manual QA; no automated a11y tests in CI.
@@ -65,7 +67,7 @@ Debt is categorized by the horizon in which it must be addressed. Each item has 
 | Horizon | Items | Resolved | Open | Release impact |
 | :--- | :--- | :--- | :--- | :--- |
 | Immediate | 2 | 2 | 0 | None |
-| Short-term | 5 | 3 (T-03, T-03b, T-04) | 2 (T-05, T-06) | None |
+| Short-term | 5 | 4 (T-03, T-03b, T-04, T-05) | 1 (T-06) | None |
 | Long-term | 4 | 0 | 4 | None — scheduled v2.0+. |
 
 ## Principles Going Forward

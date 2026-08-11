@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.interview
 
 import com.bangersoul.aivance.core.common.enums.InterviewDifficulty
 import com.bangersoul.aivance.core.common.model.CareerState
+import com.bangersoul.aivance.core.common.model.InterviewMessage
 import com.bangersoul.aivance.core.common.model.InterviewSession
 import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
@@ -60,6 +61,7 @@ class InterviewViewModelTest {
         } returns Result.Success(sampleSession)
         coEvery { mockRepository.generateQuestions(any(), any()) } returns Result.Success(Unit)
         coEvery { mockRepository.persistPackQuestions(any(), any()) } returns Result.Success(Unit)
+        coEvery { mockRepository.submitAnswer(any(), any()) } returns Result.Success(Unit)
         coEvery { mockGenerateStarPack.invoke(any()) } returns STARPrepGenerator.generateStarPack("Android Dev", 5)
         // History is loaded in init — provide an empty session list by default.
         every { mockRepository.getSessions() } returns flowOf(Result.Success(emptyList()))
@@ -199,6 +201,60 @@ class InterviewViewModelTest {
         coVerify { mockGenerateStarPack.invoke(GenerateStarPackRequest(role = "Android Dev", count = 5)) }
         coVerify { mockRepository.persistPackQuestions("session_1", fallback) }
         assertTrue(viewModel.uiState.value is InterviewUiState.Active)
+    }
+
+    @Test
+    fun `submitAnswer persists the answer and stays Active`() = runTest(testDispatcher) {
+        viewModel = InterviewViewModel(
+            mockRepository, mockCareerStateEngine, mockCompanyRepository, mockGenerateStarPack, mockTrackEvent
+        )
+
+        viewModel.onEvent(InterviewUiEvent.StartSession("Android Dev", "Tech Corp", "BEHAVIORAL"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onEvent(InterviewUiEvent.SubmitAnswer("I led a team of five"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val slot = io.mockk.slot<InterviewMessage>()
+        coVerify { mockRepository.submitAnswer("session_1", capture(slot)) }
+        assertEquals("I led a team of five", slot.captured.text)
+        assertEquals(com.bangersoul.aivance.core.common.enums.MessageSender.USER, slot.captured.sender)
+
+        val state = viewModel.uiState.value
+        assertTrue(state is InterviewUiState.Active)
+        assertEquals(false, (state as InterviewUiState.Active).isSubmitting)
+    }
+
+    @Test
+    fun `submitAnswer failure surfaces the real cause`() = runTest(testDispatcher) {
+        coEvery { mockRepository.submitAnswer(any(), any()) } returns Result.Failure(DomainError("Database busy"))
+
+        viewModel = InterviewViewModel(
+            mockRepository, mockCareerStateEngine, mockCompanyRepository, mockGenerateStarPack, mockTrackEvent
+        )
+
+        viewModel.onEvent(InterviewUiEvent.StartSession("Android Dev", "Tech Corp", "BEHAVIORAL"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onEvent(InterviewUiEvent.SubmitAnswer("My answer"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is InterviewUiState.Error)
+        assertTrue((state as InterviewUiState.Error).message.contains("Database busy"))
+    }
+
+    @Test
+    fun `submitAnswer is ignored outside an active session`() = runTest(testDispatcher) {
+        viewModel = InterviewViewModel(
+            mockRepository, mockCareerStateEngine, mockCompanyRepository, mockGenerateStarPack, mockTrackEvent
+        )
+
+        viewModel.onEvent(InterviewUiEvent.SubmitAnswer("orphaned answer"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // No persistence attempt, state unchanged.
+        coVerify(exactly = 0) { mockRepository.submitAnswer(any(), any()) }
+        assertTrue(viewModel.uiState.value is InterviewUiState.Idle)
     }
 
     @Test

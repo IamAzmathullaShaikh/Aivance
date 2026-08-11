@@ -99,6 +99,97 @@ class ResumeEngineViewModelTest {
     }
 
     @Test
+    fun `importOcrText enters Preview with the scanned text section`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ResumeEngineEvent.ImportOcrText("Jane Doe\nSenior Android Engineer"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertTrue(state is ResumeEngineState.Preview)
+        val preview = state as ResumeEngineState.Preview
+        assertEquals("Raw Text", preview.version.sections.first().title)
+        assertEquals("Jane Doe\nSenior Android Engineer", preview.version.sections.first().content)
+        assertEquals("Camera Scan Resume", preview.resume.name)
+    }
+
+    @Test
+    fun `importOcrText with blank text enters Import error`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ResumeEngineEvent.ImportOcrText("   \n  "))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertTrue(state is ResumeEngineState.Error)
+        assertEquals("Import", (state as ResumeEngineState.Error).step)
+    }
+
+    @Test
+    fun `importJsonText enters Preview from a JSON Resume document`() = runTest {
+        val json = """{"basics":{"name":"Jane Doe","summary":"Senior Android engineer"}}"""
+        val viewModel = createViewModel()
+        viewModel.onEvent(ResumeEngineEvent.ImportJsonText(json))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertTrue(state is ResumeEngineState.Preview)
+        assertEquals("Senior Android engineer", (state as ResumeEngineState.Preview).version.sections.first().content)
+    }
+
+    @Test
+    fun `importJsonText with malformed json enters Import error`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.onEvent(ResumeEngineEvent.ImportJsonText("{not json"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertTrue(state is ResumeEngineState.Error)
+        assertEquals("Import", (state as ResumeEngineState.Error).step)
+    }
+
+    @Test
+    fun `updateSectionContent edits the preview version section`() = runTest {
+        coEvery { mockImport.invoke(any()) } returns Result.Success(1L)
+        coEvery { mockRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(version)))
+        coEvery { mockRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
+
+        val viewModel = createViewModel()
+        viewModel.onEvent(ResumeEngineEvent.ImportFile(mockk<Uri>()))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.state.value is ResumeEngineState.Preview)
+
+        viewModel.onEvent(ResumeEngineEvent.UpdateSectionContent("Experience", "Edited content"))
+        val state = viewModel.state.value as ResumeEngineState.Preview
+        assertEquals("Edited content", state.version.sections.first().content)
+    }
+
+    @Test
+    fun `discardSuggestion removes the suggestion without applying it`() = runTest {
+        coEvery { mockImport.invoke(any()) } returns Result.Success(1L)
+        coEvery { mockRepository.getVersions(1L) } returns flowOf(Result.Success(listOf(version)))
+        coEvery { mockRepository.getResumeById(1L) } returns flowOf(Result.Success(resume))
+        every { mockStreamImprove.stream(any()) } returns flowOf("Improved content")
+
+        val viewModel = createViewModel()
+        viewModel.onEvent(ResumeEngineEvent.ImportFile(mockk<Uri>()))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onEvent(ResumeEngineEvent.ContinueFromPreview)
+        viewModel.onEvent(ResumeEngineEvent.SkipAts)
+        viewModel.onEvent(ResumeEngineEvent.ImproveSection("Experience"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            "Improved content",
+            (viewModel.state.value as ResumeEngineState.Optimizing).suggestions["Experience"]
+        )
+
+        viewModel.onEvent(ResumeEngineEvent.DiscardSuggestion("Experience"))
+
+        val state = viewModel.state.value as ResumeEngineState.Optimizing
+        assertTrue(state.suggestions.isEmpty())
+        // The version content is untouched — the improvement was NOT applied.
+        assertEquals("Android Engineer at Acme", state.version.sections.first().content)
+    }
+
+    @Test
     fun `import failure enters Error and retry re-imports`() = runTest {
         coEvery { mockImport.invoke(any()) } returns Result.Failure(DomainError("Bad file"))
 

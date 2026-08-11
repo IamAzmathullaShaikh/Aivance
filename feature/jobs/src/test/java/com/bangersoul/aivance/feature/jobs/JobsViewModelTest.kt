@@ -277,4 +277,52 @@ class JobsViewModelTest {
         assertTrue(state is JobsUiState.Success)
         assertEquals("Kotlin", (state as JobsUiState.Success).filter.query)
     }
+
+    @Test
+    fun `clear filters resets non-query filters and re-searches with the query kept`() = runTest {
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
+
+        val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
+        val richFilter = JobSearchFilter(
+            query = "Kotlin",
+            remotePolicy = com.bangersoul.aivance.core.common.enums.RemotePolicy.FULLY_REMOTE,
+            includedKeywords = listOf("senior")
+        )
+        viewModel.onEvent(JobsUiEvent.UpdateFilter(richFilter))
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { mockSearchJobs.invoke(SearchJobsRequest(filter = richFilter)) }
+
+        viewModel.onEvent(JobsUiEvent.ClearFilters)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The query survives; every catalog/filter dimension is reset to default.
+        coVerify { mockSearchJobs.invoke(SearchJobsRequest(filter = JobSearchFilter(query = "Kotlin"))) }
+        val state = viewModel.uiState.value as JobsUiState.Success
+        assertEquals("Kotlin", state.filter.query)
+        assertEquals(null, state.filter.remotePolicy)
+        assertTrue(state.filter.includedKeywords.isEmpty())
+    }
+
+    @Test
+    fun `refresh re-runs the current search`() = runTest {
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
+
+        val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
+        viewModel.onEvent(JobsUiEvent.Search("Android"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, (viewModel.uiState.value as JobsUiState.Success).jobs.size)
+
+        // The repository now returns fresh data; Refresh must re-run the search.
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(listOf(jobs.first()))
+        viewModel.onEvent(JobsUiEvent.Refresh)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as JobsUiState.Success
+        assertEquals(1, state.jobs.size)
+        coVerify(exactly = 2) {
+            mockSearchJobs.invoke(SearchJobsRequest(filter = JobSearchFilter(query = "Android")))
+        }
+    }
 }

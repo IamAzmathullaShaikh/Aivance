@@ -96,4 +96,40 @@ class NotificationsViewModelTest {
         assertEquals(false, (state as NotificationsUiState.Success).followUpRemindersEnabled)
         coVerify { mockTrackEvent(TrackEventRequest("notifications_toggle_followup_false")) }
     }
+
+    @Test
+    fun `refresh reloads and tracks the load event`() = runTest {
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.onEvent(NotificationsUiEvent.Refresh)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.value is NotificationsUiState.Success)
+        coVerify { mockTrackEvent(TrackEventRequest("notifications_load")) }
+    }
+
+    @Test
+    fun `markAsRead is a safe no-op on an empty list`() = runTest {
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.onEvent(NotificationsUiEvent.MarkAsRead("nope"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertTrue(state is NotificationsUiState.Success)
+        assertEquals(0, (state as NotificationsUiState.Success).unreadCount)
+    }
+
+    @Test
+    fun `deleteNotification is a safe no-op on an empty list`() = runTest {
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.onEvent(NotificationsUiEvent.DeleteNotification("nope"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.value is NotificationsUiState.Success)
+    }
 }

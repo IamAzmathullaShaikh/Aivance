@@ -89,6 +89,7 @@
 - **STAR prep packs (R-05)**: `GenerateStarPackUseCase` (streaming AI via `AiRepository`, template fallback in `core:domain`) + `persistPackQuestions` so pack answers record against real session rows; Prep Studio Practice tab generates and practices role-specific STAR packs.
 - **Remote-work resources hub (R-06)**: `RemoteResourcesScreen` reachable via `Destination.Resources` from About + Profile System tab; categorized links (boards, curated lists, prep, remote companies) with localized chrome.
 - **Apply-assist rules (R-07)**: job-filter include/exclude keyword chips (whitelist/blacklist) + Tracker daily application quota (count vs. configurable DataStore-backed cap) — UX patterns reimplemented from scratch.
+- **ViewModel test-strength pass (T-05)**: tautological initial-state assertions replaced with behavior checks (ATS resume loading, Home state content, Load/import transitions) and +33 event-verification tests added across 7 features (interview answers, ATS report actions, cover-letter edit/copy/export/regenerate, jobs clear/refresh, saved-jobs details/refresh/failure, resume OCR + JSON imports, notifications refresh/no-ops).
 
 ## Phase 12 Completion
 - **Design System**: Tokenized color/type/spacing/shape/elevation/motion with Light/Dark/AMOLED/Dynamic themes.
@@ -113,6 +114,7 @@ See `KNOWN_ISSUES.md` for the full catalog. All 🔴 High and 🟡 Medium severi
 Open items: P0-01 (instrumented DB tests — requires device/emulator), P0-02 (MITM pen-test — requires device). See `DEVICE_VALIDATION.md` for P0-01/P0-02 execution instructions.
 
 ## Last Coordinated
+- **2026-08-11**: T-05 test-strength pass (de-tautologized assertions, +33 event-verification tests across 7 features). Full suite green.
 - **2026-08-10**: Full walkthrough + TODO coordination pass. All stale debt entries updated. `DEVICE_VALIDATION.md` created.
 
 ## Release Readiness
