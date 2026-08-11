@@ -46,6 +46,9 @@ sealed interface ProviderManagementUiState {
 
 sealed interface ProviderManagementUiEvent {
     data class SelectProvider(val providerId: String) : ProviderManagementUiEvent
+    /** Opens the provider config dialog, seeding credential drafts from the persisted config. */
+    data class EditProvider(val providerId: String) : ProviderManagementUiEvent
+    data object DismissProviderDialog : ProviderManagementUiEvent
     data class ToggleProvider(val providerId: String, val enabled: Boolean) : ProviderManagementUiEvent
     data class TestConnection(val providerId: String) : ProviderManagementUiEvent
     data class SetCredential(val providerId: String, val fieldKey: String, val value: String) : ProviderManagementUiEvent
@@ -145,6 +148,8 @@ class ProviderManagementViewModel @Inject constructor(
     fun onEvent(event: ProviderManagementUiEvent) {
         when (event) {
             is ProviderManagementUiEvent.SelectProvider -> selectProvider(event.providerId)
+            is ProviderManagementUiEvent.EditProvider -> editProvider(event.providerId)
+            ProviderManagementUiEvent.DismissProviderDialog -> dismissProviderDialog()
             is ProviderManagementUiEvent.ToggleProvider -> toggleProvider(event.providerId, event.enabled)
             is ProviderManagementUiEvent.TestConnection -> testConnection(event.providerId)
             is ProviderManagementUiEvent.SetCredential -> setCredential(event.providerId, event.fieldKey, event.value)
@@ -206,6 +211,30 @@ class ProviderManagementViewModel @Inject constructor(
                 selectedProviderId = providers.firstOrNull { it.isEnabled }?.id
             )
         }
+    }
+
+    /**
+     * Opens the config dialog for a provider, seeding the credential drafts
+     * from whatever is already persisted so the form is prefilled and saving
+     * with untouched fields never wipes existing credentials.
+     */
+    private fun editProvider(providerId: String) {
+        val currentState = _uiState.value as? ProviderManagementUiState.Success ?: return
+        viewModelScope.launch {
+            val persisted = providerRepository.getProviderConfig(providerId)
+            val settings = (persisted?.settings ?: emptyMap())
+                .filterKeys { it != "isEnabled" && it != "selectedModel" && it != "model" && it != "type" }
+            val seeded = (persisted?.secrets ?: emptyMap()) + settings
+            _uiState.value = currentState.copy(
+                selectedProviderId = providerId,
+                credentialDrafts = currentState.credentialDrafts + (providerId to seeded)
+            )
+        }
+    }
+
+    private fun dismissProviderDialog() {
+        val currentState = _uiState.value as? ProviderManagementUiState.Success ?: return
+        _uiState.value = currentState.copy(selectedProviderId = null)
     }
 
     private fun selectProvider(providerId: String) {

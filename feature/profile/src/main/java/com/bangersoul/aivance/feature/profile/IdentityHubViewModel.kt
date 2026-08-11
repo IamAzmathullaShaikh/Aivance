@@ -19,6 +19,7 @@ import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
 import com.bangersoul.aivance.sdk.infrastructure.ProviderRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -48,6 +49,11 @@ sealed interface IdentityHubUiEvent {
     data object ResetAll : IdentityHubUiEvent
 }
 
+sealed interface IdentityHubUiEffect {
+    /** Emitted after the session is cleared so the UI can leave the hub. */
+    data object SignOutCompleted : IdentityHubUiEffect
+}
+
 @HiltViewModel
 class IdentityHubViewModel @Inject constructor(
     private val loadProfileUseCase: LoadProfileUseCase,
@@ -65,6 +71,9 @@ class IdentityHubViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(IdentityHubUiState())
     val uiState: StateFlow<IdentityHubUiState> = _uiState.asStateFlow()
+
+    private val _effects = Channel<IdentityHubUiEffect>(Channel.BUFFERED)
+    val effects: Flow<IdentityHubUiEffect> = _effects.receiveAsFlow()
 
     init {
         refresh()
@@ -242,6 +251,7 @@ class IdentityHubViewModel @Inject constructor(
     private fun signOut() {
         viewModelScope.launch {
             userPreferencesRepository.clearSession()
+            _effects.send(IdentityHubUiEffect.SignOutCompleted)
         }
     }
 

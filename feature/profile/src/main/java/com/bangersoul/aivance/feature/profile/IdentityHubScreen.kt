@@ -32,11 +32,21 @@ fun IdentityHubScreen(
     viewModel: IdentityHubViewModel,
     onBack: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
-    onNavigateToResources: () -> Unit = {}
+    onNavigateToResources: () -> Unit = {},
+    onNavigateToProviderManagement: () -> Unit = {},
+    onSignedOut: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Identity", "Preferences", "Providers", "Vault", "System")
+
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                IdentityHubUiEffect.SignOutCompleted -> onSignedOut()
+            }
+        }
+    }
 
     AivanceWorkspaceScaffold(
         title = "Identity Hub",
@@ -71,7 +81,7 @@ fun IdentityHubScreen(
                     when (tab) {
                         0 -> IdentityTab(viewModel)
                         1 -> PreferencesTab(viewModel)
-                        2 -> ProvidersTab(viewModel)
+                        2 -> ProvidersTab(viewModel, onManageProviders = onNavigateToProviderManagement)
                         3 -> DocumentVaultTab(viewModel)
                         4 -> SystemTab(viewModel, onNavigateToAbout, onNavigateToResources)
                     }
@@ -332,7 +342,10 @@ private fun AivanceWorkspaceCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ProvidersTab(viewModel: IdentityHubViewModel) {
+private fun ProvidersTab(
+    viewModel: IdentityHubViewModel,
+    onManageProviders: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(
@@ -388,10 +401,10 @@ private fun ProvidersTab(viewModel: IdentityHubViewModel) {
 
         item {
             AivanceSecondaryButton(
-                text = "Add New Provider",
-                onClick = { /* Open selection */ },
+                text = "Manage Providers — API Keys & Models",
+                onClick = onManageProviders,
                 modifier = Modifier.fillMaxWidth(),
-                icon = Icons.Rounded.Add
+                icon = Icons.Rounded.Tune
             )
         }
     }
