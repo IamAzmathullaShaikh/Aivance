@@ -40,6 +40,7 @@ import com.bangersoul.aivance.feature.profile.*
 import com.bangersoul.aivance.feature.recruiter.RecruiterDashboardScreen
 import com.bangersoul.aivance.feature.recruiter.RecruiterViewModel
 import com.bangersoul.aivance.feature.resume.IntelligenceHubScreen
+import com.bangersoul.aivance.feature.resume.IntelligenceHubViewModel
 import com.bangersoul.aivance.feature.resume.ResumeDetailScreen
 import com.bangersoul.aivance.feature.resume.ResumeDetailViewModel
 import com.bangersoul.aivance.feature.resume.ResumeEngineScreen
@@ -284,9 +285,9 @@ private fun ScreenContent(
             onSwitchProvider = { onNavigate(Destination.ProviderSetup) }
         )
         Destination.Intelligence -> IntelligenceHubScreen(
-            viewModel = hiltViewModel<ResumeEngineViewModel>(),
+            viewModel = hiltViewModel<IntelligenceHubViewModel>(),
             onNavigateToEngine = { onNavigate(Destination.ResumeEngine()) },
-            onNavigateToAts = { jd -> onNavigate(Destination.Ats(jd)) },
+            onNavigateToAts = { reportId -> onNavigate(Destination.Ats(reportId = reportId)) },
             onBack = onBack
         )
         is Destination.ResumeEngine -> ResumeEngineScreen(
@@ -313,7 +314,14 @@ private fun ScreenContent(
             viewModel = hiltViewModel(),
             onBack = onBack,
             onNavigateToAbout = { onNavigate(Destination.About) },
-            onNavigateToResources = { onNavigate(Destination.Resources) }
+            onNavigateToResources = { onNavigate(Destination.Resources) },
+            onNavigateToProviderManagement = { onNavigate(Destination.ProviderManagement) },
+            // Route through the auth ViewModel's full logout: it clears the
+            // session, API key AND the onboarding-completed gate (otherwise the
+            // next cold start would silently log the user back in), signs out of
+            // Firebase, flips auth state to Unauthenticated — which switches the
+            // nav graph back to the auth backstack automatically.
+            onSignedOut = { authViewModel.onEvent(AuthenticationUiEvent.Logout) }
         )
         Destination.About -> AboutScreen(
             onBack = onBack,
@@ -333,6 +341,7 @@ private fun ScreenContent(
             viewModel = hiltViewModel(),
             onNavigateBack = onBack,
             initialJobDescription = destination.jobDescription,
+            initialReportId = destination.reportId,
             onNavigateToCoverLetter = { onNavigate(Destination.CoverLetter(jobId = null)) }
         )
         is Destination.CoverLetter -> CoverLetterScreen(

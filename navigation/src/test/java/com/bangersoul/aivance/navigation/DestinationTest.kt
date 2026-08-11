@@ -79,7 +79,15 @@ class DestinationTest {
     @Test
     fun `default ATS and cover letter arguments are null`() {
         assertEquals(null, Destination.Ats().jobDescription)
+        assertEquals(null, Destination.Ats().reportId)
         assertEquals(null, Destination.CoverLetter().jobId)
+    }
+
+    @Test
+    fun `ATS destination carries an optional saved report id`() {
+        assertEquals(42L, Destination.Ats(reportId = 42L).reportId)
+        assertEquals("JD", Destination.Ats(jobDescription = "JD", reportId = 42L).jobDescription)
+        assertEquals(42L, Destination.Ats(jobDescription = "JD", reportId = 42L).reportId)
     }
 
     @Test

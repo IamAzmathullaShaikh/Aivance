@@ -99,7 +99,11 @@ sealed interface Destination : NavKey {
     }
 
     @Serializable
-    data class Ats(val jobDescription: String? = null) : Destination {
+    data class Ats(
+        val jobDescription: String? = null,
+        /** When set, opens the ATS screen directly on this saved report. */
+        val reportId: Long? = null
+    ) : Destination {
         override val label = "ATS Scanner"
     }
 

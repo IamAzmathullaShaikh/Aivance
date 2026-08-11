@@ -2,6 +2,7 @@ package com.bangersoul.aivance.feature.resume
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Description
@@ -10,22 +11,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.designsystem.components.*
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun IntelligenceHubScreen(
-    viewModel: ResumeEngineViewModel,
+    viewModel: IntelligenceHubViewModel,
     onNavigateToEngine: () -> Unit,
-    onNavigateToAts: (String?) -> Unit,
+    onNavigateToAts: (Long) -> Unit,
     onBack: () -> Unit
 ) {
-    // Note: Assuming we have a way to get the resume list and recent ATS scans.
-    // For now, focusing on the UI structure using the new scaffold.
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     AivanceWorkspaceScaffold(
         title = "Intelligence Hub",
@@ -49,42 +52,102 @@ fun IntelligenceHubScreen(
             item {
                 SectionHeader(title = "Your Resumes")
                 Spacer(Modifier.height(8.dp))
-                // Placeholder for resume list
-                AivanceWorkspaceCard(
-                    onClick = onNavigateToEngine
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(Icons.Rounded.Description, contentDescription = null, tint = AivanceTheme.colors.accent)
-                        Column {
-                            Text("Main Resume", fontWeight = FontWeight.Bold)
-                            Text("Last updated 2 days ago", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
+            }
+            if (uiState.resumes.isEmpty()) {
+                item {
+                    AivanceEmptyState(
+                        title = "No resumes yet",
+                        description = "Tap + to import a PDF or DOCX and build your first resume.",
+                        icon = Icons.Rounded.Description
+                    )
+                }
+            } else {
+                // LazyColumn keys share one namespace — namespace by type so a
+                // resume and a scan with the same numeric id never collide.
+                items(uiState.resumes, key = { "resume-${it.id}" }) { resume ->
+                    ResumeCard(resume = resume, onClick = onNavigateToEngine)
                 }
             }
 
             item {
                 SectionHeader(title = "Recent ATS Scans")
                 Spacer(Modifier.height(8.dp))
-                // Placeholder for ATS history
-                AivanceWorkspaceCard(
-                    onClick = { onNavigateToAts(null) }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(Icons.Rounded.History, contentDescription = null, tint = AivanceTheme.colors.info)
-                        Column {
-                            Text("Google - Android Engineer", fontWeight = FontWeight.Bold)
-                            Text("85% Match · Jul 30", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
+            }
+            if (uiState.atsScans.isEmpty()) {
+                item {
+                    AivanceEmptyState(
+                        title = "No ATS scans yet",
+                        description = "Run an ATS scan from the Resume Engine to see your match history.",
+                        icon = Icons.Rounded.History
+                    )
+                }
+            } else {
+                items(uiState.atsScans, key = { "scan-${it.report.id}" }) { scan ->
+                    AtsScanCard(scan = scan, onClick = { onNavigateToAts(scan.report.id) })
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ResumeCard(resume: Resume, onClick: () -> Unit) {
+    AivanceWorkspaceCard(onClick = onClick) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(Icons.Rounded.Description, contentDescription = null, tint = AivanceTheme.colors.accent)
+            Column {
+                Text(resume.name, fontWeight = FontWeight.Bold)
+                Text(
+                    "Last updated ${formatRelativeTime(resume.lastModified)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AtsScanCard(scan: AtsScanItem, onClick: () -> Unit) {
+    AivanceWorkspaceCard(onClick = onClick) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(Icons.Rounded.History, contentDescription = null, tint = AivanceTheme.colors.info)
+            Column {
+                Text(
+                    when {
+                        scan.jobTitle != null && scan.companyName != null ->
+                            "${scan.companyName} - ${scan.jobTitle}"
+                        scan.jobTitle != null -> scan.jobTitle
+                        else -> "ATS Scan"
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "${scan.report.overallScore}% Match · ${formatReportDate(scan.report.dateGenerated)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+private fun formatRelativeTime(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diffMinutes = ((now - timestamp) / 60_000L).coerceAtLeast(0)
+    return when {
+        diffMinutes < 1 -> "just now"
+        diffMinutes < 60 -> "$diffMinutes min ago"
+        diffMinutes < 24 * 60 -> "${diffMinutes / 60} hr ago"
+        diffMinutes < 7 * 24 * 60 -> "${diffMinutes / (24 * 60)} days ago"
+        else -> SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(timestamp))
+    }
+}
+
+private fun formatReportDate(timestamp: Long): String {
+    return SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(timestamp))
 }

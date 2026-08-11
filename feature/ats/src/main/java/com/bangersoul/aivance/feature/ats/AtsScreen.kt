@@ -10,8 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,7 +69,8 @@ fun AtsScreen(
     viewModel: AtsViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToCoverLetter: () -> Unit = {},
-    initialJobDescription: String? = null
+    initialJobDescription: String? = null,
+    initialReportId: Long? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val resumes by viewModel.resumes.collectAsState()
@@ -82,6 +81,12 @@ fun AtsScreen(
     LaunchedEffect(initialJobDescription) {
         if (!initialJobDescription.isNullOrBlank()) {
             viewModel.onEvent(AtsUiEvent.UpdateJobDescription(initialJobDescription))
+        }
+    }
+
+    LaunchedEffect(initialReportId) {
+        if (initialReportId != null) {
+            viewModel.loadReport(initialReportId)
         }
     }
 
@@ -266,7 +271,6 @@ private fun JobDescriptionInputStep(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AtsReportContent(
     report: AtsReport,
@@ -332,9 +336,32 @@ private fun AtsReportContent(
         item {
             Text(stringResource(R.string.keyword_gap_analysis), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(12.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                report.matchedKeywords.forEach { KeywordChip(text = it, isMatched = true) }
-                report.missingKeywords.forEach { KeywordChip(text = it, isMatched = false) }
+            // Chunked Row wrap instead of the experimental FlowRow API: the
+            // app's runtime foundation (forced to 1.11.x by Coil 3.5) ships a
+            // different compiled FlowRow signature than the module's BOM (1.7),
+            // which made the report screen crash with NoSuchMethodError.
+            val keywordChips = report.matchedKeywords.map { it to true } +
+                report.missingKeywords.map { it to false }
+            if (keywordChips.isEmpty()) {
+                Text(
+                    stringResource(R.string.no_keywords_identified),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            keywordChips.chunked(2).forEach { rowChips ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowChips.forEach { (text, matched) ->
+                        KeywordChip(
+                            text = text,
+                            isMatched = matched,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
+                }
             }
         }
 

@@ -6,6 +6,7 @@ import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.DomainError
 import com.bangersoul.aivance.core.common.result.Result
+import com.bangersoul.aivance.core.domain.repository.AtsRepository
 import com.bangersoul.aivance.core.domain.repository.AtsStreamEvent
 import com.bangersoul.aivance.core.domain.repository.ResumeRepository
 import com.bangersoul.aivance.core.domain.usecase.analytics.TrackEventRequest
@@ -37,6 +38,7 @@ class AtsViewModelTest {
     private val mockResumeRepository: ResumeRepository = mockk()
     private val mockAnalyzeJd: AnalyzeJobDescriptionUseCase = mockk()
     private val mockStreamAts: StreamAtsAnalysisUseCase = mockk()
+    private val mockAtsRepository: AtsRepository = mockk()
     private val mockTrackEvent: TrackEventUseCase = mockk()
 
     private lateinit var viewModel: AtsViewModel
@@ -57,7 +59,7 @@ class AtsViewModelTest {
     }
 
     private fun createViewModel() =
-        AtsViewModel(mockResumeRepository, mockAnalyzeJd, mockStreamAts, mockTrackEvent)
+        AtsViewModel(mockResumeRepository, mockAnalyzeJd, mockStreamAts, mockAtsRepository, mockTrackEvent)
 
     @Test
     fun `init loads resumes and stays on the resume picker`() {
@@ -82,6 +84,40 @@ class AtsViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state is AtsUiState.Error)
         assertTrue((state as AtsUiState.Error).message.contains("Database unreachable"))
+    }
+
+    @Test
+    fun `loadReport opens the saved analysis directly`() = runTest {
+        val savedReport = AtsReport(
+            id = 42L,
+            resumeVersionId = 1L,
+            jobDescriptionId = 9L,
+            overallScore = 87,
+            matchPercentage = 87
+        )
+        coEvery { mockAtsRepository.getReportById(42L) } returns savedReport
+
+        viewModel = createViewModel()
+        viewModel.loadReport(42L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is AtsUiState.DisplayReport)
+        assertEquals(42L, (state as AtsUiState.DisplayReport).report.id)
+        assertEquals(87, state.report.overallScore)
+    }
+
+    @Test
+    fun `loadReport surfaces an error when the report is missing`() = runTest {
+        coEvery { mockAtsRepository.getReportById(999L) } returns null
+
+        viewModel = createViewModel()
+        viewModel.loadReport(999L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is AtsUiState.Error)
+        assertTrue((state as AtsUiState.Error).message.contains("not found"))
     }
 
     @Test
