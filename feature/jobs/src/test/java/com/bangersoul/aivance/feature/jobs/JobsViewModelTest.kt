@@ -1,6 +1,7 @@
 package com.bangersoul.aivance.feature.jobs
 
 import app.cash.turbine.test
+import androidx.lifecycle.SavedStateHandle
 import com.bangersoul.aivance.core.common.model.CareerState
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
@@ -72,7 +73,8 @@ class JobsViewModelTest {
     )
 
     private fun createViewModel() = JobsViewModel(
-        mockSearchJobs, mockToggleBookmark, mockCareerStateEngine, mockScoreJobFit, mockTrackEvent
+        mockSearchJobs, mockToggleBookmark, mockCareerStateEngine, mockScoreJobFit, mockTrackEvent,
+        savedStateHandle = SavedStateHandle()
     )
 
     /**
@@ -120,6 +122,25 @@ class JobsViewModelTest {
         assertTrue(state is JobsUiState.Success)
         assertEquals(2, (state as JobsUiState.Success).jobs.size)
         assertEquals("Android", state.filter.query)
+    }
+
+    @Test
+    fun `restores typed search query from saved state`() = runTest {
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(emptyList())
+
+        // Simulates process death: the query the user typed was written to
+        // SavedStateHandle and is picked up by the recreated ViewModel.
+        val handle = SavedStateHandle().apply { set("jobs_search_query", "android") }
+        val viewModel = JobsViewModel(
+            mockSearchJobs, mockToggleBookmark, mockCareerStateEngine, mockScoreJobFit, mockTrackEvent,
+            savedStateHandle = handle
+        )
+        val states = collectStates(viewModel, backgroundScope)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state is JobsUiState.Success)
+        assertEquals("android", (state as JobsUiState.Success).filter.query)
     }
 
     @Test

@@ -315,6 +315,8 @@ private fun ScreenContent(
             onBack = onBack,
             onNavigateToAbout = { onNavigate(Destination.About) },
             onNavigateToResources = { onNavigate(Destination.Resources) },
+            onNavigateToAppearance = { onNavigate(Destination.Appearance) },
+            onNavigateToPrivacy = { onNavigate(Destination.PrivacyCenter) },
             onNavigateToProviderManagement = { onNavigate(Destination.ProviderManagement) },
             // Route through the auth ViewModel's full logout: it clears the
             // session, API key AND the onboarding-completed gate (otherwise the
@@ -382,7 +384,8 @@ private fun ScreenContent(
             onNavigateToRecruiters = { onNavigate(Destination.RecruiterDashboard(it)) },
             onNavigateToCoverLetter = { jobId -> onNavigate(Destination.CoverLetter(jobId = jobId)) },
             onNavigateToPipeline = { onNavigate(Destination.Pipeline) },
-            onNavigateToAts = { description -> onNavigate(Destination.Ats(jobDescription = description)) }
+            onNavigateToAts = { description -> onNavigate(Destination.Ats(jobDescription = description)) },
+            onNavigateToCompany = { companyName -> onNavigate(Destination.CompanyDetail(companyName)) }
         )
         is Destination.RecruiterDashboard -> RecruiterDashboardScreen(
             viewModel = hiltViewModel<RecruiterViewModel>(),

@@ -40,7 +40,8 @@ fun JobDetailsScreen(
     onNavigateToRecruiters: (String) -> Unit = {},
     onNavigateToCoverLetter: (Long) -> Unit = {},
     onNavigateToPipeline: () -> Unit = {},
-    onNavigateToAts: (String) -> Unit = {}
+    onNavigateToAts: (String) -> Unit = {},
+    onNavigateToCompany: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -140,7 +141,8 @@ fun JobDetailsScreen(
                             0 -> JobOverviewContent(
                                 job = state.job,
                                 onApplyClick = { viewModel.onEvent(JobDetailsUiEvent.OpenUrl) },
-                                onApplyAndTrack = { viewModel.onEvent(JobDetailsUiEvent.ApplyAndTrack) }
+                                onApplyAndTrack = { viewModel.onEvent(JobDetailsUiEvent.ApplyAndTrack) },
+                                onCompanyClick = { onNavigateToCompany(state.job.company) }
                             )
                             1 -> JobReadinessContent(
                                 score = state.readinessScore,
@@ -171,7 +173,8 @@ private fun openExternalUrl(context: Context, url: String) {
 private fun JobOverviewContent(
     job: JobListing,
     onApplyClick: () -> Unit,
-    onApplyAndTrack: () -> Unit
+    onApplyAndTrack: () -> Unit,
+    onCompanyClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -183,10 +186,16 @@ private fun JobOverviewContent(
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(job.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Tapping the company name opens the company's detail screen.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable(onClick = onCompanyClick)
+            ) {
                 Icon(Icons.Rounded.Business, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(8.dp))
                 Text(job.company, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Rounded.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.LocationOn, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.secondary)

@@ -40,7 +40,10 @@ fun JobsScreen(
     onNavigateToSavedJobs: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var searchQuery by remember { mutableStateOf("") }
+    // rememberSaveable: the typed query survives rotation/process death (the
+    // ViewModel also persists it in SavedStateHandle, so it stays until app
+    // data is cleared).
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     // Best-match sort: opt-in, ranked by merged AI/rule-based fit scores (R-04).
     var sortByFit by rememberSaveable { mutableStateOf(false) }
 
@@ -70,6 +73,17 @@ fun JobsScreen(
             success?.jobs?.sortedByDescending { mergedScores[it.id] ?: 0 } ?: emptyList()
         } else {
             success?.jobs ?: emptyList()
+        }
+
+        // Restore the search field from the ViewModel's committed query after
+        // process death: the VM restores it from SavedStateHandle, the screen
+        // reflects it here. Only syncs when the user hasn't typed something
+        // newer locally.
+        val committedQuery = success?.filter?.query.orEmpty()
+        LaunchedEffect(committedQuery) {
+            if (committedQuery.isNotBlank() && searchQuery != committedQuery) {
+                searchQuery = committedQuery
+            }
         }
 
         LazyColumn(

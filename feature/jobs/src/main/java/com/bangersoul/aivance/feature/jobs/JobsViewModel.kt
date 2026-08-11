@@ -1,5 +1,6 @@
 package com.bangersoul.aivance.feature.jobs
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangersoul.aivance.core.common.model.JobListing
@@ -56,10 +57,20 @@ class JobsViewModel @Inject constructor(
     private val toggleJobBookmarkUseCase: ToggleJobBookmarkUseCase,
     private val careerStateEngine: CareerStateEngine,
     private val scoreJobFitUseCase: ScoreJobFitUseCase,
-    private val trackEventUseCase: TrackEventUseCase
+    private val trackEventUseCase: TrackEventUseCase,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _manualSearchState = MutableStateFlow<SearchState>(SearchState())
+    /**
+     * Typed search input survives rotation/process death: the query is written
+     * to [savedStateHandle] on every search and restored here, so the user's
+     * typed data is never silently wiped until app data is cleared.
+     */
+    private val restoredQuery: String = savedStateHandle.get<String>(KEY_SAVED_QUERY).orEmpty()
+
+    private val _manualSearchState = MutableStateFlow<SearchState>(
+        SearchState(filter = JobSearchFilter(query = restoredQuery))
+    )
 
     val uiState: StateFlow<JobsUiState> = combine(
         careerStateEngine.state,
@@ -108,6 +119,7 @@ class JobsViewModel @Inject constructor(
     private fun search(query: String? = null) {
         val current = _manualSearchState.value
         val newFilter = query?.let { current.filter.copy(query = it) } ?: current.filter
+        savedStateHandle[KEY_SAVED_QUERY] = newFilter.query
 
         _manualSearchState.value = current.copy(filter = newFilter, isSearching = true, fitScores = emptyMap())
 
@@ -187,4 +199,8 @@ class JobsViewModel @Inject constructor(
         val isSearching: Boolean = false,
         val fitScores: Map<String, Int> = emptyMap()
     )
+
+    private companion object {
+        const val KEY_SAVED_QUERY = "jobs_search_query"
+    }
 }

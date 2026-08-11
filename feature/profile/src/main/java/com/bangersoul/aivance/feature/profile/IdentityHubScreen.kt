@@ -33,6 +33,8 @@ fun IdentityHubScreen(
     onBack: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
     onNavigateToResources: () -> Unit = {},
+    onNavigateToAppearance: () -> Unit = {},
+    onNavigateToPrivacy: () -> Unit = {},
     onNavigateToProviderManagement: () -> Unit = {},
     onSignedOut: () -> Unit = {}
 ) {
@@ -83,7 +85,13 @@ fun IdentityHubScreen(
                         1 -> PreferencesTab(viewModel)
                         2 -> ProvidersTab(viewModel, onManageProviders = onNavigateToProviderManagement)
                         3 -> DocumentVaultTab(viewModel)
-                        4 -> SystemTab(viewModel, onNavigateToAbout, onNavigateToResources)
+                        4 -> SystemTab(
+                            viewModel,
+                            onNavigateToAbout = onNavigateToAbout,
+                            onNavigateToResources = onNavigateToResources,
+                            onNavigateToAppearance = onNavigateToAppearance,
+                            onNavigateToPrivacy = onNavigateToPrivacy
+                        )
                     }
                 }
             }
@@ -468,7 +476,9 @@ private fun DocumentVaultTab(viewModel: IdentityHubViewModel) {
 private fun SystemTab(
     viewModel: IdentityHubViewModel,
     onNavigateToAbout: () -> Unit = {},
-    onNavigateToResources: () -> Unit = {}
+    onNavigateToResources: () -> Unit = {},
+    onNavigateToAppearance: () -> Unit = {},
+    onNavigateToPrivacy: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -484,17 +494,12 @@ private fun SystemTab(
         item {
             SectionHeader(title = "Appearance")
             AivanceWorkspaceCard {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PreferenceToggle(
-                        label = "Dark Mode",
-                        checked = uiState.settings.themeMode == "dark",
-                        onCheckedChange = { viewModel.onEvent(IdentityHubUiEvent.UpdateSettings(uiState.settings.copy(themeMode = if (it) "dark" else "light"))) }
-                    )
-                    PreferenceToggle(
-                        label = "Dynamic Color",
-                        checked = uiState.settings.dynamicColorEnabled,
-                        onCheckedChange = { viewModel.onEvent(IdentityHubUiEvent.UpdateSettings(uiState.settings.copy(dynamicColorEnabled = it))) }
-                    )
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onNavigateToAppearance, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.Palette, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Appearance & Theme")
+                    }
                 }
             }
         }
@@ -502,34 +507,29 @@ private fun SystemTab(
         item {
             SectionHeader(title = "Security & Privacy")
             AivanceWorkspaceCard {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PreferenceToggle(
-                        label = "Biometric Lock",
-                        checked = uiState.settings.biometricLockEnabled,
-                        onCheckedChange = { viewModel.onEvent(IdentityHubUiEvent.UpdateSettings(uiState.settings.copy(biometricLockEnabled = it))) }
-                    )
-                    PreferenceToggle(
-                        label = "Usage Analytics",
-                        checked = uiState.settings.analyticsEnabled,
-                        onCheckedChange = { viewModel.onEvent(IdentityHubUiEvent.UpdateSettings(uiState.settings.copy(analyticsEnabled = it))) }
-                    )
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onNavigateToPrivacy, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.PrivacyTip, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Privacy & Security")
+                    }
+                    TextButton(onClick = onNavigateToResources, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Rounded.MenuBook, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Remote Work Resources")
+                    }
                 }
             }
         }
 
         item {
-            SectionHeader(title = "About & Resources")
+            SectionHeader(title = "About")
             AivanceWorkspaceCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = onNavigateToAbout, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Info, null)
                         Spacer(Modifier.width(8.dp))
                         Text("About AiVance")
-                    }
-                    TextButton(onClick = onNavigateToResources, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Rounded.MenuBook, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Remote Work Resources")
                     }
                 }
             }

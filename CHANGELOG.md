@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — On-device model download UX in onboarding + green Downloaded status (2026-08-11)
+- Selecting an on-device AI provider (Gemma) during onboarding now shows a **Download model** button (with live WorkManager progress) instead of the old `Model file URL` text field — the model file *is* the configuration. Once downloaded, the step shows a green **Downloaded** panel and unlocks Continue; the validation guard blocks Continue until the model is ready.
+- Provider Management's ready on-device chip is now green with a check icon and reads **Downloaded** (was a neutral "Model ready" chip).
+
+### Added — Multiple job providers selected in Provider Management now actually gate the search (2026-08-11)
+- `JobRepositoryImpl.searchJobs` consults each provider's persisted `isEnabled` flag: a provider toggled off in Provider Management is no longer queried even when it holds valid credentials; providers without a saved config stay enabled by default (keyless boards work with zero setup).
+- **Fixed the "dummy results" bug**: `RestJobProvider`'s offline cache fallback was returning the *entire* shared DB on failure — every unconfigured provider echoed all previously cached jobs as its own results. The cache is now attributed per provider (`sourceProvider`), so a provider can only serve jobs it actually fetched. Dedup across providers + full client-side filter application already handled result conflicts.
+
+### Added — Cover Letter generation without a job (2026-08-11)
+- The Cover Letter Intelligence empty state now offers **Generate Cover Letter** (primary, generates a generic letter from the user's primary resume) alongside Find Jobs — previously it dead-ended with no generation option, and the ATS "Generate tailored cover letter" entry passed `jobId = null` straight into that dead end.
+- `GenerateCoverLetterRequest.jobId` is now nullable through use cases + repository; a null job id skips validation and generates against a neutral target ("Your Next Employer"). `ImproveCoverLetterUseCase` passes the letter's real (possibly null) job id instead of rewriting it to 0.
+
+### Added — Missing navigations wired (2026-08-11)
+- Identity Hub → System now links to **Appearance & Theme** and **Privacy & Security** (both destinations existed but were unreachable).
+- Tapping a job's company name in Job Details now opens the Company detail screen.
+
+### Added — Typed job-search input survives recreation (2026-08-11)
+- The Discovery query is written to `SavedStateHandle` on every search and restored when the ViewModel is recreated; the search field uses `rememberSaveable` so rotation/process recreation no longer wipes what was typed.
+
 ### Fixed — ATS legacy analyze path now scores from the AI answer (2026-08-11)
 - **`ResumeRepositoryImpl.analyzeResume`** no longer hardcodes `overallScore = 80` (the `// TODO: parse aiResponse for a real score`). The AI's free-text analysis is now scored defensively: fence-tolerant JSON payload (`overallScore`/`score` key) → explicit prose (`"score: 87"`, `"match score is 87/100"`, never a `0` and never hyphen-range endpoints like the prompt's `"0-100"`) → first standalone 0-100 integer. Unparseable responses keep the neutral 80 fallback.
 - **Tests**: 3 new `ResumeRepositoryImplTest` cases (JSON score 91, prose 87/100, and a "0-100 range description is not a score" regression guard). Full `testDebugUnitTest` green.
