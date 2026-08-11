@@ -15,6 +15,7 @@ import com.bangersoul.aivance.sdk.core.ProviderType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import okhttp3.OkHttpClient
@@ -66,13 +67,19 @@ open class ApifyJobProvider(
         }
 
         // 1. Start the actor run with the search query as input.
+        // LinkedIn scraper actors (curious_coder/valig) key off `positions` (an
+        // array) + `location`, NOT `search` — passing `search` silently makes the
+        // actor fall back to evergreen "always hiring" postings unrelated to the
+        // query (QA E2E 2026-08-11). A client-side keyword pass still trims junk.
         val input = buildJsonObject {
             if (filter.query.isNotBlank()) {
-                put("search", JsonPrimitive(filter.query))
+                put("positions", JsonArray(listOf(JsonPrimitive(filter.query))))
             }
             if (filter.location.isNotBlank()) {
                 put("location", JsonPrimitive(filter.location))
+                countryCode(filter.location)?.let { put("country", JsonPrimitive(it)) }
             }
+            put("maxItems", JsonPrimitive(100))
         }
         val runResponse = api.runActor(actorId, apiKey, input)
         if (!runResponse.isSuccessful) {
@@ -144,6 +151,24 @@ open class ApifyJobProvider(
                     throw Exception("Apify service unreachable: HTTP ${response.code}")
                 }
             }
+        }
+    }
+
+    /** Maps a free-text location to the ISO country code the actors expect. */
+    private fun countryCode(location: String): String? {
+        val lower = location.lowercase()
+        return when {
+            "united states" in lower || "usa" in lower || "u.s." in lower || "america" in lower -> "US"
+            "united kingdom" in lower || "uk" in lower || "england" in lower || "britain" in lower -> "GB"
+            "germany" in lower || "deutschland" in lower -> "DE"
+            "canada" in lower -> "CA"
+            "australia" in lower -> "AU"
+            "india" in lower -> "IN"
+            "france" in lower -> "FR"
+            "netherlands" in lower || "holland" in lower -> "NL"
+            "spain" in lower -> "ES"
+            "italy" in lower -> "IT"
+            else -> null
         }
     }
 }

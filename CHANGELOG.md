@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Crash on on-device (Gemma) model download — missing foregroundServiceType (2026-08-11)
+- **Android 14+ crash**: tapping **Download model** (or advancing onboarding with Gemma selected) started WorkManager's `SystemForegroundService` with `FOREGROUND_SERVICE_TYPE_DATA_SYNC` while the merged manifest declared no `foregroundServiceType` — `IllegalArgumentException: foregroundServiceType 0x1 is not a subset of 0x0` killed the app (caught live during QA E2E, logcat 18:51:54).
+- Fix: `app/src/main/AndroidManifest.xml` now declares `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC` permissions and overrides the merged `SystemForegroundService` with `android:foregroundServiceType="dataSync"` (`tools:node="merge"`).
+- Verified live: after the fix the resumed WorkManager download started its foreground service, stayed running, and progressed (0% → 8.7% → …) with the app alive.
+
+### Fixed — Apify/LinkedIn provider: real actor schema + input, canonical actor (2026-08-11)
+- **DTO schema mismatch**: real LinkedIn-scraper actors emit `companyName` / `postedDate` / `contractType`, but `ApifyDatasetItem` only read `company` / `postedAt` / `type` — company, contract type and posted dates were silently dropped. Both names are now parsed (`@SerialName` fallbacks) and the mapper prefers the real-schema value.
+- **Actor input mismatch**: `ApifyJobProvider` sent `{"search": …}` which the LinkedIn actors ignore — every run returned evergreen "always hiring" postings (verified: `valig~linkedin-jobs-scraper` and `curious_coder~linkedin-jobs-scraper` both returned "General Apply", "JOIN THE Family", "Careers"… for any keyword). The provider now sends `positions[]` + `location`/`country` + `maxItems`, the input the actors actually key off. The client-side keyword filter still trims junk.
+- **Actor swap**: LinkedIn now uses the canonical `curious_coder~linkedin-jobs-scraper` (45 prior runs on the QA token) instead of `valig~linkedin-jobs-scraper`.
+- **Tests**: real-schema mapper case + a JSON roundtrip that parses a captured live actor item (21 JobMapperTest cases, 0 failures). Full `testDebugUnitTest` (658 tasks) green.
+
+### Verified — Real Apify + Groq keys end-to-end on emulator (2026-08-11)
+- **Groq** (`gsk_…`): saved via Provider Management, `GET /models` → 200, card HEALTHY with key masked. **Apify** (`apify_api_…`): `GET /acts` health 200; actor run starts (HTTP 201) and the full poll→dataset→persist pipeline works (100 LinkedIn rows written).
+- A zero-result search was traced to provider-side failures, NOT the filters: with every filter at "All", `JobFilterMatcher` skips empty lists and `experienceLabel` returns "Experience" only when no years filter is set. Real results confirmed for a broader query ("developer"): *Senior Independent Software Developer — A.Team — 80 Good Match — Remote/Contract*, *Full-Stack Developer / App / AI — Berlin*, etc. from Arbeitnow/RemoteOK/Remotive feeds (1,755 / 114 / 20 rows persisted).
+- Full walkthrough + logcat evidence: `docs/QA_E2E_NOTES.md`.
+
 ### Added — On-device model download UX in onboarding + green Downloaded status (2026-08-11)
 - Selecting an on-device AI provider (Gemma) during onboarding now shows a **Download model** button (with live WorkManager progress) instead of the old `Model file URL` text field — the model file *is* the configuration. Once downloaded, the step shows a green **Downloaded** panel and unlocks Continue; the validation guard blocks Continue until the model is ready.
 - Provider Management's ready on-device chip is now green with a check icon and reads **Downloaded** (was a neutral "Model ready" chip).
