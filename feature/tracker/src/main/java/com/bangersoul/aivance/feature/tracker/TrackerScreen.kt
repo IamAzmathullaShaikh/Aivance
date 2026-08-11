@@ -8,9 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -538,7 +538,6 @@ private fun Modifier.dropHighlight(isActive: Boolean): Modifier {
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun KanbanCard(
     app: Application,
@@ -548,20 +547,17 @@ private fun KanbanCard(
     DashboardCard(
         modifier = Modifier
             .fillMaxWidth()
-            .dragAndDropSource {
-                // Long-press to lift the card into a drag payload; a plain tap
-                // opens the application detail sheet.
-                detectTapGestures(
-                    onTap = { currentOnClick() },
-                    onLongPress = {
-                        startTransfer(
-                            DragAndDropTransferData(
-                                ClipData.newPlainText("application", app.id.toString())
-                            )
-                        )
-                    }
-                )
-            }
+            // A plain tap opens the application detail sheet.
+            .clickable { currentOnClick() }
+            // Foundation 1.11's drag-and-drop API: the source is draggable
+            // (long-press to lift) whenever transferData is non-null.
+            .dragAndDropSource(
+                transferData = { _ ->
+                    DragAndDropTransferData(
+                        ClipData.newPlainText("application", app.id.toString())
+                    )
+                }
+            )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
