@@ -10,8 +10,10 @@ import com.bangersoul.aivance.core.domain.engine.PromptOrchestrator
 import com.bangersoul.aivance.core.domain.repository.AssistantRepository
 import com.bangersoul.aivance.core.domain.usecase.assistant.AssistantRequest
 import com.bangersoul.aivance.core.domain.usecase.assistant.GetAssistantResponseUseCase
+import com.bangersoul.aivance.sdk.core.ProviderCapability
 import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
+import com.bangersoul.aivance.sdk.infrastructure.ProviderRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,6 +55,7 @@ class AssistantViewModel @Inject constructor(
     private val assistantRepository: AssistantRepository,
     private val getAssistantResponseUseCase: GetAssistantResponseUseCase,
     private val providerManager: ProviderManager,
+    private val providerRegistry: ProviderRegistry,
     private val stateEngine: CareerStateEngine,
     private val contextEngine: ContextEngine,
     private val intentEngine: IntentEngine,
@@ -71,9 +74,17 @@ class AssistantViewModel @Inject constructor(
         ProviderStatus.Healthy
     )
 
+    /** Only AI providers count as the assistant's chat provider — never job feeds. */
+    private val aiProviderIds: Set<String> = providerRegistry
+        .getProvidersByCapability(ProviderCapability.AI.Chat)
+        .map { it.metadata.id }
+        .toSet()
+
     val providerStatus: StateFlow<ProviderStatusUi> = providerManager.providerStatuses
         .map { statuses ->
-            val ready = statuses.entries.firstOrNull { (_, status) -> status in readyStatuses }
+            val ready = statuses.entries.firstOrNull { (id, status) ->
+                id in aiProviderIds && status in readyStatuses
+            }
             if (ready != null) {
                 ProviderStatusUi(
                     isReady = true,
@@ -136,7 +147,7 @@ class AssistantViewModel @Inject constructor(
             var fullResponse = ""
             try {
                 getAssistantResponseUseCase.stream(
-                    AssistantRequest(currentConversationId, orchestratedPrompt)
+                    AssistantRequest(currentConversationId, orchestratedPrompt, rawUserMessage = text)
                 ).collect { chunk ->
                     fullResponse += chunk
                     _uiState.value = AssistantUiState.Chatting(

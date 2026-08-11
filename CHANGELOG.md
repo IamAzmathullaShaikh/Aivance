@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Assistant intent routing keys off the raw user message (2026-08-11)
+- The keyword intent detector ran against the **orchestrated** prompt, which embeds platform context including "Latest ATS Score: 0%". Because `ats` is a route keyword, **every** message was misrouted to `ANALYZE_RESUME` and short-circuited to a canned response — the LLM (cloud or on-device) was never reached, so the assistant could never hold open-ended conversation.
+- `AssistantRequest` now carries `rawUserMessage` (defaults to `userMessage` for compat); `GetAssistantResponseUseCase` routes intents off the raw text only, while the context-rich prompt still goes to the LLM. `AssistantViewModel` passes the unmodified user text as `rawUserMessage`.
+- **Tests**: `routes intent on the raw message, not the context-laden orchestrated prompt` + `still routes capability intents detected from the raw message`. Verified live: with airplane mode on, "What is the capital of France" now reaches the on-device Gemma model instead of returning "No resume found".
+
+### Fixed — Assistant provider chip only labels AI providers (2026-08-11)
+- The chip picked the first *Ready* provider of any type, so a healthy job feed (e.g. "Naukri") was labeled as the assistant's AI provider. It now filters to providers with the AI Chat capability (verified live: chip shows "Ollama · Ready" / "Gemma", never a job provider).
+- **Test**: `provider status never labels a job provider as the AI provider`.
+
 ### Added — Delete saved ATS reports from the Intelligence Hub (2026-08-11)
 - Each Recent ATS Scans card now has a **delete icon**; tapping it opens a confirmation dialog ("Delete ATS report? … removed permanently") and the confirmed report is removed via `AtsRepository.deleteReport` — the hub's live `getAllReports` flow drops the card immediately.
 - **Test**: `IntelligenceHubViewModelTest.deleteReport delegates to the repository`. Verified live on the emulator: seeded a stale 0% scan, deleted it through the UI, hub returned to the empty state and the DB row count hit 0.

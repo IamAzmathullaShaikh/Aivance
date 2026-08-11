@@ -136,6 +136,45 @@ class GetAssistantResponseUseCaseTest {
         assertTrue(chunks.single().contains("AiVance Copilot"))
     }
 
+    // ── Intent routing keys off the raw user message ────────────────
+
+    @Test
+    fun `routes intent on the raw message, not the context-laden orchestrated prompt`() = runTest {
+        // The orchestrated prompt embeds platform context like "Latest ATS
+        // Score: 0%" — matching keywords against it would misroute every
+        // message to ANALYZE_RESUME and the LLM would never be reached.
+        coEvery { capabilityRouter.routeIntent(any(), any()) } returns
+            com.bangersoul.aivance.core.common.result.Result.Success("routed-response")
+        val provider = FakeAiProvider(
+            id = "cloud",
+            streamChunks = listOf(Result.Success("llm-answer"))
+        )
+        every { providerManager.getBestProviderFor(ProviderCapability.AI.Streaming) } returns provider
+
+        val orchestrated = "You are an ATS Expert.\nLatest ATS Score: 0%\nUSER MESSAGE:\nhow are you today"
+        val chunks = useCase.stream(
+            AssistantRequest("c1", userMessage = orchestrated, rawUserMessage = "how are you today")
+        ).toList()
+
+        assertEquals(listOf("llm-answer"), chunks)
+    }
+
+    @Test
+    fun `still routes capability intents detected from the raw message`() = runTest {
+        coEvery { capabilityRouter.routeIntent("ANALYZE_RESUME", any()) } returns
+            com.bangersoul.aivance.core.common.result.Result.Success("resume-routed")
+
+        val chunks = useCase.stream(
+            AssistantRequest(
+                "c1",
+                userMessage = "context with ATS Score 0% wrapped around the message",
+                rawUserMessage = "analyze my resume"
+            )
+        ).toList()
+
+        assertEquals(listOf("resume-routed"), chunks)
+    }
+
     // ── One-shot invocation fallback ───────────────────────────────
 
     @Test

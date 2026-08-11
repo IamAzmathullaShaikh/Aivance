@@ -127,8 +127,48 @@ The zero-result trap was investigated end-to-end:
 
 ## 6. Leftover / follow-ups
 
-- The stale **0% ATS Scan** row in the Intelligence Hub (from the malformed
-  `%20`-laden JD test) — harmless, but worth a "delete report" affordance.
+- ~~The stale 0% ATS Scan row in the Intelligence Hub —~~ **done**: delete
+  affordance added and verified live (see CHANGELOG, 2026-08-11).
+
+## 7. Gemma on-device download & offline verification (2026-08-11) ★
+
+**Green Downloaded state — verified visually.** The 3,136,226,711-byte
+`gemma-3n-e2b-it-int4.task` completed at 19:15. In Provider Management →
+AI Providers → Gemma (On-device), the card shows a **"Downloaded" chip**
+whose background samples as `#DCFCE7` (emerald-100) with `#052E16`
+(emerald-950) text — the success green — plus a **Delete model** action and
+`gemma-3n-e2b-it-int4` as the selected model. (Screenshot:
+`/tmp/qa/gemma3.png`, chip pixels verified via ImageMagick histogram.)
+
+**Offline answer — proven end-to-end, airplane mode.**
+1. `airplane_mode_on=1` (verified via `settings get global airplane_mode_on`).
+2. Sent "What is the capital of France Answer in only one word" in the AI
+   Assistant. **First attempt was misrouted** — see the routing bug below.
+3. After the fix, the on-device Gemma streamed: *"The capital of France is
+   **Paris**. It seems like you're focused on building your career…"*
+   with the network still off. Screenshot: `/tmp/qa/offline_gemma_answer.png`.
+4. `pidof` confirmed the app stayed alive through generation; XNNPack weight-
+   cache loads in the process log confirm MediaPipe ran the local model.
+
+### 7.1 BUG (fixed) — intent routing starved the LLM (incl. on-device) ★
+
+`GetAssistantResponseUseCase` matched route keywords against the
+**orchestrated** prompt, which embeds "Latest ATS Score: 0%" from
+`ContextEngine`. Since `ats` is a route keyword, **every** assistant message
+was short-circuited to `ANALYZE_RESUME` → "No resume found…" and the LLM was
+never invoked. This is why the first offline prompt failed, and why general
+chat never worked.
+
+Fix: `AssistantRequest.rawUserMessage` (defaults to `userMessage`); intent
+routing now runs on the raw text only, while the context-rich prompt still
+reaches the LLM. Regression tests cover both directions.
+
+### 7.2 BUG (fixed) — assistant chip labeled a job provider as the AI provider
+
+The "AI provider" chip picked the first *Ready* provider of any type, so a
+healthy job feed showed "Naukri · Ready" as the assistant's chat provider.
+Now filtered to AI-Chat-capable providers only (verified live: "Ollama ·
+Ready" / Gemma instead).
 - Free LinkedIn actors return evergreen postings for keyword searches — with
   the fixed input + client-side filter they no longer pollute results, but a
   paid actor (or `locationIds` from LinkedIn geo codes) is needed for

@@ -12,13 +12,20 @@ import com.bangersoul.aivance.core.domain.engine.PromptOrchestrator
 import com.bangersoul.aivance.core.domain.repository.AssistantRepository
 import com.bangersoul.aivance.core.domain.usecase.assistant.AssistantRequest
 import com.bangersoul.aivance.core.domain.usecase.assistant.GetAssistantResponseUseCase
+import com.bangersoul.aivance.sdk.api.AIProvider
+import com.bangersoul.aivance.sdk.core.ProviderCapability
+import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
+import com.bangersoul.aivance.sdk.core.ProviderType
 import com.bangersoul.aivance.sdk.infrastructure.ProviderManager
+import com.bangersoul.aivance.sdk.infrastructure.ProviderRegistry
+import com.bangersoul.aivance.sdk.model.AiMessage
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -40,6 +47,7 @@ class AssistantViewModelTest {
     private val mockRepository: AssistantRepository = mockk()
     private val mockResponseUseCase: GetAssistantResponseUseCase = mockk()
     private val mockProviderManager: ProviderManager = mockk()
+    private val mockProviderRegistry: ProviderRegistry = mockk()
     private val mockStateEngine: CareerStateEngine = mockk()
     private val mockContextEngine: ContextEngine = mockk()
     private val mockIntentEngine: IntentEngine = mockk()
@@ -50,8 +58,10 @@ class AssistantViewModelTest {
         Dispatchers.setMain(testDispatcher)
         coEvery { mockRepository.saveMessage(any(), any(), any()) } returns Result.Success(1L)
         every { mockProviderManager.providerStatuses } returns MutableStateFlow(
-            mapOf("groq" to ProviderStatus.Active)
+            mapOf("groq" to ProviderStatus.Active, "naukri" to ProviderStatus.Ready)
         )
+        every { mockProviderRegistry.getProvidersByCapability(ProviderCapability.AI.Chat) } returns
+            listOf(fakeAiProvider("groq"))
         // The Copilot workspace drives the assistant off the CareerState engine
         // rather than a one-shot LoadProfile use case.
         every { mockStateEngine.state } returns MutableStateFlow(
@@ -70,14 +80,44 @@ class AssistantViewModelTest {
         mockRepository,
         mockResponseUseCase,
         mockProviderManager,
+        mockProviderRegistry,
         mockStateEngine,
         mockContextEngine,
         mockIntentEngine,
         mockPromptOrchestrator
     )
 
+    /** Minimal AI provider double for registry stubbing. */
+    private fun fakeAiProvider(id: String) = object : AIProvider(
+        metadata = ProviderMetadata(
+            id = id,
+            name = "Fake $id",
+            type = ProviderType.AI,
+            version = "1.0.0",
+            description = "fake",
+            author = "test"
+        ),
+        capabilities = setOf(ProviderCapability.AI.Chat, ProviderCapability.AI.Streaming)
+    ) {
+        override suspend fun generateText(prompt: String): Result<String> = Result.Success("answer")
+
+        override suspend fun chat(messages: List<AiMessage>): Result<String> = Result.Success("answer")
+
+        override fun streamText(prompt: String): Flow<String> = flowOf("answer")
+
+        override fun streamChat(messages: List<AiMessage>): Flow<Result<String>> =
+            flowOf(Result.Success("answer"))
+
+        override suspend fun listModels(): Result<List<String>> = Result.Success(emptyList())
+
+        override suspend fun onInitialize() {}
+        override suspend fun onStart() {}
+        override suspend fun onStop() {}
+        override suspend fun onDispose() {}
+    }
+
     @Test
-    fun `provider status surfaces ready provider`() = runTest(testDispatcher) {
+    fun `provider status surfaces ready AI provider`() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         // WhileSubscribed(5s) StateFlows only materialize once subscribed.
         backgroundScope.launch { viewModel.providerStatus.collect {} }
@@ -85,6 +125,23 @@ class AssistantViewModelTest {
 
         assertEquals(true, viewModel.providerStatus.value.isReady)
         assertEquals("Groq", viewModel.providerStatus.value.providerName)
+    }
+
+    @Test
+    fun `provider status never labels a job provider as the AI provider`() = runTest(testDispatcher) {
+        // Only a job feed (naukri) is Ready; no AI provider is ready.
+        every { mockProviderRegistry.getProvidersByCapability(ProviderCapability.AI.Chat) } returns
+            listOf(fakeAiProvider("groq"), fakeAiProvider("gemma"))
+        every { mockProviderManager.providerStatuses } returns MutableStateFlow(
+            mapOf("naukri" to ProviderStatus.Ready)
+        )
+
+        val viewModel = createViewModel()
+        backgroundScope.launch { viewModel.providerStatus.collect {} }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(false, viewModel.providerStatus.value.isReady)
+        assertEquals(null, viewModel.providerStatus.value.providerName)
     }
 
     @Test

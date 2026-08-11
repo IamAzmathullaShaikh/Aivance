@@ -18,7 +18,15 @@ import javax.inject.Inject
 
 data class AssistantRequest(
     val conversationId: String,
-    val userMessage: String
+    val userMessage: String,
+    /**
+     * The user's original message, before any orchestrator wrapping. Intent
+     * detection runs against this raw text: the orchestrated [userMessage]
+     * embeds platform context (e.g. "Latest ATS Score: 0%"), and keyword
+     * matching against it would misroute every prompt to ANALYZE_RESUME and
+     * starve the LLM of open-ended conversation.
+     */
+    val rawUserMessage: String = userMessage
 )
 
 /**
@@ -42,7 +50,7 @@ class GetAssistantResponseUseCase @Inject constructor(
 ) : UseCase<AssistantRequest, CoreResult<String>>() {
 
     override suspend operator fun invoke(input: AssistantRequest): CoreResult<String> = runCatchingCore {
-        generateResponse(input.userMessage)
+        generateResponse(input.userMessage, input.rawUserMessage)
     }
 
     /**
@@ -56,7 +64,7 @@ class GetAssistantResponseUseCase @Inject constructor(
      */
     fun stream(input: AssistantRequest): Flow<String> = flow {
         // Stage 1: detect + execute concrete intents before falling back to chat.
-        routeOrNull(input.userMessage)?.let {
+        routeOrNull(input.rawUserMessage)?.let {
             emit(it)
             return@flow
         }
@@ -138,9 +146,9 @@ class GetAssistantResponseUseCase @Inject constructor(
      * Routed intents short-circuit; everything else goes to the context-aware
      * LLM chat path.
      */
-    private suspend fun generateResponse(userMessage: String): String {
+    private suspend fun generateResponse(userMessage: String, rawUserMessage: String): String {
         // Stage 1: detect + execute concrete intents before falling back to chat.
-        routeOrNull(userMessage)?.let { return it }
+        routeOrNull(rawUserMessage)?.let { return it }
 
         // Stage 2: context-aware LLM chat with the active provider.
         val platformContext = contextEngine.buildActiveContext()
