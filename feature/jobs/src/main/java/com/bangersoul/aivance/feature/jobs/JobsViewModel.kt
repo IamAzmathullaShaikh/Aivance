@@ -70,14 +70,14 @@ class JobsViewModel @Inject constructor(
 
         JobsUiState.Success(
             jobs = currentJobs,
+            // Only an explicit user choice (Workplace dropdown) sets remoteType.
+            // The profile's workPreference is a ranking signal (see JobFitScorer),
+            // not a hard filter: promoting it here made the UI show "Remote" as
+            // pre-selected on every search and silently zeroed out remote-friendly
+            // boards (e.g. Arbeitnow, whose API returns most listings as ON_SITE)
+            // — the job-search "zero-results" trap.
             filter = manualSearch.filter.copy(
-                query = manualSearch.filter.query.ifBlank { profile.targetRole },
-                remoteType = manualSearch.filter.remoteType ?: when(profile.workPreference) {
-                    "REMOTE" -> com.bangersoul.aivance.core.common.enums.RemoteType.REMOTE
-                    "HYBRID" -> com.bangersoul.aivance.core.common.enums.RemoteType.HYBRID
-                    "ONSITE" -> com.bangersoul.aivance.core.common.enums.RemoteType.ON_SITE
-                    else -> null
-                }
+                query = manualSearch.filter.query.ifBlank { profile.targetRole }
             ),
             isSearching = manualSearch.isSearching,
             careerContext = careerState,

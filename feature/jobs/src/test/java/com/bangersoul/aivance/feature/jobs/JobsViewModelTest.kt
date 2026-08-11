@@ -279,6 +279,35 @@ class JobsViewModelTest {
     }
 
     @Test
+    fun `profile work preference is a ranking signal not a hard remote filter`() = runTest {
+        // Regression: the profile default (REMOTE) used to be promoted into the
+        // displayed filter, making the Workplace dropdown show "Remote" as
+        // pre-selected and silently zeroing out remote-friendly boards. It must
+        // stay null unless the user explicitly picks a Workplace filter.
+        val profile = ProfileState(targetRole = "Android Engineer", workPreference = "REMOTE")
+        every { mockCareerStateEngine.state } returns MutableStateFlow(CareerState(profile = profile))
+        coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
+
+        val viewModel = createViewModel()
+        collectStates(viewModel, backgroundScope)
+        viewModel.onEvent(JobsUiEvent.Search("Android"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value as JobsUiState.Success
+        assertEquals(null, state.filter.remoteType)
+
+        // An explicit Workplace choice is still honored and passes through.
+        viewModel.onEvent(JobsUiEvent.UpdateFilter(
+            JobSearchFilter(remoteType = com.bangersoul.aivance.core.common.enums.RemoteType.REMOTE)
+        ))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            com.bangersoul.aivance.core.common.enums.RemoteType.REMOTE,
+            (viewModel.uiState.value as JobsUiState.Success).filter.remoteType
+        )
+    }
+
+    @Test
     fun `clear filters resets non-query filters and re-searches with the query kept`() = runTest {
         coEvery { mockSearchJobs.invoke(any()) } returns Result.Success(jobs)
 

@@ -92,6 +92,33 @@ class JobFilterMatcherTest {
     }
 
     @Test
+    fun `remote filter accepts on-site-flagged jobs whose description signals remote`() {
+        val filter = JobSearchFilter(remoteType = RemoteType.REMOTE)
+        // Arbeitnow-style listing: board marks remote: false, description says remote.
+        assertTrue(matcher.matches(
+            job(remoteType = RemoteType.ON_SITE, description = "Fully remote position — work from home anywhere in the EU"),
+            filter
+        ))
+        assertTrue(matcher.matches(
+            job(remoteType = RemoteType.ON_SITE, description = "Home office möglich. Join our Berlin team."),
+            filter
+        ))
+    }
+
+    @Test
+    fun `remote filter still rejects explicitly on-site listings`() {
+        val filter = JobSearchFilter(remoteType = RemoteType.REMOTE)
+        assertFalse(matcher.matches(
+            job(remoteType = RemoteType.ON_SITE, description = "This is not a remote position — on-site only in Berlin"),
+            filter
+        ))
+        assertFalse(matcher.matches(
+            job(remoteType = RemoteType.ON_SITE, description = "On-site only. No home office."),
+            filter
+        ))
+    }
+
+    @Test
     fun `employment type filter respects jobs`() {
         val filter = JobSearchFilter(employmentTypes = listOf(EmploymentType.CONTRACT))
         assertTrue(matcher.matches(job(employmentType = EmploymentType.CONTRACT), filter))
