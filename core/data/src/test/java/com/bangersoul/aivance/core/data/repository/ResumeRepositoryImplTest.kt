@@ -2,6 +2,7 @@ package com.bangersoul.aivance.core.data.repository
 
 import android.content.Context
 import app.cash.turbine.test
+import com.bangersoul.aivance.core.common.model.AtsReport
 import com.bangersoul.aivance.core.common.model.Resume
 import com.bangersoul.aivance.core.common.model.ResumeVersion
 import com.bangersoul.aivance.core.common.result.Result
@@ -153,6 +154,54 @@ class ResumeRepositoryImplTest {
         assertEquals("AI feedback", report?.optimizationTips?.single()?.description)
         coVerify { atsDao.insertJobDescription(any()) }
         coVerify { atsDao.insertReport(any()) }
+    }
+
+    private suspend fun analyzeWithResponse(response: String): AtsReport? {
+        val resumeId = 1L
+        val versionId = 1L
+        val version = ResumeVersion(id = versionId, resumeId = resumeId, versionName = "Original Import")
+        coEvery { localDataSource.getVersionsForResume(resumeId) } returns flowOf(listOf(version))
+        every { providerManager.getBestProviderFor(ProviderCapability.AI.Chat) } returns mockAIProvider
+        coEvery { mockAIProvider.generateText(any()) } returns Result.Success(response)
+        coEvery { atsDao.insertJobDescription(any()) } returns 1L
+        coEvery { atsDao.insertReport(any()) } returns 42L
+        return repository.analyzeResume(resumeId, versionId, "job description").getOrNull()
+    }
+
+    @Test
+    fun `analyzeResume parses JSON overallScore from AI response`() = runTest {
+        val report = analyzeWithResponse(
+            """```json
+            {"overallScore": 91, "matchedKeywords": ["Kotlin", "Jetpack Compose"]}
+            ```"""
+        )
+
+        assertTrue(report != null)
+        assertEquals(91, report?.overallScore)
+        assertEquals(91, report?.matchPercentage)
+    }
+
+    @Test
+    fun `analyzeResume parses prose score from AI response`() = runTest {
+        val report = analyzeWithResponse(
+            "The overall match score is 87/100. Keywords: Kotlin, Compose, MVVM."
+        )
+
+        assertTrue(report != null)
+        assertEquals(87, report?.overallScore)
+        assertEquals(87, report?.matchPercentage)
+    }
+
+    @Test
+    fun `analyzeResume falls back to 80 when AI response has no parseable score`() = runTest {
+        // "0-100" is the prompt's range description, not a score of 0.
+        val report = analyzeWithResponse(
+            "Overall match score 0-100. Matched keywords: ATS. Missing: leadership."
+        )
+
+        assertTrue(report != null)
+        assertEquals(80, report?.overallScore)
+        assertEquals(80, report?.matchPercentage)
     }
 
 }

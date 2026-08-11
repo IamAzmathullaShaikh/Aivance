@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — ATS legacy analyze path now scores from the AI answer (2026-08-11)
+- **`ResumeRepositoryImpl.analyzeResume`** no longer hardcodes `overallScore = 80` (the `// TODO: parse aiResponse for a real score`). The AI's free-text analysis is now scored defensively: fence-tolerant JSON payload (`overallScore`/`score` key) → explicit prose (`"score: 87"`, `"match score is 87/100"`, never a `0` and never hyphen-range endpoints like the prompt's `"0-100"`) → first standalone 0-100 integer. Unparseable responses keep the neutral 80 fallback.
+- **Tests**: 3 new `ResumeRepositoryImplTest` cases (JSON score 91, prose 87/100, and a "0-100 range description is not a score" regression guard). Full `testDebugUnitTest` green.
+
 ### Added — STAR Coaching Prompts + Rubric Gate (On-Device Coach, Option C) (2026-08-11)
 - **`STARCoachingPrompts`** (`core:domain`): single source of truth for the four STAR component labels and the `idealAnswer` guidance — every interview AI path (`GenerateStarPackUseCase` packs, `InterviewRepositoryImpl` session questions + answer evaluation) now carries explicit STAR formatting/coaching instructions, so the on-device Gemma (and every cloud provider) receives the same guidance. Prompt-based coach per the `ONDEVICE_GEMMA_SFT_DESIGN.md` Option C (Gate G1 ruled out MediaPipe LoRA on the current artifacts).
 - **`STARAnswerScorer`** (`core:domain`): deterministic 0–100 STAR rubric — detects Situation/Task/Action/Result via labeled paragraphs with hint-vocabulary fallback, bounded 25 pts/component, anti-gaming (repeated hints never inflate). `evaluateAnswer` now fills `starMethodScore` from the scorer when the AI omits it, so the review screen always has a grounded STAR score.

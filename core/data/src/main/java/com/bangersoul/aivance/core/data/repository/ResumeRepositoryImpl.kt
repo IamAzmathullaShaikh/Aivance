@@ -22,6 +22,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -166,16 +169,67 @@ class ResumeRepositoryImpl @Inject constructor(
             JobDescription(rawText = jobDescription).toEntity()
         )
 
-        // Persist to ats_reports and return the canonical AtsReport.
+        // Persist to ats_reports and return the canonical AtsReport, scoring the
+        // report from the AI's actual answer instead of a hardcoded 80.
+        val parsedScore = parseAtsScore(aiResponse)
         val report = AtsReport(
             resumeVersionId = versionId,
             jobDescriptionId = jobDescriptionId,
-            overallScore = 80, // TODO: parse aiResponse for a real score
-            matchPercentage = 80,
+            overallScore = parsedScore ?: 80,
+            matchPercentage = parsedScore ?: 80,
             optimizationTips = listOf(OptimizationTip("AI", aiResponse, "MEDIUM"))
         )
         val reportId = atsDao.insertReport(report.toEntity())
         report.copy(id = reportId)
+    }
+
+    /**
+     * Extracts the 0-100 match score from the AI's free-text analysis.
+     *
+     * The prompt asks for an "overall match score 0-100" but does not enforce a
+     * format, so responses vary: some models emit a JSON object, most emit prose
+     * like "The overall match score is 87/100." This parses defensively, in order:
+     * 1. A (fence-tolerant) JSON payload with an `overallScore`/`score` key.
+     * 2. An explicit `score`/`match ... N/100` (or `N`) phrase — first digit
+     *    required to be 1-9 so a literal range description like "0-100" is never
+     *    mistaken for a score of 0.
+     * 3. The first standalone 0-100 integer in the response.
+     *
+     * Returns null when nothing parseable is present; callers keep a neutral
+     * fallback (the ATS feature's streaming path parses structured JSON instead).
+     */
+    private fun parseAtsScore(aiResponse: String): Int? {
+        // 1) Structured JSON — mirrors AtsRepositoryImpl.persistParsedReport.
+        runCatching {
+            val jsonText = if (aiResponse.contains("```json")) {
+                aiResponse.substringAfter("```json").substringBefore("```").trim()
+            } else aiResponse
+            val start = jsonText.indexOf('{')
+            val end = jsonText.lastIndexOf('}')
+            if (start < 0 || end <= start) return@runCatching
+            val obj = Json.parseToJsonElement(jsonText.substring(start, end + 1)).jsonObject
+            val raw = obj["overallScore"] ?: obj["score"]
+            val value = (raw as? JsonPrimitive)?.content?.toIntOrNull()
+            if (value != null && value in 0..100) return value
+        }
+
+        // 2) Explicit prose: "score: 87", "match score is 87/100" — never a 0,
+        //    and never a hyphen-range endpoint like the prompt's "0-100".
+        val prose = Regex("""(?i)(?:score|match)[^0-9]{0,25}([1-9]\d{0,2})(?!-\d)\b""")
+        prose.findAll(aiResponse)
+            .mapNotNull { it.groupValues[1].toIntOrNull() }
+            .firstOrNull { it in 1..100 }
+            ?.let { return it }
+
+        // 3) Last resort: first standalone 0-100 integer in the response, again
+        //    excluding hyphen-range endpoints ("0-100", "60-70").
+        Regex("""(?<!\d-)\b(\d{1,3})\b(?!-\d)""")
+            .findAll(aiResponse)
+            .mapNotNull { it.groupValues[1].toIntOrNull() }
+            .firstOrNull { it in 0..100 }
+            ?.let { return it }
+
+        return null
     }
 }
 
