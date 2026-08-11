@@ -72,9 +72,30 @@ The zero-result trap was investigated end-to-end:
   "Don't fit another role…") regardless of keyword (reproduced with curl on
   both `valig~linkedin-jobs-scraper` and `curious_coder~linkedin-jobs-scraper`,
   with and without `keywords`/`locationIds`).
-- Fixed: send `positions[]`, `location`/`country`, `maxItems`; switched the
-  LinkedIn provider to the canonical `curious_coder~linkedin-jobs-scraper`.
-  Client-side keyword filtering still trims non-matching items.
+- **Final verified input** (live, 2026-08-11): the actor keys off its AI-search
+  filters — `keywords` (string) + `location`/`country` + `maxItems`. With
+  `keywords="Android Engineer"` + `location="United States"` it returns real
+  keyword-relevant LinkedIn roles: Software Engineer II, Android Engineering
+  (Axon) · Software Engineer II, Android (Pinterest) · Software Engineer,
+  Android — All Teams (DoorDash) · Android Engineer, Applied Foundations
+  (OpenAI) · Stellantis · EVgo · Red Cat Holdings · Waymo… `positions[]` with an
+  empty location returns an explicit actor error ("Provide either LinkedIn jobs
+  search URLs, or fill in the AI search filters (keywords, location, etc.)").
+- **Poll budget**: the actor takes 60–120s+; the old 30×2s (60s) poll budget
+  timed out before the dataset was ready (run `C3Tc7OFyczet2uDyg`), so LinkedIn
+  silently contributed nothing. Bumped to 90×3s (≈4.5 min), covering the
+  actor's 300s timeout.
+- Switched the LinkedIn provider to the canonical
+  `curious_coder~linkedin-jobs-scraper`. Client-side keyword filtering still
+  trims non-matching items.
+
+### 3.4 Apify free-tier quota exhaustion (upstream, not an app bug)
+- After ~8 verification runs the token's free-tier monthly compute budget was
+  exhausted: new runs return **403 "Monthly usage hard limit exceeded"**
+  (user plan FREE, $5/month, 625 compute units). The app degrades gracefully:
+  circuit breaker trips LinkedIn, then the per-provider cache fallback returns
+  only LinkedIn's own cached jobs ("Network failed for linkedin, returning 1
+  cached jobs") — no cross-provider echo.
 
 ## 4. Navigation & features exercised
 

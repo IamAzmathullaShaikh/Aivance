@@ -15,7 +15,6 @@ import com.bangersoul.aivance.sdk.core.ProviderType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import okhttp3.OkHttpClient
@@ -54,8 +53,12 @@ open class ApifyJobProvider(
         apiKey = config.secrets["apiKey"] ?: apiKey
     }
 
-    private val maxPollAttempts = 30
-    private val pollIntervalMs = 2_000L
+    // The curious_coder~linkedin-jobs-scraper actor can take 60–120s+ to
+    // finish; the old 30×2s (60s) budget gave up before the dataset was ready
+    // and LinkedIn silently contributed nothing (QA E2E 2026-08-11, run
+    // C3Tc7OFyczet2uDyg). 90×3s ≈ 4.5 min covers the actor's 300s timeout.
+    private val maxPollAttempts = 90
+    private val pollIntervalMs = 3_000L
 
     override suspend fun executeSearch(
         filter: JobSearchFilter,
@@ -67,13 +70,16 @@ open class ApifyJobProvider(
         }
 
         // 1. Start the actor run with the search query as input.
-        // LinkedIn scraper actors (curious_coder/valig) key off `positions` (an
-        // array) + `location`, NOT `search` — passing `search` silently makes the
-        // actor fall back to evergreen "always hiring" postings unrelated to the
-        // query (QA E2E 2026-08-11). A client-side keyword pass still trims junk.
+        // The curious_coder~linkedin-jobs-scraper actor keys off the AI search
+        // filters (`keywords` + `location`/`country`). Verified live (QA E2E
+        // 2026-08-11): with `keywords="Android Engineer"` + `location` it returns
+        // real LinkedIn roles (Waymo/Pinterest/DoorDash…); with `positions[]` +
+        // empty location it returns an explicit input error, and the old `search`
+        // key silently fell back to evergreen postings. A client-side keyword
+        // pass still trims anything non-matching.
         val input = buildJsonObject {
             if (filter.query.isNotBlank()) {
-                put("positions", JsonArray(listOf(JsonPrimitive(filter.query))))
+                put("keywords", JsonPrimitive(filter.query))
             }
             if (filter.location.isNotBlank()) {
                 put("location", JsonPrimitive(filter.location))
