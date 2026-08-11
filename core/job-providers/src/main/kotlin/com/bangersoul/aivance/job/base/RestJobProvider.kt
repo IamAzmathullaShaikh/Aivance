@@ -80,8 +80,13 @@ abstract class RestJobProvider(
         } catch (e: Exception) {
             handleFailure(e)
 
-            // Reliability: Fallback to cache if network fails
-            val cachedJobs = jobCache.getJobs()
+            // Reliability: Fallback to THIS provider's own cache if the network
+            // fails. The shared cache is attributed per provider (sourceProvider
+            // is stamped by the normalizer on every successful fetch), so a
+            // provider can never masquerade another board's stale listings as
+            // its own results — that was the "dummy results" bug where every
+            // unconfigured provider echoed the whole DB on failure.
+            val cachedJobs = jobCache.getJobs().filter { it.sourceProvider == metadata.id }
             if (cachedJobs.isNotEmpty()) {
                 Timber.d("Network failed for ${metadata.id}, returning ${cachedJobs.size} cached jobs")
                 Result.Success(cachedJobs)

@@ -18,6 +18,7 @@ import com.bangersoul.aivance.core.database.model.CompanyEntity
 import com.bangersoul.aivance.core.database.model.SavedJobEntity
 import com.bangersoul.aivance.core.database.model.ViewedJobEntity
 import com.bangersoul.aivance.core.domain.repository.JobRepository
+import com.bangersoul.aivance.core.domain.repository.ProviderRepository
 import com.bangersoul.aivance.sdk.api.EnrichmentProvider
 import com.bangersoul.aivance.sdk.api.JobProvider
 import com.bangersoul.aivance.sdk.infrastructure.ProviderRegistry
@@ -37,7 +38,8 @@ class JobRepositoryImpl @Inject constructor(
     private val providerRegistry: ProviderRegistry,
     private val normalizer: JobNormalizer,
     private val filterMatcher: JobFilterMatcher,
-    private val companyCatalog: CompanyCatalog
+    private val companyCatalog: CompanyCatalog,
+    private val providerRepository: ProviderRepository
 ) : JobRepository {
 
     override fun getJobs(): Flow<CoreResult<List<JobListing>>> {
@@ -51,8 +53,19 @@ class JobRepositoryImpl @Inject constructor(
         sortOrder: JobSortOrder
     ): CoreResult<List<JobListing>> = coroutineScope {
         runCatchingCore {
+            // Multi-provider selection: only providers the user has enabled run.
+            // A provider with no persisted config is enabled by default (keyless
+            // boards like Arbeitnow/RemoteOK work with zero setup); a provider
+            // explicitly toggled off in Provider Management is skipped even if
+            // it still carries valid credentials.
+            val savedConfigs = providerRepository.getProviderConfigs().firstOrNull() ?: emptyList()
+            val disabledIds = savedConfigs
+                .filter { it.settings["isEnabled"]?.toBoolean() == false }
+                .map { it.providerId }
+                .toSet()
             val providers = providerRegistry.getAllProviders()
                 .filterIsInstance<JobProvider>()
+                .filter { it.metadata.id !in disabledIds }
                 .filter { it.status == com.bangersoul.aivance.sdk.core.ProviderStatus.Active ||
                            it.status == com.bangersoul.aivance.sdk.core.ProviderStatus.Ready }
 

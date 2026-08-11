@@ -13,7 +13,9 @@ import com.bangersoul.aivance.core.database.dao.JobDao
 import com.bangersoul.aivance.core.database.model.CompanyEntity
 import com.bangersoul.aivance.core.database.model.JobEntity
 import com.bangersoul.aivance.core.database.model.JobWithDetails
+import com.bangersoul.aivance.core.domain.repository.ProviderRepository
 import com.bangersoul.aivance.sdk.api.JobProvider
+import com.bangersoul.aivance.sdk.config.ProviderConfiguration
 import com.bangersoul.aivance.sdk.core.ProviderMetadata
 import com.bangersoul.aivance.sdk.core.ProviderStatus
 import com.bangersoul.aivance.sdk.core.ProviderType
@@ -35,6 +37,7 @@ class JobRepositoryImplTest {
     private val providerRegistry: ProviderRegistry = mockk()
     private val normalizer = JobNormalizer()
     private val filterMatcher = JobFilterMatcher()
+    private val providerRepository: ProviderRepository = mockk()
     private val companyCatalog = CompanyCatalog.fromJson(
         """
         [
@@ -47,7 +50,8 @@ class JobRepositoryImplTest {
     @Before
     fun setUp() {
         coEvery { jobDao.getJobsWithDetails() } returns kotlinx.coroutines.flow.flowOf(emptyList())
-        repository = JobRepositoryImpl(jobDao, companyDao, providerRegistry, normalizer, filterMatcher, companyCatalog)
+        coEvery { providerRepository.getProviderConfigs() } returns kotlinx.coroutines.flow.flowOf(emptyList())
+        repository = JobRepositoryImpl(jobDao, companyDao, providerRegistry, normalizer, filterMatcher, companyCatalog, providerRepository)
     }
 
     @Test
@@ -55,6 +59,45 @@ class JobRepositoryImplTest {
         every { providerRegistry.getAllProviders() } returns emptyList()
 
         val result = repository.searchJobs(JobSearchFilter(query = "engineer"), JobSortOrder.RELEVANCE)
+
+        assertTrue(result is Result.Success)
+        assertEquals(emptyList<JobListing>(), (result as Result.Success).data)
+    }
+
+    @Test
+    fun `searchJobs skips providers explicitly disabled in Provider Management`() = runTest {
+        val disabledProvider = mockk<JobProvider>()
+        every { disabledProvider.metadata } returns ProviderMetadata(
+            id = "disabled",
+            name = "Disabled",
+            type = ProviderType.JOB,
+            version = "1.0.0",
+            description = "Disabled provider",
+            author = "Test"
+        )
+        every { disabledProvider.status } returns ProviderStatus.Active
+        coEvery { disabledProvider.searchJobs(any(), any(), any()) } returns Result.Success(
+            listOf(
+                JobListing(
+                    id = "1", title = "Should Not Appear", company = "Fully Remote Inc",
+                    location = "Remote", description = "d", url = "https://a.com/1", sourceProvider = "disabled"
+                )
+            )
+        )
+        // Provider has a persisted config with isEnabled=false — the search must
+        // not query it, even though it is Active.
+        coEvery { providerRepository.getProviderConfigs() } returns kotlinx.coroutines.flow.flowOf(
+            listOf(
+                ProviderConfiguration(
+                    providerId = "disabled",
+                    settings = mapOf("isEnabled" to "false"),
+                    secrets = emptyMap()
+                )
+            )
+        )
+        every { providerRegistry.getAllProviders() } returns listOf(disabledProvider)
+
+        val result = repository.searchJobs(JobSearchFilter(query = "android"), JobSortOrder.RELEVANCE)
 
         assertTrue(result is Result.Success)
         assertEquals(emptyList<JobListing>(), (result as Result.Success).data)
