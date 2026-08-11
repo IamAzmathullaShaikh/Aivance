@@ -198,7 +198,7 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 - **SR-04 — New secret-bearing headers must join the redact list** — future provider headers need `redactHeader` coverage (→ P2-05).
 
 ### Database Certification Sprint (2026-08-03) — Remaining Risks
-- **DR-01 — Instrumented DB tests compiled but not executed on device** (no emulator) — SQL proven by SQLite replay; run `:core:database:connectedDebugAndroidTest` on CI before release (→ P0-01). See **`DEVICE_VALIDATION.md`** for exact command and expected output.
+- **~~DR-01 — Instrumented DB tests compiled but not executed on device~~ ✅ RESOLVED** (2026-08-11, AVD `aivance` Android 11/API 30): `:core:database:connectedDebugAndroidTest` — 37 tests, 0 failures/errors, full migration chain 5→25 verified on-device (→ P0-01). Physical-device re-run remains optional for Play certification.
 - **DR-02 — v1–v4 migration paths unverifiable** (no exported schemas for those versions) — pre-release versions; empty no-op migrations retained.
 - **DR-03 — ~~`DatabaseManager` / `DatabaseSeed` possibly dead code~~ ✅ RESOLVED** (2026-08-04): zero consumers confirmed; both classes deleted, DI bindings removed. `DatabaseSeed` fabricated demo data ("Jane Doe"/fake jobs) — removed per the no-fake-data rule. Orphaned `DashboardRepository`/`DashboardRepositoryImpl`/`DashboardModule` (no consumers after the Career-HQ rewrite) also removed.
 

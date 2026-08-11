@@ -37,12 +37,14 @@ adb devices
 ### Expected pass output
 
 ```
-Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESSFUL
 ```
 
+> **Note (2026-08-11)**: the earlier "47" figure was stale — the suite is 37 tests (26 `MigrationTest` cases + DAO suites) since the T-04 `resume_analyses` table drop. P0-01 is now ✅ RESOLVED: executed on the `aivance` AVD (Android 11 / API 30), 37 tests, 0 failures, migration chain 5→25 verified on-device.
+
 Key assertions to confirm in the output:
-- **Migration tests 5→24**: each `MIGRATION_X_Y` runs without `SQLiteException`
+- **Migration tests 5→25**: each `MIGRATION_X_Y` runs without `SQLiteException` (includes the newest `migrate24To25_dropsLegacyResumeAnalyses` and `migrate10To25_legacyResumeAnalysesDropped`)
 - **`PRAGMA foreign_key_check`**: all tests that explicitly run this check must return 0 rows
 - **DAO tests** (AivanceFeatureDaoTest, AtsFeatureDaoTest, InterviewFeatureDaoTest, JobFeatureDaoTest, ProfileFeatureDaoTest): 0 failures
 

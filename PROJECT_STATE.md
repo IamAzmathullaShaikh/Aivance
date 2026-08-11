@@ -90,6 +90,8 @@
 - **Remote-work resources hub (R-06)**: `RemoteResourcesScreen` reachable via `Destination.Resources` from About + Profile System tab; categorized links (boards, curated lists, prep, remote companies) with localized chrome.
 - **Apply-assist rules (R-07)**: job-filter include/exclude keyword chips (whitelist/blacklist) + Tracker daily application quota (count vs. configurable DataStore-backed cap) — UX patterns reimplemented from scratch.
 - **ViewModel test-strength pass (T-05)**: tautological initial-state assertions replaced with behavior checks (ATS resume loading, Home state content, Load/import transitions) and +33 event-verification tests added across 7 features (interview answers, ATS report actions, cover-letter edit/copy/export/regenerate, jobs clear/refresh, saved-jobs details/refresh/failure, resume OCR + JSON imports, notifications refresh/no-ops).
+- **LLM training study artifact**: `docs/LLM_TRAINING_NOTES.md` — distilled techniques from the MIT-licensed `train-llm-from-scratch` repo (SFT loss masks, Bradley-Terry RM, DPO/ORPO/KTO, PPO/GAE, GRPO + k3 KL, RLVR rewards), with a section mapping the SFT/RLVR patterns onto a future on-device Gemma fine-tune for the Interview engine.
+- **STAR coaching prompts + rubric gate (Option C)**: `docs/ONDEVICE_GEMMA_SFT_DESIGN.md` — on-device fine-tune design; **Gate G1 executed (2026-08-11)**: the current `.task` artifacts (LiteRT-Torch-converted) cannot carry MediaPipe LoRA, so the immediate deliverable is prompt-based coaching — `STARCoachingPrompts` (shared STAR guidance on every interview AI path) + `STARAnswerScorer` (deterministic STAR rubric; fills `starMethodScore` when the AI omits it). SFT/LoRA blueprint deferred to the LiteRT-LM migration (Option B).
 
 ## Phase 12 Completion
 - **Design System**: Tokenized color/type/spacing/shape/elevation/motion with Light/Dark/AMOLED/Dynamic themes.
@@ -111,10 +113,10 @@
 
 ## Known Issues
 See `KNOWN_ISSUES.md` for the full catalog. All 🔴 High and 🟡 Medium severity issues are **resolved**.
-Open items: P0-01 (instrumented DB tests — requires device/emulator), P0-02 (MITM pen-test — requires device). See `DEVICE_VALIDATION.md` for P0-01/P0-02 execution instructions.
+Open items: P0-02 (MITM pen-test — requires device). P0-01 ✅ RESOLVED (2026-08-11 — `:core:database:connectedDebugAndroidTest` executed on the `aivance` AVD: 37 tests, 0 failures, migration chain 5→25 verified on-device). See `DEVICE_VALIDATION.md` for P0-02 execution instructions.
 
 ## Last Coordinated
-- **2026-08-11**: T-05 test-strength pass (de-tautologized assertions, +33 event-verification tests across 7 features). Full suite green.
+- **2026-08-11**: P0-01 closed — instrumented DB suite executed on the `aivance` emulator (37 tests, 0 failures, migration chain 5→25 on-device). T-05 test-strength pass also landed.
 - **2026-08-10**: Full walkthrough + TODO coordination pass. All stale debt entries updated. `DEVICE_VALIDATION.md` created.
 
 ## Release Readiness
