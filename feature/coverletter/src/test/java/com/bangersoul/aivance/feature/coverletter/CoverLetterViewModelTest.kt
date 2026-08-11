@@ -343,4 +343,22 @@ class CoverLetterViewModelTest {
         assertEquals("Tech Corp", (state as CoverLetterUiState.Success).coverLetter?.company)
         coVerify { mockTrackEvent.invoke(match { it.eventName == "cover_letter_generate_for_job" }) }
     }
+
+    @Test
+    fun `generateFromPrimary streams a letter with a null job id`() = runTest(testDispatcher) {
+        every { mockStreamGenerateUseCase.stream(any()) } returns flowOf("Hello ", "Your Next Employer")
+        viewModel = createViewModel()
+
+        viewModel.onEvent(CoverLetterUiEvent.GenerateFromPrimary)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The request must carry jobId = null (generic letter) so the
+        // GenerateCoverLetterUseCase no longer rejects it.
+        coVerify {
+            mockStreamGenerateUseCase.stream(
+                match { it.jobId == null && it.resumeId == 1L && it.resumeVersionId == 1L }
+            )
+        }
+        coVerify { mockTrackEvent.invoke(match { it.eventName == "cover_letter_generate_primary" }) }
+    }
 }
