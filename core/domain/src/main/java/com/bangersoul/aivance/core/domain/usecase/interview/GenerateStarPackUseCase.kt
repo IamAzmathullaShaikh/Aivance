@@ -60,16 +60,8 @@ class GenerateStarPackUseCase @Inject constructor(
         }
     }
 
-    private fun buildPrompt(role: String, count: Int): String = buildString {
-        appendLine("You are an expert interview coach. Generate $count STAR-format (Situation, Task, Action, Result) interview questions for a $role candidate.")
-        appendLine("Each question must be answerable with the STAR method and specific to the $role role.")
-        appendLine("Return ONLY a JSON array of objects with:")
-        appendLine("\"text\": String,")
-        appendLine("\"category\": String (BEHAVIORAL, TECHNICAL or LEADERSHIP),")
-        appendLine("\"difficulty\": String (EASY, MEDIUM or HARD),")
-        appendLine("\"expectedKeyPoints\": [String] — the S/T/A/R framework points for the answer,")
-        appendLine("\"idealAnswer\": String — a short worked STAR example answer.")
-    }
+    private fun buildPrompt(role: String, count: Int): String =
+        STARCoachingPrompts.buildPackPrompt(role, count)
 
     /**
      * Extracts the question array from the provider response, tolerating

@@ -57,6 +57,23 @@ class GenerateStarPackUseCaseTest {
     }
 
     @Test
+    fun `AI prompt carries the STAR ideal-answer guidance`() = runTest {
+        val promptSlot = io.mockk.slot<String>()
+        every { aiRepository.streamAnalyzeText("Android Engineer", capture(promptSlot)) } returns flowOf(
+            aiJson()
+        )
+
+        useCase(GenerateStarPackRequest(role = "Android Engineer", count = 5))
+
+        val prompt = promptSlot.captured
+        assertTrue(prompt.contains("5 STAR-format"))
+        assertTrue(prompt.contains("MUST be a worked STAR answer"))
+        STARCoachingPrompts.COMPONENTS.forEach { label ->
+            assertTrue(prompt.contains("\"$label: <content>\""))
+        }
+    }
+
+    @Test
     fun `AI path tolerates markdown fences`() = runTest {
         every { aiRepository.streamAnalyzeText(any(), any()) } returns flowOf(
             "Here are your questions:\n```json\n${aiJson()}\n```\nGood luck!"
