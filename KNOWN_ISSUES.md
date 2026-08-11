@@ -217,3 +217,13 @@ This document tracks known limitations and defects at the **v1.0.0** release. Is
 - Stale tests referencing deleted use cases across 6 feature modules — fixed in Phase 13.
 - Mock WebServer tests for Arbeitnow/Jobicy/Apify — green.
 - Legacy `FakeDashboardRepository` deleted from `feature:dashboard` main source set — replaced by the real `DashboardRepositoryImpl` aggregation in the Career HQ rewrite.
+
+## Full E2E QA Pass (2026-08-11) — Findings & Fixes
+- **KB-01 — ~~Soft keyboard overlapped bottom content~~ ✅ RESOLVED**: app is edge-to-edge (`enableEdgeToEdge()`) but no screen applied `imePadding()` — keyboard covered the assistant composer, auth Continue, and onboarding actions. Added `imePadding()` to the assistant input bar, auth scroll column, and onboarding columns. Pixel-verified: composer sits above Gboard.
+- **ST-01 — ~~"Quick Practice" dead stub~~ ✅ RESOLVED**: hero card `onClick = {}` — now starts a behavioral mock session immediately (verified live: Q1/5 + answer field + submit).
+- **ST-02 — ~~Pipeline "View Analytics" dead stub~~ ✅ RESOLVED**: empty onClick → now navigates to the Intelligence Center.
+- **ST-03 — ~~Job Details "Start Prep" + Analytics "Boost Score" dead stubs~~ ✅ RESOLVED**: both now navigate (Prep Studio / Intelligence Hub).
+- **ST-04 — ~~Identity Hub "+ Add Skill" / "+ Add" industry / "Export Career Data" dead~~ ✅ RESOLVED**: add-dialogs wired to the draft profile (verified live), export shares the profile payload via the system sheet.
+- **ST-05 — Remaining stubs (accepted, low priority)**: Identity Hub "Upload Document" (Vault tab); legacy per-industry chips in the profile; kanban moves require long-press drag (Compose DnD wired, works for real users, not automatable via `adb swipe`).
+- **QA-01 — LinkedIn (Apify) free-tier quota exhaustion**: provider returns 403 when the daily free quota is spent; the search layer degrades gracefully to cached jobs + other providers (observed live: "Android Engineer" returned Arbeitnow results). Documented in QA_E2E_NOTES §3.4.
+- **QA-02 — System file picker (DocumentsUI) not automatable via adb**: the resume-import wizard's picker opens correctly but won't return a selection via `adb input tap` on this emulator — automation limitation, not an app bug (ATS scan pipeline verified in earlier sessions: report create/open/delete).

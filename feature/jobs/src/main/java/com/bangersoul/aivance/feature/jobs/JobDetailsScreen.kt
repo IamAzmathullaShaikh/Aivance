@@ -41,7 +41,8 @@ fun JobDetailsScreen(
     onNavigateToCoverLetter: (Long) -> Unit = {},
     onNavigateToPipeline: () -> Unit = {},
     onNavigateToAts: (String) -> Unit = {},
-    onNavigateToCompany: (String) -> Unit = {}
+    onNavigateToCompany: (String) -> Unit = {},
+    onNavigateToPrepStudio: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -147,7 +148,8 @@ fun JobDetailsScreen(
                             1 -> JobReadinessContent(
                                 score = state.readinessScore,
                                 onOpenAts = { viewModel.onEvent(JobDetailsUiEvent.OpenAts) },
-                                onGenerateCoverLetter = { viewModel.onEvent(JobDetailsUiEvent.GenerateCoverLetter) }
+                                onGenerateCoverLetter = { viewModel.onEvent(JobDetailsUiEvent.GenerateCoverLetter) },
+                                onNavigateToPrepStudio = onNavigateToPrepStudio
                             )
                             2 -> JobIntelligenceContent(
                                 company = state.company,
@@ -232,7 +234,8 @@ private fun JobOverviewContent(
 private fun JobReadinessContent(
     score: Int,
     onOpenAts: () -> Unit,
-    onGenerateCoverLetter: () -> Unit
+    onGenerateCoverLetter: () -> Unit,
+    onNavigateToPrepStudio: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -274,7 +277,7 @@ private fun JobReadinessContent(
             description = "We found 12 specific interview questions for this role.",
             actionLabel = "Start Prep",
             icon = Icons.Rounded.RecordVoiceOver,
-            onClick = { /* Navigate to Prep Studio */ }
+            onClick = onNavigateToPrepStudio
         )
     }
 }

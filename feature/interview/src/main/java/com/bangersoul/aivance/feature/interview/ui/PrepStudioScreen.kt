@@ -97,9 +97,23 @@ private fun PracticeTab(viewModel: InterviewViewModel) {
         is InterviewUiState.Idle -> {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Hero Section
+                val upcoming = state.careerState?.pipeline?.upcomingInterviews?.firstOrNull()
                 PrepStudioHero(
                     readinessScore = state.readinessScore,
-                    upcomingInterview = state.careerState?.pipeline?.upcomingInterviews?.firstOrNull()
+                    upcomingInterview = upcoming,
+                    onQuickPractice = {
+                        // Start a behavioral mock immediately — for the
+                        // scheduled interview when one exists, otherwise a
+                        // general session so the button is never dead.
+                        viewModel.onEvent(
+                            InterviewUiEvent.StartSession(
+                                role = upcoming?.role ?: "Software Engineer",
+                                company = upcoming?.company ?: "General",
+                                type = "BEHAVIORAL",
+                                jobId = upcoming?.id?.toLongOrNull()
+                            )
+                        )
+                    }
                 )
 
                 PracticeHub(
@@ -135,7 +149,8 @@ private fun PracticeTab(viewModel: InterviewViewModel) {
 @Composable
 private fun PrepStudioHero(
     readinessScore: Int,
-    upcomingInterview: com.bangersoul.aivance.core.common.model.UpcomingInterviewShort?
+    upcomingInterview: com.bangersoul.aivance.core.common.model.UpcomingInterviewShort?,
+    onQuickPractice: () -> Unit
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         AivanceHeroCard(
@@ -144,7 +159,7 @@ private fun PrepStudioHero(
                 "You have an interview for ${upcomingInterview.role} scheduled for ${upcomingInterview.dateTime}."
                 else "Complete mock sessions to increase your score and confidence.",
             actionLabel = "Quick Practice",
-            onClick = { /* Start session for upcoming */ }
+            onClick = onQuickPractice
         )
         Spacer(Modifier.height(16.dp))
         Row(

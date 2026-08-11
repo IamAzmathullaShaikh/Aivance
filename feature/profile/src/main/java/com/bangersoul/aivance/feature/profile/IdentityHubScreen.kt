@@ -18,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -233,6 +234,12 @@ private fun PreferencesTab(viewModel: IdentityHubViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val profile = uiState.draftProfile ?: return
 
+    var showAddSkillDialog by remember { mutableStateOf(false) }
+    var showAddIndustryDialog by remember { mutableStateOf(false) }
+    var newSkill by remember { mutableStateOf("") }
+    var newIndustry by remember { mutableStateOf("") }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp),
@@ -286,7 +293,7 @@ private fun PreferencesTab(viewModel: IdentityHubViewModel) {
                         trailingIcon = { Icon(Icons.Rounded.Close, null, Modifier.size(16.dp)) }
                     )
                 }
-                SuggestionChip(onClick = { /* Add Skill */ }, label = { Text("+ Add Skill") })
+                SuggestionChip(onClick = { showAddSkillDialog = true }, label = { Text("+ Add Skill") })
             }
         }
 
@@ -310,7 +317,7 @@ private fun PreferencesTab(viewModel: IdentityHubViewModel) {
                 profile.preferredIndustries.forEach { industry ->
                     SuggestionChip(onClick = {}, label = { Text(industry) })
                 }
-                SuggestionChip(onClick = { /* Add Industry */ }, label = { Text("+ Add") })
+                SuggestionChip(onClick = { showAddIndustryDialog = true }, label = { Text("+ Add") })
             }
         }
 
@@ -320,6 +327,80 @@ private fun PreferencesTab(viewModel: IdentityHubViewModel) {
                 onClick = { viewModel.onEvent(IdentityHubUiEvent.SaveDraftProfile) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isSaving
+            )
+        }
+    }
+
+        // Add Skill / Add Industry dialogs — wires the previously dead chips.
+        if (showAddSkillDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddSkillDialog = false },
+                title = { Text("Add Skill") },
+                text = {
+                    OutlinedTextField(
+                        value = newSkill,
+                        onValueChange = { newSkill = it },
+                        label = { Text("Skill") },
+                        placeholder = { Text("e.g. Jetpack Compose") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val skill = newSkill.trim()
+                            if (skill.isNotBlank()) {
+                                viewModel.onEvent(
+                                    IdentityHubUiEvent.UpdateDraftProfile(
+                                        profile.copy(skills = (profile.skills + skill).distinct())
+                                    )
+                                )
+                            }
+                            newSkill = ""
+                            showAddSkillDialog = false
+                        }
+                    ) { Text("Add") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddSkillDialog = false }) { Text("Cancel") }
+                }
+            )
+        }
+
+        if (showAddIndustryDialog) {
+            AlertDialog(
+                onDismissRequest = { showAddIndustryDialog = false },
+                title = { Text("Add Preferred Industry") },
+                text = {
+                    OutlinedTextField(
+                        value = newIndustry,
+                        onValueChange = { newIndustry = it },
+                        label = { Text("Industry") },
+                        placeholder = { Text("e.g. Fintech") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val industry = newIndustry.trim()
+                            if (industry.isNotBlank()) {
+                                viewModel.onEvent(
+                                    IdentityHubUiEvent.UpdateDraftProfile(
+                                        profile.copy(preferredIndustries = (profile.preferredIndustries + industry).distinct())
+                                    )
+                                )
+                            }
+                            newIndustry = ""
+                            showAddIndustryDialog = false
+                        }
+                    ) { Text("Add") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddIndustryDialog = false }) { Text("Cancel") }
+                }
             )
         }
     }
@@ -481,6 +562,7 @@ private fun SystemTab(
     onNavigateToPrivacy: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -539,7 +621,33 @@ private fun SystemTab(
             SectionHeader(title = "Data Management")
             AivanceWorkspaceCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { /* Export */ }, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = {
+                            // Wires the previously dead Export button: shares the
+                            // profile as portable text so the user keeps their data.
+                            val profile = uiState.profile ?: return@TextButton
+                            val payload = buildString {
+                                appendLine("AiVance Career Data Export")
+                                appendLine("Name: ").append(profile.fullName)
+                                appendLine("Target Role: ").append(profile.targetRole)
+                                appendLine("Skills: ").append(profile.skills.joinToString(", "))
+                                appendLine("Preferred Industries: ").append(profile.preferredIndustries.joinToString(", "))
+                                appendLine("Salary Expectation: ").append(profile.salaryExpectation)
+                                appendLine("Work Preference: ").append(profile.workPreference)
+                            }
+                            val sendIntent = android.content.Intent(
+                                android.content.Intent.ACTION_SEND
+                            ).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT, payload)
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, "AiVance Career Data")
+                            }
+                            context.startActivity(
+                                android.content.Intent.createChooser(sendIntent, "Export Career Data")
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Icon(Icons.Rounded.CloudDownload, null)
                         Spacer(Modifier.width(8.dp))
                         Text("Export Career Data")

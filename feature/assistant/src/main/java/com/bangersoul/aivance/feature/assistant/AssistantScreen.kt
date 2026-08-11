@@ -695,7 +695,9 @@ private fun AssistantInputBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                // Lift the composer above the keyboard (edge-to-edge IME insets).
+                .imePadding(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Mic — launches Android SpeechRecognizer

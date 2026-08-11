@@ -47,7 +47,8 @@ import java.util.Locale
 fun TrackerScreen(
     viewModel: TrackerViewModel,
     onBack: () -> Unit,
-    initialJobId: String? = null
+    initialJobId: String? = null,
+    onNavigateToAnalytics: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -126,7 +127,8 @@ fun TrackerScreen(
                         },
                         onNotesChange = { appId, notes ->
                             viewModel.onEvent(TrackerUiEvent.UpdateNotes(appId, notes))
-                        }
+                        },
+                        onNavigateToAnalytics = onNavigateToAnalytics
                     )
                     else -> {}
                 }
@@ -170,7 +172,8 @@ private fun PipelineContent(
     onSelect: (Long) -> Unit,
     onClose: () -> Unit,
     onDelete: (Long) -> Unit,
-    onNotesChange: (Long, String) -> Unit
+    onNotesChange: (Long, String) -> Unit,
+    onNavigateToAnalytics: () -> Unit
 ) {
     var showCapDialog by remember { mutableStateOf(false) }
 
@@ -181,7 +184,7 @@ private fun PipelineContent(
                 title = "Pipeline Performance",
                 description = "You have ${metrics.activeCount} active applications. Your interview conversion is ${metrics.interviewRate}%.",
                 actionLabel = "View Analytics",
-                onClick = { /* Navigate to Analytics */ }
+                onClick = onNavigateToAnalytics
             )
             Spacer(Modifier.height(12.dp))
             DailyQuotaCard(

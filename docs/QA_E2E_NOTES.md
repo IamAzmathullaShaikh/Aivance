@@ -175,3 +175,40 @@ Ready" / Gemma instead).
   genuinely keyword-targeted LinkedIn results.
 - The in-memory backstack still resets the current tab on full process death
   (pre-existing architecture limitation; typed data and DB state persist).
+
+## 8. Full re-test pass with real APIs (2026-08-11) ★
+
+Rebuilt + reinstalled the debug APK, configured **Groq** (`gsk_…6AM9`,
+health 200, enabled) and confirmed **LinkedIn/Apify** (`apif_…ES8K`, HEALTHY)
+persisted. End-to-end results:
+
+- **Discovery**: "Android Engineer" search returned **real results**
+  (Arbeitnow: "Full-Stack Developer / App / AI — Factory Innovations —
+  90 High Match"; "Senior Graphic Designer — Lemon.io — 80 Good Match").
+  LinkedIn contributed cached jobs because Apify's free tier is quota-exhausted
+  (403, documented §3.4) — graceful degradation confirmed.
+- **Job Details → Track**: added the job to the Pipeline kanban (Saved column,
+  "1 of 5 applied today"). Kanban drag-and-drop exists (Compose DnD) but is
+  not automatable via `adb swipe` (needs real long-press drag events).
+- **Prep Studio**: "Quick Practice" was a **dead stub** (`onClick = {}` — the
+  hero card had no callback). Fixed; live mock session now starts (Q1/5
+  behavioral question + answer field + submit).
+- **Pipeline "View Analytics"** was a dead stub → now opens the Intelligence
+  Center (verified).
+- **Job Details "Start Prep"** and **Analytics "Boost Score"** were dead
+  stubs → now navigate (Start Prep → Prep Studio; Boost Score → Intelligence
+  Hub).
+- **Identity Hub**: "+ Add Skill" / "+ Add industry" chips were dead → now
+  open add-dialogs (verified: "Jetpack Compose" added to Skills of Interest);
+  "Export Career Data" was dead → now shares a text payload via the system
+  sheet (verified). "Upload Document" (Vault) remains a stub.
+- **Keyboard/IME**: the app is edge-to-edge but no screen applied
+  `imePadding()` — the soft keyboard overlapped the assistant composer and
+  auth/onboarding forms. Added `imePadding()` to the assistant input bar,
+  AuthScreen scroll column, and onboarding columns. Verified: composer now
+  sits above Gboard (pixel-checked).
+- **Known automation limitation (not an app bug)**: the system file picker
+  (DocumentsUI) does not return a selection via `adb input tap` on this
+  emulator, so resume import through the wizard couldn't be driven here — the
+  ATS scan pipeline itself was verified in §5/earlier sessions (report create,
+  open, delete).

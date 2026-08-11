@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — Keyboard/IME overlap on edge-to-edge screens (2026-08-11)
+- The app runs `enableEdgeToEdge()` but no screen applied `imePadding()`, so the soft keyboard overlapped bottom content (assistant composer, auth Continue button, onboarding actions). Added `imePadding()` to the assistant input bar, the auth scroll column, and the onboarding step columns. Verified live: the composer now sits above Gboard (screenshot pixel-checked).
+
+### Fixed — Dead buttons wired (Quick Practice, Analytics, Prep, Export, Add Skill/Industry) (2026-08-11)
+- **Prep Studio "Quick Practice"** had an empty `onClick` (`/* Start session for upcoming */`) — now starts a behavioral mock immediately (upcoming interview role, or a default "Software Engineer" session). Verified live: a 5-question mock session starts.
+- **Pipeline "View Analytics"** had an empty onClick — now navigates to the Intelligence Center (verified live).
+- **Job Details "Start Prep"** (Readiness tab) had an empty onClick — now navigates to Prep Studio.
+- **Analytics "Boost Score"** had an empty onClick — now navigates to the Intelligence Hub.
+- **Identity Hub "+ Add Skill" / "+ Add" (industry)** chips were dead — now open a text dialog that adds to the draft profile (verified live: "Jetpack Compose" added).
+- **Identity Hub "Export Career Data"** was dead — now shares the profile as portable text via the system share sheet (verified live).
+- **Known remaining stubs**: Identity Hub "Upload Document" (Vault tab) and the legacy per-industry chips (`onClick = {}`) — lower priority, no wiring exists yet.
+
 ### Fixed — Assistant intent routing keys off the raw user message (2026-08-11)
 - The keyword intent detector ran against the **orchestrated** prompt, which embeds platform context including "Latest ATS Score: 0%". Because `ats` is a route keyword, **every** message was misrouted to `ANALYZE_RESUME` and short-circuited to a canned response — the LLM (cloud or on-device) was never reached, so the assistant could never hold open-ended conversation.
 - `AssistantRequest` now carries `rawUserMessage` (defaults to `userMessage` for compat); `GetAssistantResponseUseCase` routes intents off the raw text only, while the context-rich prompt still goes to the LLM. `AssistantViewModel` passes the unmodified user text as `rawUserMessage`.

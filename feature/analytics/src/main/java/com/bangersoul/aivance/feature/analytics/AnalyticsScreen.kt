@@ -27,7 +27,8 @@ import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToIntelligence: () -> Unit = {} 
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -68,7 +69,7 @@ fun AnalyticsScreen(
                     )
                     is AnalyticsUiState.Success -> {
                         when (selectedTab) {
-                            0 -> CareerHealthTab(state.intelligence, state.recommendations, viewModel)
+                            0 -> CareerHealthTab(state.intelligence, state.recommendations, viewModel, onNavigateToIntelligence)
                             1 -> CareerTrendsTab(state.historicalSnapshots)
                             2 -> CareerSimulatorTab(state.intelligence, state.simulation, viewModel)
                         }
@@ -84,7 +85,8 @@ fun AnalyticsScreen(
 private fun CareerHealthTab(
     intelligence: CareerIntelligence?,
     recommendations: List<CareerRecommendation>,
-    viewModel: AnalyticsViewModel
+    viewModel: AnalyticsViewModel,
+    onNavigateToIntelligence: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -102,7 +104,7 @@ private fun CareerHealthTab(
                 title = "Hireability Score: ${intelligence.careerScore}",
                 description = intelligence.predictions.successExplanation,
                 actionLabel = "Boost Score",
-                onClick = { /* Navigate to suggestions */ }
+                onClick = onNavigateToIntelligence
             )
         }
 

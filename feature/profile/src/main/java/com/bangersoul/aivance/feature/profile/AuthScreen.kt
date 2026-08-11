@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -74,7 +75,12 @@ fun AuthScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 32.dp)
+            // Lift the scroll viewport above the keyboard so the Continue
+            // button stays reachable while typing the email (edge-to-edge +
+            // adjustResize delivers IME insets; without imePadding the last
+            // form controls hide behind the keyboard).
+            .imePadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Brand mark

@@ -302,12 +302,14 @@ private fun ScreenContent(
         )
         Destination.Pipeline -> TrackerScreen(
             viewModel = hiltViewModel(),
-            onBack = onBack
+            onBack = onBack,
+            onNavigateToAnalytics = { onNavigate(Destination.Analytics) }
         )
         is Destination.TrackApplication -> TrackerScreen(
             viewModel = hiltViewModel(),
             initialJobId = destination.jobId,
-            onBack = onBack
+            onBack = onBack,
+            onNavigateToAnalytics = { onNavigate(Destination.Analytics) }
         )
 
         Destination.IdentityHub -> IdentityHubScreen(
@@ -332,7 +334,8 @@ private fun ScreenContent(
         Destination.Resources -> RemoteResourcesScreen(onBack = onBack)
         Destination.Analytics -> AnalyticsScreen(
             viewModel = hiltViewModel<com.bangersoul.aivance.feature.analytics.AnalyticsViewModel>(),
-            onBack = onBack
+            onBack = onBack,
+            onNavigateToIntelligence = { onNavigate(Destination.Intelligence) }
         )
 
         Destination.PrepStudio -> PrepStudioScreen(
@@ -385,7 +388,8 @@ private fun ScreenContent(
             onNavigateToCoverLetter = { jobId -> onNavigate(Destination.CoverLetter(jobId = jobId)) },
             onNavigateToPipeline = { onNavigate(Destination.Pipeline) },
             onNavigateToAts = { description -> onNavigate(Destination.Ats(jobDescription = description)) },
-            onNavigateToCompany = { companyName -> onNavigate(Destination.CompanyDetail(companyName)) }
+            onNavigateToCompany = { companyName -> onNavigate(Destination.CompanyDetail(companyName)) },
+            onNavigateToPrepStudio = { onNavigate(Destination.PrepStudio) }
         )
         is Destination.RecruiterDashboard -> RecruiterDashboardScreen(
             viewModel = hiltViewModel<RecruiterViewModel>(),
