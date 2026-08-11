@@ -128,6 +128,6 @@ In the use case:
 - **Model source**: community HF mirrors work but are supply-chain risk; make
   the URL configurable and document the default source honestly.
 - **APK size**: the native lib (`libllm_inference_engine_jni.so`) ships in the
-  APK — verify it's packaged (`unzip -l app-debug.apk | grep llm_inference`).
+  APK — verify it's packaged (`unzip -l app-x86_64-debug.apk | grep llm_inference`; debug APKs are per-ABI splits).
 - **Storage honesty**: the file name on disk should not claim a specific model
   if the compact variant can replace it.
