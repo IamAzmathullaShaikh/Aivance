@@ -1,9 +1,5 @@
 package com.bangersoul.aivance.feature.jobs
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,11 +25,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bangersoul.aivance.core.common.enums.EmploymentType
+import com.bangersoul.aivance.core.common.enums.ExperienceLevel
 import com.bangersoul.aivance.core.common.enums.RemotePolicy
 import com.bangersoul.aivance.core.common.enums.RemoteType
 import com.bangersoul.aivance.core.common.model.JobListing
 import com.bangersoul.aivance.core.common.model.JobSearchFilter
-import com.bangersoul.aivance.core.common.model.ProfileState
 import com.bangersoul.aivance.core.designsystem.components.*
 import com.bangersoul.aivance.core.designsystem.theme.AivanceTheme
 
@@ -55,89 +51,131 @@ fun JobsScreen(
         error = (uiState as? JobsUiState.Error)?.message,
         onRetry = { viewModel.onEvent(JobsUiEvent.Refresh) }
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        // Single scrollable surface: hero, search, filters and sort are header
+        // items; the job cards follow as list items. Previously this was a
+        // non-scrollable Column, which starved the results list of height on
+        // phone viewports — clipping filter rows and hiding every job card.
+        val success = uiState as? JobsUiState.Success
+        // Merged score per job (R-04): ViewModel-computed AI/rule-based fit
+        // scores win; a live rule-based computation and the provider-supplied
+        // match score cover the window before AI scores land so badges render
+        // immediately.
+        val mergedScores: Map<String, Int> = success?.jobs?.associate { job ->
+            job.id to (success.fitScores[job.id]
+                ?: success.careerContext?.profile?.let { JobFitScorer.calculateFitScore(job, it) }
+                ?: job.matchScore
+                ?: 0)
+        } ?: emptyMap()
+        val orderedJobs = if (sortByFit) {
+            success?.jobs?.sortedByDescending { mergedScores[it.id] ?: 0 } ?: emptyList()
+        } else {
+            success?.jobs ?: emptyList()
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             // Hero Section: Current Hunt status
-            (uiState as? JobsUiState.Success)?.careerContext?.let { context ->
-                DiscoveryHeroSection(
-                    targetRole = context.profile.targetRole,
-                    matchCount = (uiState as? JobsUiState.Success)?.jobs?.size ?: 0,
-                    onSearchUpdate = { searchQuery = it; viewModel.onEvent(JobsUiEvent.Search(it)) }
-                )
-                Spacer(Modifier.height(16.dp))
+            success?.careerContext?.let { context ->
+                item(key = "hero") {
+                    DiscoveryHeroSection(
+                        targetRole = context.profile.targetRole,
+                        matchCount = success.jobs.size,
+                        onSearchUpdate = { searchQuery = it; viewModel.onEvent(JobsUiEvent.Search(it)) }
+                    )
+                }
             }
 
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text(stringResource(R.string.search_placeholder)) },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                trailingIcon = {
-                    Row {
-                        if (searchQuery.isNotBlank()) {
+            item(key = "search") {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text(stringResource(R.string.search_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                    trailingIcon = {
+                        Row {
+                            if (searchQuery.isNotBlank()) {
+                                IconButton(onClick = {
+                                    searchQuery = ""
+                                    viewModel.onEvent(JobsUiEvent.Search(""))
+                                }) {
+                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.clear_search))
+                                }
+                            }
                             IconButton(onClick = {
-                                searchQuery = ""
-                                viewModel.onEvent(JobsUiEvent.Search(""))
+                                viewModel.onEvent(JobsUiEvent.Search(searchQuery))
                             }) {
-                                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.clear_search))
+                                Icon(
+                                    Icons.Rounded.Send,
+                                    contentDescription = stringResource(R.string.search),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
-                        IconButton(onClick = {
-                            viewModel.onEvent(JobsUiEvent.Search(searchQuery))
-                        }) {
-                            Icon(
-                                Icons.Rounded.Send,
-                                contentDescription = stringResource(R.string.search),
-                                tint = MaterialTheme.colorScheme.primary
+                    },
+                    singleLine = true,
+                    shape = AivanceTheme.shapes.large,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = { viewModel.onEvent(JobsUiEvent.Search(searchQuery)) }
+                    )
+                )
+            }
+
+            item(key = "filters") {
+                JobFilterBar(
+                    filter = success?.filter ?: JobSearchFilter(),
+                    onFilterChange = { viewModel.onEvent(JobsUiEvent.UpdateFilter(it)) },
+                    onClear = { viewModel.onEvent(JobsUiEvent.ClearFilters) }
+                )
+            }
+
+            item(key = "sort") {
+                FitSortRow(
+                    sortByFit = sortByFit,
+                    onSortChange = { sortByFit = it }
+                )
+            }
+
+            when (val state = uiState) {
+                is JobsUiState.Loading -> item(key = "skeleton") {
+                    SkeletonList(itemCount = 6, showAvatar = true)
+                }
+                is JobsUiState.Success ->
+                    if (state.jobs.isEmpty()) {
+                        item(key = "empty") {
+                            AivanceEmptyState(
+                                title = if (state.isSearching) {
+                                    stringResource(R.string.no_matches_found)
+                                } else {
+                                    stringResource(R.string.no_jobs_yet)
+                                },
+                                description = if (state.isSearching) {
+                                    stringResource(R.string.no_matches_desc)
+                                } else {
+                                    stringResource(R.string.no_jobs_desc)
+                                },
+                                icon = Icons.Rounded.WorkOff,
+                                primaryActionText = stringResource(R.string.refresh),
+                                onPrimaryAction = { viewModel.onEvent(JobsUiEvent.Refresh) },
+                                secondaryActionText = stringResource(R.string.saved_jobs),
+                                onSecondaryAction = onNavigateToSavedJobs
                             )
                         }
+                    } else {
+                        items(orderedJobs, key = { it.id }) { job ->
+                            JobDiscoveryCard(
+                                job = job,
+                                fitScore = mergedScores[job.id] ?: 0,
+                                onClick = { onNavigateToDetails(job.id) },
+                                onBookmarkClick = { viewModel.onEvent(JobsUiEvent.ToggleBookmark(job.id)) }
+                            )
+                        }
+                        item(key = "bottom_spacer") { Spacer(Modifier.height(80.dp)) }
                     }
-                },
-                singleLine = true,
-                shape = AivanceTheme.shapes.large,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(
-                    onSearch = { viewModel.onEvent(JobsUiEvent.Search(searchQuery)) }
-                )
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            JobFilterBar(
-                filter = (uiState as? JobsUiState.Success)?.filter ?: JobSearchFilter(),
-                onFilterChange = { viewModel.onEvent(JobsUiEvent.UpdateFilter(it)) },
-                onClear = { viewModel.onEvent(JobsUiEvent.ClearFilters) }
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            FitSortRow(
-                sortByFit = sortByFit,
-                onSortChange = { sortByFit = it }
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            AnimatedContent(
-                targetState = uiState,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "JobsListTransition"
-            ) { state ->
-                when (state) {
-                    is JobsUiState.Loading -> SkeletonList(itemCount = 6, showAvatar = true)
-                    is JobsUiState.Success -> JobDiscoveryList(
-                        jobs = state.jobs,
-                        fitScores = state.fitScores,
-                        sortByFit = sortByFit,
-                        isSearching = state.isSearching,
-                        profile = state.careerContext?.profile,
-                        onJobClick = onNavigateToDetails,
-                        onBookmarkClick = { viewModel.onEvent(JobsUiEvent.ToggleBookmark(it)) },
-                        onRefresh = { viewModel.onEvent(JobsUiEvent.Refresh) },
-                        onSavedJobs = onNavigateToSavedJobs
-                    )
-                    else -> {}
-                }
+                else -> {}
             }
         }
     }
@@ -576,64 +614,6 @@ private fun RemoteType.uiLabel(): String = stringResource(
 )
 
 @Composable
-private fun JobDiscoveryList(
-    jobs: List<JobListing>,
-    fitScores: Map<String, Int>,
-    sortByFit: Boolean,
-    isSearching: Boolean,
-    profile: ProfileState?,
-    onJobClick: (String) -> Unit,
-    onBookmarkClick: (String) -> Unit,
-    onRefresh: () -> Unit,
-    onSavedJobs: () -> Unit
-) {
-    if (jobs.isEmpty()) {
-        AivanceEmptyState(
-            title = if (isSearching) stringResource(R.string.no_matches_found) else stringResource(R.string.no_jobs_yet),
-            description = if (isSearching) {
-                stringResource(R.string.no_matches_desc)
-            } else {
-                stringResource(R.string.no_jobs_desc)
-            },
-            icon = Icons.Rounded.WorkOff,
-            primaryActionText = stringResource(R.string.refresh),
-            onPrimaryAction = onRefresh,
-            secondaryActionText = stringResource(R.string.saved_jobs),
-            onSecondaryAction = onSavedJobs
-        )
-    } else {
-        // Merged score per job (R-04): ViewModel-computed AI/rule-based fit scores
-        // win; a live rule-based computation and the provider-supplied match score
-        // cover the window before AI scores land so badges render immediately.
-        val scores = jobs.associate { job ->
-            job.id to (fitScores[job.id]
-                ?: (profile?.let { JobFitScorer.calculateFitScore(job, it) })
-                ?: job.matchScore
-                ?: 0)
-        }
-        val orderedJobs = if (sortByFit) {
-            jobs.sortedByDescending { scores[it.id] ?: 0 }
-        } else {
-            jobs
-        }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(orderedJobs, key = { it.id }) { job ->
-                JobDiscoveryCard(
-                    job = job,
-                    fitScore = scores[job.id] ?: 0,
-                    onClick = { onJobClick(job.id) },
-                    onBookmarkClick = { onBookmarkClick(job.id) }
-                )
-            }
-            item { Spacer(Modifier.height(80.dp)) }
-        }
-    }
-}
-
-@Composable
 private fun JobDiscoveryCard(
     job: JobListing,
     fitScore: Int,
@@ -712,11 +692,13 @@ private fun JobDiscoveryCard(
                         fontWeight = FontWeight.Bold,
                         color = if (fitScore > 80) AivanceTheme.colors.success else AivanceTheme.colors.accent
                     )
-                    Text(
-                        text = "Matches your ${job.experienceLevel.name.lowercase()} experience.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (job.experienceLevel != ExperienceLevel.NOT_SPECIFIED) {
+                        Text(
+                            text = "Matches your ${job.experienceLevel.name.lowercase()} experience.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
